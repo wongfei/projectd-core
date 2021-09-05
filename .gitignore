@@ -1,0 +1,9 @@
+obj/
+src/.vs/
+
+bin/*.lib
+bin/*.pdb
+
+*.exe
+*.ilk
+*.log
