@@ -1,0 +1,462 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{2c535dc2-3412-4017-ae90-d57b43183135}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car">
+      <UniqueIdentifier>{b41a93b7-83bc-482f-ae6b-e450e0a359ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Physics\ODE">
+      <UniqueIdentifier>{626e7dd7-5149-4d29-b52c-c5c5833ef15a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Physics\Interfaces">
+      <UniqueIdentifier>{2484a0a6-f51b-43cc-81d1-ab3c8109d377}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car\Tyre">
+      <UniqueIdentifier>{1c9ec8e1-2ce1-4584-8717-7f688000855b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car\Suspension">
+      <UniqueIdentifier>{9c9e74ad-2a9f-4574-8500-26290f447872}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car\Aero">
+      <UniqueIdentifier>{aa115a48-cbaf-4521-8370-76c42f0a43e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car\Drivetrain">
+      <UniqueIdentifier>{4d6d6ae7-bd1d-40b1-8cf9-2b175b73f201}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sim">
+      <UniqueIdentifier>{a32714a6-56d6-469c-bf54-3b30528978bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{c5551f9b-ed17-40b4-b7b0-3405f638e887}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{3c60c6df-1cfd-4c7f-99e8-29629e11a14a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{431f5d0e-c2ac-45c7-8555-96ee242ab780}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App">
+      <UniqueIdentifier>{eaefcd0d-51cc-4ab6-bc7a-52a9bccee15d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Car\Systems">
+      <UniqueIdentifier>{4111327f-3955-4968-9592-cc7d4173a4ba}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Car\Car.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarColliderManager.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\CollisionMeshODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\JointODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\PhysicsEngineODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\RayCasterODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\RigidBodyODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ICollisionCallback.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ICollisionObject.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\IJoint.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\IPhysicsEngine.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\IRayCaster.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\IRigidBody.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\AntirollBar.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\HeaveSpring.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ISuspension.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionDW.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionAxle.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionML.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionStrut.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Tyre.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\TyreCompound.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\TyreModel.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\TyreStatus.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\TyreThermalModel.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\AeroMap.h">
+      <Filter>Car\Aero</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Wing.h">
+      <Filter>Car\Aero</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\WingDynamicController.h">
+      <Filter>Car\Aero</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ITyreModel.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\BrushSlipProvider.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\BrushTyreModel.h">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Damper.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Drivetrain.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Engine.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\GearChanger.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\Turbo.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionBase.h">
+      <Filter>Car\Suspension</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\PhysicsFactory.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\Simulator.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\SlipStream.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\Surface.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\Track.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\ITrackRayCastProvider.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ICoastGenerator.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ITorqueGenerator.h">
+      <Filter>Car\Drivetrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\TyreUtils.inl">
+      <Filter>Car\Tyre</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarDebug.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DIContext.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DIDevice.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DICarController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\FmodContext.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\FmodAudioRenderer.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarCommon.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Sim\SimulatorCommon.h">
+      <Filter>Sim</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Core.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Curve.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Diag.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Event.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\INIReader.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\OS.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PIDController.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SignalGenerator.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\String.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\tkspline.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ABIValidator.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Common.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CubicSpline.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Speed.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ITriMesh.h">
+      <Filter>Physics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\PhysicsCommon.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\TriMeshODE.h">
+      <Filter>Physics\ODE</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ICarAudioRenderer.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ICarControlsProvider.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarControls.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarState.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\BrakeSystem.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\DynamicController.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\SteeringSystem.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ThermalObject.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DICommon.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\CarImpl.h">
+      <Filter>Car</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\IGameController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\InputVariable.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\KeyboardCarController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Car\Car.cpp">
+      <Filter>Car</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\CarColliderManager.cpp">
+      <Filter>Car</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\CollisionMeshODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\JointODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\PhysicsEngineODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\RayCasterODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\RigidBodyODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\AntirollBar.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\HeaveSpring.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionDW.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionAxle.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionML.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionStrut.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Tyre.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\TyreForces.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\TyreModel.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\TyreThermalModel.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\AeroMap.cpp">
+      <Filter>Car\Aero</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Wing.cpp">
+      <Filter>Car\Aero</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\WingDynamicController.cpp">
+      <Filter>Car\Aero</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\BrushSlipProvider.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\BrushTyreModel.cpp">
+      <Filter>Car\Tyre</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Damper.cpp">
+      <Filter>Car\Suspension</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Drivetrain.cpp">
+      <Filter>Car\Drivetrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Engine.cpp">
+      <Filter>Car\Drivetrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\GearChanger.cpp">
+      <Filter>Car\Drivetrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\Turbo.cpp">
+      <Filter>Car\Drivetrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\PhysicsFactory.cpp">
+      <Filter>Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sim\Simulator.cpp">
+      <Filter>Sim</Filter>
+    </ClCompile>
+    <ClCompile Include="Sim\SlipStream.cpp">
+      <Filter>Sim</Filter>
+    </ClCompile>
+    <ClCompile Include="Sim\Track.cpp">
+      <Filter>Sim</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DIContext.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DIDevice.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DICarController.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\FmodAudioRenderer.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\FmodContext.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Curve.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Diag.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\INIReader.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Math.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\OS.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PIDController.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\String.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ABIValidator.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CubicSpline.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\TriMeshODE.cpp">
+      <Filter>Physics\ODE</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\BrakeSystem.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\DynamicController.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\SteeringSystem.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\ThermalObject.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\InputVariable.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\KeyboardCarController.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

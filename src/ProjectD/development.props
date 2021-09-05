@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)..\bin\</OutDir>
+    <IntDir>$(SolutionDir)..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <StringPooling>true</StringPooling>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\thirdparty\ode\include;$(SolutionDir)..\thirdparty\fmod\include;$(SolutionDir)..\thirdparty\sdl2\include;$(SolutionDir)..\thirdparty\glm\include;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\thirdparty\ode\lib\;$(SolutionDir)..\thirdparty\fmod\lib\;$(SolutionDir)..\thirdparty\sdl2\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

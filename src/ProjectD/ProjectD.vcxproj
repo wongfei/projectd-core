@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Car\CarImpl.h" />
+    <ClInclude Include="Car\ICarAudioRenderer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Audio\FmodAudioRenderer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Core\ABIValidator.h" />
+    <ClInclude Include="Core\Common.h" />
+    <ClInclude Include="Core\Core.h" />
+    <ClInclude Include="Core\CubicSpline.h" />
+    <ClInclude Include="Core\Speed.h" />
+    <ClInclude Include="Input\DICarController.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\CarState.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\ICarControlsProvider.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\CarCommon.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Core\Event.h" />
+    <ClInclude Include="Core\OS.h" />
+    <ClInclude Include="Core\SignalGenerator.h" />
+    <ClInclude Include="Car\CarControls.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\ISuspension.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\ITyreModel.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\SteeringSystem.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\TyreCompound.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\TyreStatus.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Input\DICommon.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Input\IGameController.h" />
+    <ClInclude Include="Input\InputVariable.h" />
+    <ClInclude Include="Input\KeyboardCarController.h" />
+    <ClInclude Include="Physics\PhysicsCommon.h" />
+    <ClInclude Include="Physics\ITriMesh.h" />
+    <ClInclude Include="Physics\PhysicsFactory.h" />
+    <ClInclude Include="Car\ICoastGenerator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\ITorqueGenerator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Sim\SimulatorCommon.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Sim\Surface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Sim\ITrackRayCastProvider.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Core\Diag.h" />
+    <ClInclude Include="Input\DIContext.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Input\DIDevice.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Audio\FmodContext.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\TriMeshODE.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Core\tkspline.h" />
+    <ClInclude Include="Core\Curve.h" />
+    <ClInclude Include="Core\INIReader.h" />
+    <ClInclude Include="Core\Math.h" />
+    <ClInclude Include="Core\PIDController.h" />
+    <ClInclude Include="Car\AeroMap.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\AntirollBar.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\BrakeSystem.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\BrushSlipProvider.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\BrushTyreModel.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Car.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\CarColliderManager.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Damper.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Drivetrain.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\DynamicController.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\WingDynamicController.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Engine.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\GearChanger.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\HeaveSpring.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Sim\SlipStream.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionDW.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionAxle.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionML.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\SuspensionStrut.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\ThermalObject.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Turbo.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Tyre.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\TyreModel.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\TyreThermalModel.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\Wing.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\CollisionMeshODE.h" />
+    <ClInclude Include="Physics\ICollisionCallback.h" />
+    <ClInclude Include="Physics\ICollisionObject.h" />
+    <ClInclude Include="Physics\IJoint.h" />
+    <ClInclude Include="Physics\IPhysicsEngine.h" />
+    <ClInclude Include="Physics\IRayCaster.h" />
+    <ClInclude Include="Physics\IRigidBody.h" />
+    <ClInclude Include="Physics\ODE\JointODE.h" />
+    <ClInclude Include="Physics\ODE\PhysicsEngineODE.h" />
+    <ClInclude Include="Sim\Simulator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Physics\ODE\RayCasterODE.h" />
+    <ClInclude Include="Physics\ODE\RigidBodyODE.h" />
+    <ClInclude Include="Sim\Track.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Core\String.h" />
+    <ClInclude Include="Car\SuspensionBase.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Car\CarDebug.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Audio\FmodContext.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Audio\FmodAudioRenderer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Core\ABIValidator.cpp" />
+    <ClCompile Include="Core\CubicSpline.cpp" />
+    <ClCompile Include="Core\Diag.cpp" />
+    <ClCompile Include="Core\Curve.cpp" />
+    <ClCompile Include="Core\INIReader.cpp" />
+    <ClCompile Include="Core\Math.cpp" />
+    <ClCompile Include="Core\PIDController.cpp" />
+    <ClCompile Include="Core\OS.cpp" />
+    <ClCompile Include="Car\AeroMap.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\AntirollBar.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\BrakeSystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\BrushSlipProvider.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\BrushTyreModel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Car.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\CarColliderManager.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Damper.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Input\DICarController.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Drivetrain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\DynamicController.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\SteeringSystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\WingDynamicController.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Engine.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\GearChanger.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\HeaveSpring.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Input\InputVariable.cpp" />
+    <ClCompile Include="Input\KeyboardCarController.cpp" />
+    <ClCompile Include="Physics\PhysicsFactory.cpp" />
+    <ClCompile Include="Physics\ODE\TriMeshODE.cpp" />
+    <ClCompile Include="Sim\SlipStream.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionDW.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionAxle.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionML.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\SuspensionStrut.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\ThermalObject.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Turbo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\Tyre.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\TyreForces.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\TyreModel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Car\TyreThermalModel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Input\DIContext.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Input\DIDevice.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="Car\TyreUtils.inl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </ClInclude>
+    <ClCompile Include="Car\Wing.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\CollisionMeshODE.cpp" />
+    <ClCompile Include="Physics\ODE\JointODE.cpp" />
+    <ClCompile Include="Physics\ODE\PhysicsEngineODE.cpp" />
+    <ClCompile Include="Sim\Simulator.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Physics\ODE\RayCasterODE.cpp" />
+    <ClCompile Include="Physics\ODE\RigidBodyODE.cpp" />
+    <ClCompile Include="Sim\Track.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Core\String.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{0304220B-B60A-484F-95F8-3018CD83BC0B}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>ProjectD</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="debug.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="development.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>DEBUG;WIN32;_WINDOWS;_LIB;UNICODE;CCD_SINGLE;dTRIMESH_ENABLED;dTRIMESH_OPCODE;dTRIMESH_16BIT_INDICES;dTLS_ENABLED</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4100;4458</DisableSpecificWarnings>
+      <SmallerTypeCheck>
+      </SmallerTypeCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_LIB;UNICODE;CCD_SINGLE;dTRIMESH_ENABLED;dTRIMESH_OPCODE;dTRIMESH_16BIT_INDICES;dTLS_ENABLED</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4100;4458</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
