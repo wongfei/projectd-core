@@ -9,6 +9,9 @@
 #include "Car/BrakeSystem.h"
 #include "Car/SteeringSystem.h"
 #include "Car/GearChanger.h"
+#include "Car/AutoClutch.h"
+#include "Car/AutoBlip.h"
+#include "Car/AutoShifter.h"
 
 #include "Car/Turbo.h"
 #include "Car/Engine.h"

@@ -24,5 +24,6 @@ std::wstring strwfv(const wchar_t* format, va_list args);
 std::wstring strwf(const wchar_t* format, ...);
 
 std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim);
+std::vector<std::string> split(const std::string& s, const std::string& delim);
 
 }

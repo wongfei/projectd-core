@@ -2,6 +2,7 @@
 
 #include "Car/CarCommon.h"
 #include "Car/CarControls.h"
+#include "Car/ICarControlsProvider.h"
 #include "Car/ISuspension.h"
 #include "Core/Event.h"
 
@@ -76,7 +77,8 @@ struct Car : public virtual IObject
 	mat44f getGraphicsOffsetMatrix() const;
 	bool isSleeping() const;
 	float getEngineRpm() const;
-	float getOptimalBrake();
+	float getOptimalBrake() const;
+	float getDrivingTyresSlip() const;
 
 	Event<OnStepCompleteEvent> evOnStepComplete;
 	Event<OnCollisionEvent> evOnCollisionEvent;
@@ -151,6 +153,9 @@ struct Car : public virtual IObject
 	std::unique_ptr<SteeringSystem> steeringSystem;
 	std::unique_ptr<Drivetrain> drivetrain;
 	std::unique_ptr<GearChanger> gearChanger;
+	std::unique_ptr<AutoClutch> autoClutch;
+	std::unique_ptr<AutoBlip> autoBlip;
+	std::unique_ptr<AutoShifter> autoShift;
 	std::unique_ptr<CarState> state;
 
 	CarControls controls;
@@ -180,6 +185,7 @@ struct Car : public virtual IObject
 	float lastGyroFF = 0;
 	float lastFF = 0;
 	float lastDamp = 0;
+	VibrationDef lastVibr;
 };
 
 }

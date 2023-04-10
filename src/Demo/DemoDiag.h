@@ -94,15 +94,19 @@ static void renderText()
 
 	float x = 1, y = 1, dy = 25;
 	font_.draw(x, y, "TS %.3f", gameTime_); y += dy;
-	font_.draw(x, y, "maxDt %.3f millis", statMaxDt_); y += dy;
-	font_.draw(x, y, "maxSim %.3f millis", statMaxSim_); y += dy;
-	font_.draw(x, y, "maxDraw %.3f millis", statMaxDraw_); y += dy;
+	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
+	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
+	font_.draw(x, y, "maxDraw %.3f ms", statMaxDraw_); y += dy;
 	font_.draw(x, y, "simHZ %d %" PRIu64, (int)statSimRate_, simId_); y += dy;
 	font_.draw(x, y, "drawHZ %d %" PRIu64, (int)statDrawRate_, drawId_); y += dy;
 
+	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
+	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;
+
 	if (lookatSurf_) {
-		font_.draw(x, y, "surf cat=%d istrack=%d grip=%.3f",
-			(int)lookatSurf_->collisionCategory,
+		font_.draw(x, y, "surf sector=%u cat=%u istrack=%d grip=%.3f",
+			lookatSurf_->sectorID,
+			lookatSurf_->collisionCategory,
 			(int)lookatSurf_->isValidTrack,
 			lookatSurf_->gripMod
 		);
@@ -121,6 +125,7 @@ static void renderText()
 	font_.draw(x, y, "geartime #%d %.3f", gear, timeSinceShift_); y += dy;
 	font_.draw(x, y, "collisions %d", (int)sim_->collisions.size()); y += dy;
 
+	#if 0
 	for (int i = 0; i < 4; ++i)
 	{
 		auto s = car_->suspensions[i]->getStatus();
@@ -131,6 +136,7 @@ static void renderText()
 	{
 		font_.draw(x, y, "psi%d %3.2f", i, (car_->tyres[i]->status.pressureDynamic)); y += dy;
 	}
+	#endif
 
 	#if 0
 	for (int i = 0; i < 4; ++i)
@@ -143,7 +149,7 @@ static void renderText()
 	}
 	#endif
 
-	#if 1
+	#if 0
 	for (int i = 0; i < 4; ++i)
 	{
 		font_.draw(x, y, "SR%d %+10.5f", i, car_->tyres[i]->status.slipRatio); y += dy;
@@ -154,18 +160,43 @@ static void renderText()
 	}
 	#endif
 
+	#if 0
+	for (int i = 0; i < 2; ++i)
+	{
+		font_.draw(x, y, "ST #%d %.4f", i, car_->suspensions[i]->getSteerTorque()); y += dy;
+	}
+	#endif
+
+	#if 0
+	for (int i = 0; i < 2; ++i)
+	{
+		font_.draw(x, y, "FX FY MZ FT #%d %.4f %.4f %.4f %.4f", i, car_->tyres[i]->status.Fx, car_->tyres[i]->status.Fy, car_->tyres[i]->status.Mz, car_->tyres[i]->status.feedbackTorque); y += dy;
+		font_.draw(x, y, "DX DY #%d %.4f %.4f", i, car_->tyres[i]->status.Dx, car_->tyres[i]->status.Dy); y += dy;
+	}
+	#endif
+
 	// FF
 	#if 0
-	font_.draw(x, y, "mzCurrent %.3f", car_->mzCurrent); y += dy;
-	font_.draw(x, y, "lastPureMZFF %.3f", car_->lastPureMZFF); y += dy;
-	font_.draw(x, y, "lastFF %.3f", car_->lastFF); y += dy;
-	font_.draw(x, y, "lastDamp %.3f", car_->lastDamp); y += dy;
-	font_.draw(x, y, "lastGyroFF %.3f", car_->lastGyroFF); y += dy;
-	font_.draw(x, y, "lastSteerPosition %.3f", car_->lastSteerPosition); y += dy;
+	float fSteerTorq = car_->suspensions[0]->getSteerTorque() + car_->suspensions[1]->getSteerTorque();
+	font_.draw(x, y, "SteerPosition %.3f", car_->lastSteerPosition); y += dy;
+	font_.draw(x, y, "SteerTorqSum %.3f", fSteerTorq); y += dy;
+	font_.draw(x, y, "CurrentMZ %.3f", car_->mzCurrent); y += dy;
+	font_.draw(x, y, "PureMZFF %.3f", car_->lastPureMZFF); y += dy;
+	font_.draw(x, y, "GyroFF %.3f", car_->lastGyroFF); y += dy;
+	font_.draw(x, y, "FF %.3f", car_->lastFF); y += dy;
+	font_.draw(x, y, "Damp %.3f", car_->lastDamp); y += dy;
+	#endif
+
+	#if 0
+	font_.draw(x, y, "abs %.4f", car_->lastVibr.abs); y += dy;
+	font_.draw(x, y, "curbs %.4f", car_->lastVibr.curbs); y += dy;
+	font_.draw(x, y, "engine %.4f", car_->lastVibr.engine); y += dy;
+	font_.draw(x, y, "gforce %.4f", car_->lastVibr.gforce); y += dy;
+	font_.draw(x, y, "slips %.4f", car_->lastVibr.slips); y += dy;
 	#endif
 
 	// CAM POS
-	#if 1
+	#if 0
 	auto vcar = car_->body->worldToLocal({ 0, 0, 0 });
 	auto off = car_->body->worldToLocal(vec3f(camPos_.x, camPos_.y, camPos_.z));
 	font_.draw(x, y, "CAR %.2f %.2f %.2f", vcar.x, vcar.y, vcar.z); y += dy;
@@ -175,7 +206,6 @@ static void renderText()
 
 	auto euler = car_->body->getWorldMatrix(0).getEulerAngles();
 	font_.draw(x, y, "Euler %.2f %.2f %.2f", euler.x, euler.y, euler.z); y += dy;
-
 	#endif
 
 	// STATUS BAR

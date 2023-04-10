@@ -26,13 +26,14 @@ bool Simulator::init(const std::wstring& _basePath)
 	dynamicTemp.baseRoad = defT;
 	dynamicTemp.baseAir = defT;
 
-	fuelConsumptionRate = 1.0f;
-	tyreConsumptionRate = 1.0f;
-	mechanicalDamageRate = 1.0f;
+	fuelConsumptionRate = 0.0f;
+	tyreConsumptionRate = 0.0f;
+	mechanicalDamageRate = 0.0f;
 	allowTyreBlankets = false;
 	isEngineStallEnabled = true;
 
-	ffGyroWheelGain = 0; // 0.004f
+	//ffGyroWheelGain = 0;
+	ffGyroWheelGain = 0.004f;
 	ffFlatSpotGain = 0.05f;
 	ffDamperGain = 1.0f;
 	ffDamperMinValue = 0;

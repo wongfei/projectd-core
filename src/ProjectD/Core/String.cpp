@@ -106,4 +106,25 @@ std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim
 	return std::move(res);
 }
 
+std::vector<std::string> split(const std::string& s, const std::string& delim)
+{
+	std::vector<std::string> res;
+	size_t start = 0;
+	for (;;)
+	{
+		size_t end = s.find(delim, start);
+		if (end != std::string::npos)
+		{
+			res.emplace_back(s.substr(start, end - start));
+			start = end + delim.length();
+		}
+		else
+		{
+			res.emplace_back(s.substr(start));
+			break;
+		}
+	}
+	return std::move(res);
+}
+
 }

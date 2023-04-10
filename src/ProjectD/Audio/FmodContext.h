@@ -14,6 +14,8 @@ struct FmodContext : public virtual IObject
 	~FmodContext();
 
 	void init();
+	void loadGUIDs(const std::string& fileName);
+	void clearGUIDs();
 	void loadBank(const std::string& fileName);
 	void enumerate();
 	void update();
@@ -22,6 +24,7 @@ struct FmodContext : public virtual IObject
 
 	FMOD::Studio::System* system = nullptr;
 	std::vector<FMOD::Studio::Bank*> banks;
+	std::map<std::string, std::string> guidToEventMap;
 	std::map<std::string, FMOD::Studio::EventDescription*> eventDescMap;
 	std::map<std::string, FMOD::Studio::EventInstance*> eventInstMap;
 };

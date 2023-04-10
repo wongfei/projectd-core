@@ -12,7 +12,15 @@ static void initSDL()
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	appWindow_ = SDL_CreateWindow("DEMO", 0, 0, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN_DESKTOP);
+	int posy = 0; //fullscreen_ ? 0 : 100;
+	unsigned int winFlags = SDL_WINDOW_OPENGL;
+
+	if (fullscreen_)
+		winFlags |= (SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN_DESKTOP);
+	else
+		winFlags |= (SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+
+	appWindow_ = SDL_CreateWindow("DEMO", 0, posy, width_, height_, winFlags);
 	glContext_ = SDL_GL_CreateContext(appWindow_);
 	SDL_GL_SetSwapInterval(swapInterval_);
 

@@ -56,6 +56,9 @@ bool Car::init(const std::wstring& modelName)
 
 	// Suspensions
 
+	antirollBars.emplace_back(std::make_unique<AntirollBar>());
+	antirollBars.emplace_back(std::make_unique<AntirollBar>());
+
 	auto ini(std::make_unique<INIReader>(carDataPath + L"suspensions.ini"));
 
 	auto strRearType = ini->getString(L"REAR", L"TYPE");
@@ -128,25 +131,46 @@ bool Car::init(const std::wstring& modelName)
 		tyreCompounds.emplace_back(compound->name);
 	}
 
-	for (int i = 0; i < 4; i += 2)
+	#if 1
+	for (size_t i = 0; i < 4; i += 2)
 	{
-		if (suspensions[i]->getType() == SuspensionType::DoubleWishbone)
+		if (suspensions[i]->getType() == SuspensionType::DoubleWishbone && 
+			suspensions[i + 1]->getType() == SuspensionType::DoubleWishbone)
 		{
-			auto s1 = (SuspensionDW*)suspensions[i];
-			auto s2 = (SuspensionDW*)suspensions[i + 1];
+			auto susA = (SuspensionDW*)suspensions[i];
+			auto susB = (SuspensionDW*)suspensions[i + 1];
 			bool isFront = (i == 0);
 
 			auto pSpring = std::make_unique<HeaveSpring>();
-			pSpring->init(body.get(), s1, s2, isFront, carDataPath);
+			pSpring->init(body.get(), susA, susB, isFront, carDataPath);
 			heaveSprings.emplace_back(std::move(pSpring));
 		}
 	}
+	#endif
+
+	#if 0
+	bool numDWSusp = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		if (suspensions[i]->getType() == SuspensionType::DoubleWishbone)
+			++numDWSusp;
+	}
+	if (numDWSusp == 4)
+	{
+		auto pFront = std::make_unique<HeaveSpring>();
+		pFront->init(body.get(), (SuspensionDW*)&suspensions[0], (SuspensionDW*)&suspensions[1], true, carDataPath);
+
+		auto pRear = std::make_unique<HeaveSpring>();
+		pRear->init(body.get(), (SuspensionDW*)&suspensions[2], (SuspensionDW*)&suspensions[3], false, carDataPath);
+
+		heaveSprings.emplace_back(std::move(pFront));
+		heaveSprings.emplace_back(std::move(pRear));
+	}
+	#endif
 
 	ridePickupPoint[0].z = suspensions[0]->getBasePosition().z;
 	ridePickupPoint[1].z = suspensions[2]->getBasePosition().z;
 
-	antirollBars.emplace_back(std::make_unique<AntirollBar>());
-	antirollBars.emplace_back(std::make_unique<AntirollBar>());
 	antirollBars[0]->init(body.get(), suspensions[0], suspensions[1]);
 	antirollBars[1]->init(body.get(), suspensions[2], suspensions[3]);
 	antirollBars[0]->k = ini->getFloat(L"ARB", L"FRONT");
@@ -191,6 +215,15 @@ bool Car::init(const std::wstring& modelName)
 
 	gearChanger.reset(new GearChanger());
 	gearChanger->init(this);
+
+	autoClutch.reset(new AutoClutch());
+	autoClutch->init(this);
+
+	autoBlip.reset(new AutoBlip());
+	autoBlip->init(this);
+
+	autoShift.reset(new AutoShifter());
+	autoShift->init(this);
 
 	state.reset(new CarState());
 
@@ -412,7 +445,7 @@ void Car::step(float dt)
 		}
 	}
 
-	//autoClutch.step(dt);
+	autoClutch->step(dt);
 
 	float fSpeed = speed.ms();
 	vec3f fAngVel = body->getAngularVelocity();
@@ -560,8 +593,8 @@ void Car::stepComponents(float dt)
 	//kers.step(dt);
 	//ers.step(dt);
 	steeringSystem->step(dt);
-	//autoBlip.step(dt);
-	//autoShift.step(dt);
+	autoBlip->step(dt);
+	autoShift->step(dt);
 	gearChanger->step(dt);
 	drivetrain->step(dt);
 
@@ -828,6 +861,7 @@ void Car::pollControls(float dt)
 	vd.curbs *= fSpeedN;
 	vd.slips *= fSpeedN;
 	vd.abs *= fSpeedN;
+	lastVibr = vd;
 
 	controlsProvider->setVibrations(&vd);
 }
@@ -1035,7 +1069,7 @@ float Car::getEngineRpm() const
 	return ((float)drivetrain->engine.velocity * 0.15915507f * 60.0f);
 }
 
-inline float getLoad(Car* car, int tyreId)
+inline float getLoad(const Car* car, int tyreId)
 {
 	auto* pTyre = car->tyres[tyreId].get();
 	float fDX = pTyre->getDX(pTyre->status.load);
@@ -1043,7 +1077,7 @@ inline float getLoad(Car* car, int tyreId)
 	return fD * pTyre->status.load;
 }
 
-float Car::getOptimalBrake()
+float Car::getOptimalBrake() const
 {
 	float fLoad0 = getLoad(this, 0);
 	float fLoad1 = getLoad(this, 1);
@@ -1057,6 +1091,18 @@ float Car::getOptimalBrake()
 	float fBrakeRear = fLoadRear / (brakeSystem->brakePower * (1.0f - brakeSystem->frontBias));
 
 	return tmin(fBrakeFront, fBrakeRear);
+}
+
+float Car::getDrivingTyresSlip() const
+{
+	if (drivetrain->tractionType == TractionType::FWD)
+	{
+		return tmax(tyres[0]->status.ndSlip, tyres[1]->status.ndSlip);
+	}
+	else
+	{
+		return tmax(tyres[2]->status.ndSlip, tyres[3]->status.ndSlip);
+	}
 }
 
 }

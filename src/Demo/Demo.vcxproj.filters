@@ -77,5 +77,8 @@
     <ClInclude Include="Renderer\GLCar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DemoTelemetry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

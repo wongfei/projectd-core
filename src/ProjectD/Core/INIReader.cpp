@@ -158,6 +158,26 @@ float INIReader::getFloat(const std::wstring& section, const std::wstring& key, 
 	return 0;
 }
 
+bool INIReader::getInt(const std::wstring& section, const std::wstring& key, int& outValue) const
+{
+	if (hasKey(section, key))
+	{
+		outValue = getInt(section, key, true);
+		return true;
+	}
+	return false;
+}
+
+bool INIReader::getFloat(const std::wstring& section, const std::wstring& key, float& outValue) const
+{
+	if (hasKey(section, key))
+	{
+		outValue = getFloat(section, key, true);
+		return true;
+	}
+	return false;
+}
+
 vec2f INIReader::getFloat2(const std::wstring& section, const std::wstring& key, bool required) const
 {
 	auto s = getString(section, key, required);

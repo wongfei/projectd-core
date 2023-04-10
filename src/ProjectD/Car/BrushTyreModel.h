@@ -7,6 +7,7 @@ namespace D {
 struct BrushTyreModelData
 {
 	float CF = 1200.0f;
+	float xu = 0; // legacy
 	float CF1 = -10.0f;
 	float Fz0 = 2000.0f;
 	float maxSlip0 = 0.2f;

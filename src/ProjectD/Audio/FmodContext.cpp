@@ -1,4 +1,6 @@
 #include "Audio/FmodContext.h"
+#include <fstream>
+#include <sstream>
 
 extern "C" 
 {
@@ -27,10 +29,17 @@ FmodContext::~FmodContext()
 
 void FmodContext::init()
 {
-	FMOD::Studio::System::create(&system);
+	FMOD_RESULT rc;
+
+	unsigned int debugFlags = FMOD_DEBUG_LEVEL_LOG | FMOD_DEBUG_TYPE_TRACE | FMOD_DEBUG_TYPE_CODEC;
+	//debugFlags |= (FMOD_DEBUG_TYPE_MEMORY|FMOD_DEBUG_TYPE_FILE);
+
+	rc = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_FILE, nullptr, "fmod.log");
+
+	rc = FMOD::Studio::System::create(&system);
 	GUARD_FATAL(system);
 
-	auto rc = system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
+	rc = system->initialize(128, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
 	GUARD_FATAL(rc == FMOD_OK);
 
 	auto plugin = osLoadLibraryW(L"fmod_distance_filter64.dll");
@@ -46,11 +55,48 @@ void FmodContext::init()
 	GUARD_FATAL(rc == FMOD_OK);
 }
 
+void FmodContext::loadGUIDs(const std::string& fileName)
+{
+	log_printf(L"loadGUIDs \"%S\"", fileName.c_str());
+
+	if (!osFileExists(strw(fileName)))
+	{
+		log_printf(L"File not found");
+		return;
+	}
+
+	std::ifstream infile(fileName);
+	std::string line;
+
+	while (std::getline(infile, line))
+	{
+		auto parts = split(line, " ");
+		if (parts.size() == 2)
+		{
+			if (guidToEventMap.find(parts[0]) == guidToEventMap.end())
+			{
+				guidToEventMap.insert({ parts[0], parts[1] });
+			}
+		}
+	}
+}
+
+void FmodContext::clearGUIDs()
+{
+	guidToEventMap.clear();
+}
+
 void FmodContext::loadBank(const std::string& fileName)
 {
 	GUARD_FATAL(system);
 
 	log_printf(L"loadBank \"%S\"", fileName.c_str());
+
+	if (!osFileExists(strw(fileName)))
+	{
+		log_printf(L"File not found");
+		return;
+	}
 
 	FMOD::Studio::Bank* bank = nullptr;
 	auto rc = system->loadBankFile(fileName.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
@@ -67,8 +113,11 @@ void FmodContext::enumerate()
 
 	eventDescMap.clear();
 
+	int bankId = 0;
 	for (auto* bank : banks)
 	{
+		log_printf(L"BANK: %d", bankId);
+
 		int stringCount = 0;
 		rc = bank->getStringCount(&stringCount);
 		GUARD_FATAL(rc == FMOD_OK);
@@ -79,7 +128,7 @@ void FmodContext::enumerate()
 			rc = bank->getStringInfo(stringId, &guid, path, PathLen, nullptr);
 			GUARD_FATAL(rc == FMOD_OK);
 
-			//log_printf(L"String: %d %S", stringId, path);
+			log_printf(L"  String: %d %S", stringId, path);
 		}
 
 		int eventCount = 0;
@@ -96,26 +145,55 @@ void FmodContext::enumerate()
 
 			for (int eventId = 0; eventId < eventCount; ++eventId)
 			{
+				log_printf(L"  Event: %d", eventId);
 				auto e = events[eventId];
 
-				rc = e->getPath(path, PathLen, nullptr);
-				GUARD_FATAL(rc == FMOD_OK);
+				FMOD_GUID eID = {};
+				rc = e->getID(&eID);
+				if (rc == FMOD_OK)
+				{
+					std::string guidStr = straf("{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+						eID.Data1, eID.Data2, eID.Data3,
+						eID.Data4[0], eID.Data4[1], eID.Data4[2], eID.Data4[3], eID.Data4[4], eID.Data4[5], eID.Data4[6], eID.Data4[7]);
 
-				//log_printf(L"Event: %d %S", eventId, path);
-				eventDescMap.insert({std::string(path), e});
+					log_printf(L"    EventGUID: %S", guidStr.c_str());
+
+					auto iter = guidToEventMap.find(guidStr);
+					if (iter != guidToEventMap.end())
+					{
+						log_printf(L"    EventPath: %S", iter->second.c_str());
+						eventDescMap.insert({iter->second, e});
+					}
+				}
+
+				#if 0
+				int retrieved = 0;
+				rc = e->getPath(path, PathLen, &retrieved);
+				if (rc == FMOD_OK)
+				{
+					log_printf(L"    EventPath: %S", path);
+					eventDescMap.insert({std::string(path), e});
+				}
+				else
+				{
+					//log_printf(L"ERROR: EventDescription::getPath failed: eventId=%d", eventId);
+				}
+				#endif
 
 				int paramCount = 0;
-				e->getParameterCount(&paramCount);
+				rc = e->getParameterCount(&paramCount);
 				for (int paramId = 0; paramId < paramCount; ++paramId)
 				{
 					FMOD_STUDIO_PARAMETER_DESCRIPTION desc;
 					rc = e->getParameterByIndex(paramId, &desc);
 					GUARD_FATAL(rc == FMOD_OK);
 
-					//log_printf(L"\tParam: %d %S", paramId, desc.name);
+					log_printf(L"    EventParam: %d %S", paramId, desc.name);
 				}
 			}
 		}
+
+		++bankId;
 	}
 }
 

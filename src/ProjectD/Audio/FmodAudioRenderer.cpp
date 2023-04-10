@@ -2,6 +2,7 @@
 #include "Audio/FmodContext.h"
 #include "Car/CarState.h"
 #include "Car/Car.h"
+#include "Car/Drivetrain.h"
 #include "Car/Tyre.h"
 #include "Sim/Surface.h"
 
@@ -21,19 +22,78 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 	context->init();
 
 	const std::string basePathA(stra(basePath));
+	context->loadGUIDs(basePathA + "content/sfx/GUIDs.txt");
 	context->loadBank(basePathA + "content/sfx/common.bank");
-	context->loadBank(basePathA + "content/sfx/common.strings.bank");
+	//context->loadBank(basePathA + "content/sfx/common.strings.bank");
+
+	context->loadGUIDs(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + "GUIDs.txt");
 	context->loadBank(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + stra(carModel) + ".bank");
+
 	context->enumerate();
+
+	// CarAudioFMOD::renderAudio
+	// Car::getPhysicsState
+
+	// TODO: fix this ugly hardcoded mess
 
 	{
 		auto name = std::string("event:/cars/") + stra(carModel) + "/engine_int";
 		auto ev = context->getUniqInstance(name.c_str());
 		evEngineInt = ev;
 
-		ev->setParameterValueByIndex(0, 0.0f);
-		ev->setParameterValueByIndex(1, 0.0f);
-		ev->start();
+		if (ev)
+		{
+			//ev->setParameterValueByIndex(0, 0.0f);
+			//ev->setParameterValueByIndex(1, 0.0f);
+			ev->setParameterValue("throttle", 0.0f);
+			ev->setParameterValue("rpms", 0.0f);
+			ev->start();
+		}
+	}
+
+	#if 0
+	{
+		auto name = std::string("event:/cars/") + stra(carModel) + "/engine_ext";
+		auto ev = context->getUniqInstance(name.c_str());
+		evEngineExt = ev;
+
+		if (ev)
+		{
+			ev->setParameterValue("throttle", 0.0f);
+			ev->setParameterValue("rpms", 0.0f);
+			ev->start();
+		}
+	}
+	#endif
+
+	#if 0
+	{
+		auto name = std::string("event:/cars/") + stra(carModel) + "/turbo";
+		auto ev = context->getUniqInstance(name.c_str());
+		evTurbo = ev;
+
+		if (ev)
+		{
+			ev->setParameterValue("bov", 0.0f); // this->car->physicsState.turboBov
+			ev->setParameterValue("bov_decay", 0.0f); // this->turboBovDecay
+			ev->setParameterValue("boost", 0.0f); // this->car->physicsState.turboBoost / this->maxTurboBoost
+			ev->setParameterValue("Direction", 0.0f);
+			ev->start();
+		}
+	}
+	#endif
+
+	{
+		auto name = std::string("event:/cars/") + stra(carModel) + "/transmission";
+		auto ev = context->getUniqInstance(name.c_str());
+		evTransmission = ev;
+
+		if (ev)
+		{
+			ev->setParameterValue("throttle", 0.0f);
+			ev->setParameterValue("drivetrain_speed", 0.0f);
+			ev->start();
+		}
 	}
 
 	{
@@ -41,8 +101,11 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 		auto ev = context->getUniqInstance(name.c_str());
 		evSkidInt = ev;
 
-		ev->setVolume(0.0f);
-		ev->start();
+		if (ev)
+		{
+			ev->setVolume(0.0f);
+			ev->start();
+		}
 	}
 }
 
@@ -51,6 +114,9 @@ FmodAudioRenderer::~FmodAudioRenderer()
 	TRACE_DTOR(FmodAudioRenderer);
 
 	releaseEvent(evEngineInt);
+	releaseEvent(evEngineExt);
+	releaseEvent(evTurbo);
+	releaseEvent(evTransmission);
 	releaseEvent(evSkidInt);
 }
 
@@ -59,8 +125,24 @@ void FmodAudioRenderer::update(float dt)
 	if (evEngineInt)
 	{
 		auto ev = castEvent(evEngineInt);
-		ev->setParameterValueByIndex(0, car->controls.gas);
-		ev->setParameterValueByIndex(1, car->getEngineRpm());
+		//ev->setParameterValueByIndex(0, car->controls.gas);
+		//ev->setParameterValueByIndex(1, car->getEngineRpm());
+		ev->setParameterValue("throttle", car->controls.gas);
+		ev->setParameterValue("rpms", car->getEngineRpm());
+	}
+
+	if (evEngineExt)
+	{
+		auto ev = castEvent(evEngineExt);
+		ev->setParameterValue("throttle", car->controls.gas);
+		ev->setParameterValue("rpms", car->getEngineRpm());
+	}
+
+	if (evTransmission)
+	{
+		auto ev = castEvent(evTransmission);
+		ev->setParameterValue("throttle", car->controls.gas);
+		ev->setParameterValue("drivetrain_speed", car->drivetrain->getDrivetrainSpeed());
 	}
 
 	//CarAudioFMOD::updateSkids

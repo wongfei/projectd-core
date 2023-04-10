@@ -87,73 +87,112 @@ void Tyre::initCompounds(const std::wstring& dataPath)
 		compound->modelData.version = iVer;
 
 		compound->name = ini->getString(strCompound, L"NAME");
-		compound->shortName = ini->getString(strCompound, L"SHORT_NAME");
-		compound->name.append(L" (");
-		compound->name.append(compound->shortName);
-		compound->name.append(L")");
+
+		if (iVer >= 4)
+		{
+			compound->shortName = ini->getString(strCompound, L"SHORT_NAME");
+			compound->name.append(L" (");
+			compound->name.append(compound->shortName);
+			compound->name.append(L")");
+		}
 
 		compound->data.width = ini->getFloat(strCompound, L"WIDTH");
 		if (compound->data.width <= 0)
 			compound->data.width = 0.15f;
 
 		compound->data.radius = ini->getFloat(strCompound, L"RADIUS");
-		compound->data.rimRadius = ini->getFloat(strCompound, L"RIM_RADIUS");
+		if (iVer < 3)
+			compound->data.rimRadius = 0.13f;
+		else
+			compound->data.rimRadius = ini->getFloat(strCompound, L"RIM_RADIUS");
+
 		compound->modelData.flexK = ini->getFloat(strCompound, L"FLEX");
 
 		float fFLA = ini->getFloat(strCompound, L"FRICTION_LIMIT_ANGLE");
 		if (fFLA == 0.0f)
 			fFLA = 7.5f;
 
+		float fXMU = ini->getFloat(strCompound, L"XMU");
+		if (iVer >= 5)
+			fXMU = 0.0f;
+
 		auto bsp(std::make_unique<BrushSlipProvider>(fFLA, compound->modelData.flexK));
 
-		compound->modelData.cfXmult = ini->getFloat(strCompound, L"CX_MULT");
-		compound->data.radiusRaiseK = ini->getFloat(strCompound, L"RADIUS_ANGULAR_K") * 0.001f;
-			
-		if (ini->hasKey(strCompound, L"BRAKE_DX_MOD"))
+		if (iVer >= 10)
 		{
-			compound->modelData.brakeDXMod = ini->getFloat(strCompound, L"BRAKE_DX_MOD");
-			if (compound->modelData.brakeDXMod == 0.0f)
-				compound->modelData.brakeDXMod = 1.0f;
-			else
-				compound->modelData.brakeDXMod += 1.0f;
+			compound->modelData.cfXmult = ini->getFloat(strCompound, L"CX_MULT");
+			compound->data.radiusRaiseK = ini->getFloat(strCompound, L"RADIUS_ANGULAR_K") * 0.001f;
+			
+			if (ini->hasKey(strCompound, L"BRAKE_DX_MOD"))
+			{
+				compound->modelData.brakeDXMod = ini->getFloat(strCompound, L"BRAKE_DX_MOD");
+				if (compound->modelData.brakeDXMod == 0.0f)
+					compound->modelData.brakeDXMod = 1.0f;
+				else
+					compound->modelData.brakeDXMod += 1.0f;
+			}
+
+			if (ini->hasKey(strCompound, L"COMBINED_FACTOR"))
+				compound->modelData.combinedFactor = ini->getFloat(strCompound, L"COMBINED_FACTOR");
 		}
 
-		if (ini->hasKey(strCompound, L"COMBINED_FACTOR"))
-			compound->modelData.combinedFactor = ini->getFloat(strCompound, L"COMBINED_FACTOR");
+		if (iVer < 5)
+		{
+			compound->modelData.Dy0 = ini->getFloat(strCompound, L"DY0");
+			compound->modelData.Dy1 = ini->getFloat(strCompound, L"DY1");
+			compound->modelData.Dx0 = ini->getFloat(strCompound, L"DX0");
+			compound->modelData.Dx1 = ini->getFloat(strCompound, L"DX1");
+			bsp->asy = 0.85f;
+			bsp->brushModel->data.xu = fXMU;
+		}
+		else
+		{
+			const float fFZ0 = ini->getFloat(strCompound, L"FZ0");
+			const float fFlexGain = ini->getFloat(strCompound, L"FLEX_GAIN");
 
-		const float fFZ0 = ini->getFloat(strCompound, L"FZ0");
-		const float fFlexGain = ini->getFloat(strCompound, L"FLEX_GAIN");
+			compound->modelData.lsExpX = ini->getFloat(strCompound, L"LS_EXPX");
+			compound->modelData.lsExpY = ini->getFloat(strCompound, L"LS_EXPY");
+			compound->modelData.Dx0 = ini->getFloat(strCompound, L"DX_REF");
+			compound->modelData.Dy0 = ini->getFloat(strCompound, L"DY_REF");
 
-		compound->modelData.lsExpX = ini->getFloat(strCompound, L"LS_EXPX");
-		compound->modelData.lsExpY = ini->getFloat(strCompound, L"LS_EXPY");
-		compound->modelData.Dx0 = ini->getFloat(strCompound, L"DX_REF");
-		compound->modelData.Dy0 = ini->getFloat(strCompound, L"DY_REF");
+			compound->modelData.lsMultX = calcLoadSensMult(compound->modelData.Dx0, fFZ0, compound->modelData.lsExpX);
+			compound->modelData.lsMultY = calcLoadSensMult(compound->modelData.Dy0, fFZ0, compound->modelData.lsExpY);
 
-		compound->modelData.lsMultX = calcLoadSensMult(compound->modelData.Dx0, fFZ0, compound->modelData.lsExpX);
-		compound->modelData.lsMultY = calcLoadSensMult(compound->modelData.Dy0, fFZ0, compound->modelData.lsExpY);
+			if (ini->hasKey(strCompound, L"DY_CURVE"))
+				compound->modelData.dyLoadCurve = ini->getCurve(strCompound, L"DY_CURVE");
 
-		if (ini->hasKey(strCompound, L"DY_CURVE"))
-			compound->modelData.dyLoadCurve = ini->getCurve(strCompound, L"DY_CURVE");
+			if (ini->hasKey(strCompound, L"DX_CURVE"))
+				compound->modelData.dxLoadCurve = ini->getCurve(strCompound, L"DX_CURVE");
 
-		if (ini->hasKey(strCompound, L"DX_CURVE"))
-			compound->modelData.dxLoadCurve = ini->getCurve(strCompound, L"DX_CURVE");
-
-		bsp->version = 5;
-		bsp->asy = 0.92f;
-		bsp->brushModel->data.Fz0 = fFZ0;
-		bsp->brushModel->data.maxSlip0 = tanf(fFLA * 0.017453f);
-		bsp->brushModel->data.maxSlip1 = tanf(((fFlexGain + 1.0f) * fFLA) * 0.017453f);
+			bsp->version = 5;
+			bsp->asy = 0.92f;
+			bsp->brushModel->data.Fz0 = fFZ0;
+			bsp->brushModel->data.maxSlip0 = tanf(fFLA * 0.017453f);
+			bsp->brushModel->data.maxSlip1 = tanf(((fFlexGain + 1.0f) * fFLA) * 0.017453f);
+		}
 
 		bsp->recomputeMaximum();
 
-		bsp->asy = ini->getFloat(strCompound, L"FALLOFF_LEVEL");
-		bsp->brushModel->data.falloffSpeed = ini->getFloat(strCompound, L"FALLOFF_SPEED");
+		if (iVer >= 7)
+		{
+			bsp->asy = ini->getFloat(strCompound, L"FALLOFF_LEVEL");
+			bsp->brushModel->data.falloffSpeed = ini->getFloat(strCompound, L"FALLOFF_SPEED");
+		}
 
 		compound->modelData.speedSensitivity = ini->getFloat(strCompound, L"SPEED_SENSITIVITY");
 		compound->modelData.relaxationLength = ini->getFloat(strCompound, L"RELAXATION_LENGTH");
 		compound->modelData.rr0 = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_0");
 		compound->modelData.rr1 = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_1");
-		compound->modelData.rr_slip = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_SLIP");
+
+		if (iVer == 1)
+		{
+			compound->modelData.rr_sa = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_SA");
+			compound->modelData.rr_sr = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_SR");
+		}
+		else
+		{
+			compound->modelData.rr_slip = ini->getFloat(strCompound, L"ROLLING_RESISTANCE_SLIP");
+		}
 
 		compound->modelData.camberGain = ini->getFloat(strCompound, L"CAMBER_GAIN");
 		compound->modelData.dcamber0 = ini->getFloat(strCompound, L"DCAMBER_0");
@@ -211,14 +250,22 @@ void Tyre::initCompounds(const std::wstring& dataPath)
 			compound->thermalPatchData.surfaceTransfer = ini->getFloat(strThermal, L"SURFACE_TRANSFER");
 			compound->thermalPatchData.patchTransfer = ini->getFloat(strThermal, L"PATCH_TRANSFER");
 			compound->thermalPatchData.patchCoreTransfer = ini->getFloat(strThermal, L"CORE_TRANSFER");
-			compound->thermalPatchData.internalCoreTransfer = ini->getFloat(strThermal, L"INTERNAL_CORE_TRANSFER");
 
 			compound->data.thermalFrictionK = ini->getFloat(strThermal, L"FRICTION_K");
 			compound->data.thermalRollingK = ini->getFloat(strThermal, L"ROLLING_K");
-			compound->data.thermalRollingSurfaceK = ini->getFloat(strThermal, L"SURFACE_ROLLING_K");
 
-			if (ini->hasKey(strThermal, L"COOL_FACTOR"))
-				compound->thermalPatchData.coolFactorGain = (ini->getFloat(strThermal, L"COOL_FACTOR") - 1.0f) * 0.000324f;
+			if (iVer >= 5)
+			{
+				compound->thermalPatchData.internalCoreTransfer = ini->getFloat(strThermal, L"INTERNAL_CORE_TRANSFER");
+
+				if (ini->hasKey(strThermal, L"COOL_FACTOR"))
+					compound->thermalPatchData.coolFactorGain = (ini->getFloat(strThermal, L"COOL_FACTOR") - 1.0f) * 0.000324f;
+			}
+
+			if (iVer >= 6)
+			{
+				compound->data.thermalRollingSurfaceK = ini->getFloat(strThermal, L"SURFACE_ROLLING_K");
+			}
 
 			auto strFile = ini->getString(strThermal, L"PERFORMANCE_CURVE");
 			compound->thermalPerformanceCurve.load(dataPath + strFile);
@@ -265,12 +312,20 @@ void Tyre::initCompounds(const std::wstring& dataPath)
 			}
 		}
 
-		compound->data.blisterGamma = ini->getFloat(strThermal, L"BLISTER_GAMMA");
-		compound->data.blisterGain = ini->getFloat(strThermal, L"BLISTER_GAIN");
-		compound->data.grainGamma = ini->getFloat(strThermal, L"GRAIN_GAMMA");
-		compound->data.grainGain = ini->getFloat(strThermal, L"GRAIN_GAIN");
+		if (iVer >= 3)
+		{
+			compound->data.blisterGamma = ini->getFloat(strThermal, L"BLISTER_GAMMA");
+			compound->data.blisterGain = ini->getFloat(strThermal, L"BLISTER_GAIN");
+			compound->data.grainGamma = ini->getFloat(strThermal, L"GRAIN_GAMMA");
+			compound->data.grainGain = ini->getFloat(strThermal, L"GRAIN_GAIN");
+		}
 
-		float fSens = loadSensExpD(compound->modelData.lsExpY, compound->modelData.lsMultY, 3000.0f);
+		float fSens;
+		if (iVer < 5)
+			fSens = loadSensLinearD(compound->modelData.Dy0, compound->modelData.Dy1, 3000.0f);
+		else
+			fSens = loadSensExpD(compound->modelData.lsExpY, compound->modelData.lsMultY, 3000.0f);
+
 		compound->data.softnessIndex = tmax(0.0f, fSens - 1.0f);
 
 		compound->slipProvider = std::move(bsp);
@@ -278,6 +333,11 @@ void Tyre::initCompounds(const std::wstring& dataPath)
 	}
 
 	GUARD_FATAL(!compoundDefs.empty());
+
+	if (iVer < 4)
+	{
+		//generateCompoundNames();
+	}
 }
 
 void Tyre::setCompound(int cindex) // TODO: THIS IS FKN MADNESS

@@ -87,6 +87,8 @@ struct Drivetrain : public NonCopyable
 	double getInertiaFromWheels();
 	double getInertiaFromEngine();
 	float getEngineRPM() const;
+	float getDrivetrainSpeed() const;
+	bool isChangingGear() const;
 
 	// config
 	TractionType tractionType = TractionType(0);

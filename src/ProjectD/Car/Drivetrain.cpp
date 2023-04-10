@@ -714,4 +714,14 @@ float Drivetrain::getEngineRPM() const
 	return (float)((engine.velocity * 0.15915507) * 60.0);
 }
 
+float Drivetrain::getDrivetrainSpeed() const
+{
+	return (float)drive.velocity;
+}
+
+bool Drivetrain::isChangingGear() const
+{
+	return gearRequest.request != GearChangeRequest::eNoGearRequest;
+}
+
 }

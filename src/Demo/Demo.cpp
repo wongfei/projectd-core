@@ -36,8 +36,10 @@ using namespace D;
 double simTickRate_ = 1 / 333.0f;
 double drawTickRate_ = 1 / 100.0;
 
-int width_ = 1920;
-int height_ = 1080;
+bool fullscreen_ = false;
+bool recordTelemetry_ = false;
+int width_ = 1280;
+int height_ = 720;
 int swapInterval_ = -1;
 
 SDL_Window* appWindow_ = nullptr;
@@ -89,8 +91,8 @@ bool inpMouseBtn_[2] = { 0, 0 };
 float inpMoveSpeed_ = 10.0f;
 float inpMoveSpeedScale_ = 1.0f;
 float inpMouseSens_ = 0.35f;
+bool inpSimFlag_ = true;
 bool inpSimOnce_ = false;
-bool inpSimFlag_ = false;
 bool inpDrawSky_ = true;
 bool inpWireWalls_ = true;
 
@@ -113,11 +115,73 @@ int lastGear_ = 0;
 
 #include "DemoSDL.h"
 #include "DemoDiag.h"
+#include "DemoTelemetry.h"
+
+//=======================================================================================
+
+static void initEngine(int argc, char** argv)
+{
+	srand(666);
+	log_init(L"demo.log");
+
+	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
+	if (ini->ready)
+	{
+		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") == 1;
+		width_ = ini->getInt(L"SYS", L"RESX");
+		height_ = ini->getInt(L"SYS", L"RESY");
+
+		int iFpsLimit = ini->getInt(L"SYS", L"FPS_LIMIT");
+		drawTickRate_ = iFpsLimit > 0 ? (1.0f / (float)iFpsLimit) : 0.0f;
+		swapInterval_ = tclamp(ini->getInt(L"SYS", L"SWAP_INTERVAL"), -1, 1);
+		inpMouseSens_ = ini->getFloat(L"SYS", L"MOUSE_SENS");
+	}
+
+	if (width_ <= 100) width_ = 1280;
+	if (height_ <= 100) height_ = 720;
+
+	initSDL();
+	clearViewport();
+	swap();
+	log_printf(L"hwnd=%p", sysWindow_);
+
+	font_.initDefault();
+}
+
+static void initInput()
+{
+	bool forceKeyboard = false;
+	auto dinputIni(std::make_unique<INIReader>(L"cfg/dinput.ini"));
+	if (dinputIni->ready)
+	{
+		auto inputDev = dinputIni->getString(L"STEER", L"DEVICE");
+		forceKeyboard = (inputDev == L"KEYBOARD");
+	}
+
+	if (forceKeyboard)
+	{
+		kbControlsProvider_ = std::make_unique<KeyboardCarController>(car_.get(), sysWindow_);
+		car_->controlsProvider = kbControlsProvider_.get();
+	}
+	else
+	{
+		controlsProvider_ = std::make_unique<DICarController>(sysWindow_);
+		if (controlsProvider_->diWheel)
+		{
+			car_->controlsProvider = controlsProvider_.get();
+		}
+		else
+		{
+			kbControlsProvider_ = std::make_unique<KeyboardCarController>(car_.get(), sysWindow_);
+			car_->controlsProvider = kbControlsProvider_.get();
+		}
+	}
+}
 
 static void initDemo(int argc, char** argv)
 {
 	std::wstring basePath = L"";
-	std::wstring trackName = L"akina";
+	std::wstring trackName = L"ek_akina";
 	std::wstring carModel = L"ks_toyota_ae86_drift";
 
 	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
@@ -134,7 +198,7 @@ static void initDemo(int argc, char** argv)
 
 	track_ = sim_->initTrack(trackName);
 	car_ = sim_->initCar(track_, carModel);
-	carB_ = sim_->initCar(track_, carModel);
+	//carB_ = sim_->initCar(track_, carModel);
 
 	audioRenderer_ = std::make_unique<FmodAudioRenderer>(car_.get(), basePath, carModel);
 	car_->audioRenderer = audioRenderer_.get();
@@ -144,16 +208,33 @@ static void initDemo(int argc, char** argv)
 
 	// CAR TUNE
 
+	int tyreCompound = 1;
+	auto tyresIni(std::make_unique<INIReader>(car_->carDataPath + L"tyres.ini"));
 	if (ini->ready)
 	{
-		car_->drivetrain->diffPowerRamp = ini->getFloat(L"CAR_TUNE", L"DIFF_POWER");
-		car_->drivetrain->diffCoastRamp = ini->getFloat(L"CAR_TUNE", L"DIFF_COAST");
-		car_->brakeSystem->brakePowerMultiplier = ini->getFloat(L"CAR_TUNE", L"BRAKE_POWER");
-		car_->brakeSystem->frontBias = ini->getFloat(L"CAR_TUNE", L"BRAKE_FRONT_BIAS");
+		tyresIni->getInt(L"COMPOUND_DEFAULT", L"INDEX", tyreCompound);
+	}
 
-		int iCompound = ini->getInt(L"CAR_TUNE", L"TYRE_COMPOUND");
-		for (int i = 0; i < 4; ++i)
-			car_->tyres[i]->setCompound(iCompound);
+	if (ini->ready)
+	{
+		car_->autoClutch->useAutoOnStart = (ini->getInt(L"ASSISTS", L"AUTO_CLUTCH") != 0);
+		car_->autoClutch->useAutoOnChange = (ini->getInt(L"ASSISTS", L"AUTO_CLUTCH") != 0);
+		car_->autoShift->isActive = (ini->getInt(L"ASSISTS", L"AUTO_SHIFT") != 0);
+		car_->autoBlip->isActive = (ini->getInt(L"ASSISTS", L"AUTO_BLIP") != 0);
+
+		//if (ini->getInt(L"CAR_TUNE", L"OVERRIDE_DEFAULTS") != 0)
+		{
+			ini->getInt(L"CAR_TUNE", L"TYRE_COMPOUND", tyreCompound);
+			ini->getFloat(L"CAR_TUNE", L"DIFF_POWER", car_->drivetrain->diffPowerRamp);
+			ini->getFloat(L"CAR_TUNE", L"DIFF_COAST", car_->drivetrain->diffCoastRamp);
+			ini->getFloat(L"CAR_TUNE", L"BRAKE_POWER", car_->brakeSystem->brakePowerMultiplier);
+			ini->getFloat(L"CAR_TUNE", L"BRAKE_FRONT_BIAS", car_->brakeSystem->frontBias);
+		}
+	}
+
+	for (int i = 0; i < 4; ++i)
+	{
+		car_->tyres[i]->setCompound(tyreCompound);
 	}
 
 	#if 0
@@ -177,7 +258,9 @@ static void initDemo(int argc, char** argv)
 		pitB = track_->pits[1];
 	else
 		pitB.M41 += 3;
-	carB_->teleport(pitB);
+
+	if (carB_)
+		carB_->teleport(pitB);
 }
 
 static void processInput(float dt)
@@ -254,7 +337,9 @@ static void render(float dt)
 
 	bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
 	carAvatar_.draw(drawBody);
-	carAvatar_.drawInstance(carB_.get(), true);
+
+	if (carB_)
+		carAvatar_.drawInstance(carB_.get(), true);
 
 	glDisable(GL_DEPTH_TEST);
 
@@ -271,37 +356,38 @@ static void render(float dt)
 		sim_->collisions.clear();
 	}
 
+	// lookat rayhit point
+	if (inpCamMode_ == (int)ECamMode::Free)
+	{
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glPointSize(3);
+		glBegin(GL_POINTS);
+		{
+			glColor3f(0.0f, 1.0f, 0.0f);
+			glVertex3fv(&lookatPos_.x);
+		}
+		glEnd();
+	}
+
 	renderText();
 	swap();
 }
 
 int main(int argc, char** argv)
 {
-	srand(666);
-	log_init(L"demo.log");
-
-	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
-	if (ini->ready)
-	{
-		int iFpsLimit = ini->getInt(L"SYS", L"FPS_LIMIT");
-		drawTickRate_ = iFpsLimit > 0 ? (1.0f / (float)iFpsLimit) : 0.0f;
-		swapInterval_ = tclamp(ini->getInt(L"SYS", L"SWAP_INTERVAL"), -1, 1);
-		inpMouseSens_ = ini->getFloat(L"SYS", L"MOUSE_SENS");
-	}
-
-	initSDL();
-	clearViewport();
-	swap();
-	log_printf(L"hwnd=%p", sysWindow_);
-
-	font_.initDefault();
+	initEngine(argc, argv);
 	initDemo(argc, argv);
 	initCharts();
+
+	if (recordTelemetry_)
+		_telemetry.reserve(10000);
 
 	double prevTime = 0;
 	double simAccum = 0;
 	double drawAccum = 0;
 	double statAccum = 0;
+	double telemAccum = 0;
+	double telemRate = 1 / 100.0f;
 	float maxDt = 0;
 	float maxSim = 0;
 	float maxDraw = 0;
@@ -369,6 +455,20 @@ int main(int argc, char** argv)
 		maxSim = tmax(maxSim, simMillis);
 		if (simStepDone)
 			serSim_.add_value(gameTime, simMillis);
+
+		// TELEMETRY
+
+		if (recordTelemetry_)
+		{
+			telemAccum += dt;
+			if (telemAccum >= telemRate)
+			{
+				telemAccum -= telemRate;
+				if (telemAccum >= telemRate)
+					telemAccum = 0;
+				record_telemetry();
+			}
+		}
 
 		// DRAW
 
@@ -452,16 +552,7 @@ int main(int argc, char** argv)
 				isWindowVisible = true;
 				SDL_ShowWindow(appWindow_);
 
-				controlsProvider_ = std::make_unique<DICarController>(sysWindow_);
-				if (controlsProvider_->diWheel)
-				{
-					car_->controlsProvider = controlsProvider_.get();
-				}
-				else
-				{
-					kbControlsProvider_ = std::make_unique<KeyboardCarController>(car_.get(), sysWindow_);
-					car_->controlsProvider = kbControlsProvider_.get();
-				}
+				initInput();
 			}
 		}
 
@@ -479,6 +570,11 @@ int main(int argc, char** argv)
 			statMaxSim_ = maxSim; maxSim = 0;
 			statMaxDraw_ = maxDraw; maxDraw = 0;
 		}
+	}
+
+	if (recordTelemetry_)
+	{
+		dump_telemetry();
 	}
 
 	car_.reset();

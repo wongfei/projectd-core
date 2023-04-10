@@ -124,7 +124,8 @@ mat44f mat44f::mult(const mat44f& a, const mat44f& b)
 mat44f mat44f::rotate(const mat44f& m, const vec3f& axis, float angle)
 {
 	mat44f rotator = mat44f::createFromAxisAngle(axis, angle);
-	return mat44f::mult(m, rotator);
+	//return mat44f::mult(m, rotator);
+	return mat44f::mult(rotator, m);
 }
 
 }

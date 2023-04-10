@@ -11,6 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Car\AutoBlip.h" />
+    <ClInclude Include="Car\AutoClutch.h" />
+    <ClInclude Include="Car\AutoShifter.h" />
     <ClInclude Include="Car\CarImpl.h" />
     <ClInclude Include="Car\ICarAudioRenderer.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -250,6 +253,9 @@
     <ClCompile Include="Audio\FmodAudioRenderer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Car\AutoBlip.cpp" />
+    <ClCompile Include="Car\AutoClutch.cpp" />
+    <ClCompile Include="Car\AutoShifter.cpp" />
     <ClCompile Include="Core\ABIValidator.cpp" />
     <ClCompile Include="Core\CubicSpline.cpp" />
     <ClCompile Include="Core\Diag.cpp" />

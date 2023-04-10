@@ -67,11 +67,15 @@ void Track::loadSurfaceBlob()
 		pSurf->isValidTrack = blob.isValidTrack;
 		pSurf->isPitlane = blob.isPitlane;
 
+		log_printf(L"Surface: sectorID=%u collisionCategory=%u gripMod=%.3f damping=%.3f", pSurf->sectorID, pSurf->collisionCategory, pSurf->gripMod, pSurf->damping);
+
 		auto pCollider = sim->physics->createCollider(pSurf->trimesh, false, pSurf->sectorID, pSurf->collisionCategory, C_MASK_SURFACE);
 		pCollider->setUserPointer(pSurf.get());
 
 		if (!(pSurf->collisionCategory == C_CATEGORY_TRACK || pSurf->collisionCategory == C_CATEGORY_WALL))
+		{
 			log_printf(L"UNKNOWN collisionCategory=%d", pSurf->collisionCategory);
+		}
 
 		surfaces.emplace_back(std::move(pSurf));
 		colliders.emplace_back(std::move(pCollider));
@@ -87,7 +91,7 @@ void Track::loadPits()
 	{
 		for (int i = 0; ; ++i)
 		{
-			auto strSection = strwf(L"PIT_%d", i);
+			auto strSection = strwf(L"AC_PIT_%d", i);
 			if (!ini->hasSection(strSection))
 				break;
 

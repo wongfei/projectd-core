@@ -52,4 +52,8 @@ struct DynamicController;
 struct TurboDynamicController;
 struct WingDynamicController;
 
+struct AutoClutch;
+struct AutoBlip;
+struct AutoShifter;
+
 }

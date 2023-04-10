@@ -24,6 +24,9 @@ struct FmodAudioRenderer : public ICarAudioRenderer
 	std::unique_ptr<FmodContext> context;
 	Car* car = nullptr;
 	void* evEngineInt = nullptr;
+	void* evEngineExt = nullptr;
+	void* evTurbo = nullptr;
+	void* evTransmission = nullptr;
 	void* evSkidInt = nullptr;
 	SmoothValue skidVolumes[4];
 	SmoothValue skidPitches[4];

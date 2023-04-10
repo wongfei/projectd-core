@@ -267,6 +267,8 @@ void SuspensionDW::step(float dt)
 		addForceAtPos(vBodyM2 * -fForce, vHubWorldPos, false, false);
 		carBody->addLocalForceAtLocalPos(vec3f(0, fForce, 0), vHubLocalPos);
 	}
+
+	return;
 }
 
 void SuspensionDW::addForceAtPos(const vec3f& force, const vec3f& pos, bool driven, bool addToSteerTorque)

@@ -18,6 +18,8 @@ void GearChanger::init(Car* _car)
 void GearChanger::step(float dt)
 {
 	wasGearUpTriggered = false;
+	wasGearDnTriggered = false;
+
 	int gearId = car->controls.requestedGearIndex;
 
 	if (gearId == -1)
