@@ -158,7 +158,7 @@ float INIReader::getFloat(const std::wstring& section, const std::wstring& key, 
 	return 0;
 }
 
-bool INIReader::getInt(const std::wstring& section, const std::wstring& key, int& outValue) const
+bool INIReader::tryGetInt(const std::wstring& section, const std::wstring& key, int& outValue) const
 {
 	if (hasKey(section, key))
 	{
@@ -168,7 +168,7 @@ bool INIReader::getInt(const std::wstring& section, const std::wstring& key, int
 	return false;
 }
 
-bool INIReader::getFloat(const std::wstring& section, const std::wstring& key, float& outValue) const
+bool INIReader::tryGetFloat(const std::wstring& section, const std::wstring& key, float& outValue) const
 {
 	if (hasKey(section, key))
 	{

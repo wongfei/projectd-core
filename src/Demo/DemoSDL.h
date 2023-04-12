@@ -28,6 +28,7 @@ static void initSDL()
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(appWindow_, &wmInfo);
 	sysWindow_ = wmInfo.info.win.window;
+	log_printf(L"hwnd=%p", sysWindow_);
 }
 
 static void shutSDL()

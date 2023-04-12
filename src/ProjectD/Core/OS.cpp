@@ -174,6 +174,18 @@ void FileHandle::close()
 	}
 }
 
+size_t FileHandle::size() const
+{
+	if (fd)
+	{
+		fseek(fd, 0, SEEK_END);
+		const size_t size = (size_t)ftell(fd);
+		fseek(fd, 0, SEEK_SET);
+		return size;
+	}
+	return 0;
+}
+
 }
 
 #else // NOT WIN32

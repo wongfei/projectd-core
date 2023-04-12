@@ -32,6 +32,7 @@ struct FileHandle
 	~FileHandle() { close(); }
 	bool open(const wchar_t* filename, const wchar_t* mode);
 	void close();
+	size_t size() const;
 };
 
 }

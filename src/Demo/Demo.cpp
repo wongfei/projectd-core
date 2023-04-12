@@ -94,11 +94,13 @@ float inpMouseSens_ = 0.35f;
 bool inpSimFlag_ = true;
 bool inpSimOnce_ = false;
 bool inpDrawSky_ = true;
-bool inpWireWalls_ = true;
+bool inpWireframe_ = false;
+bool inpDrawRacePoints_ = false;
 
 double dt_ = 0;
 double gameTime_ = 0;
 double physicsTime_ = 0;
+double simAccum_ = 0;
 uint64_t simId_ = 0;
 uint64_t drawId_ = 0;
 
@@ -143,7 +145,7 @@ static void initEngine(int argc, char** argv)
 	initSDL();
 	clearViewport();
 	swap();
-	log_printf(L"hwnd=%p", sysWindow_);
+	
 
 	font_.initDefault();
 }
@@ -176,6 +178,12 @@ static void initInput()
 			car_->controlsProvider = kbControlsProvider_.get();
 		}
 	}
+
+	CarControlsInput input;
+	CarControls controls;
+
+	for (int i = 0; i < 3; ++i)
+		car_->controlsProvider->acquireControls(&input, &controls, (float)simTickRate_);
 }
 
 static void initDemo(int argc, char** argv)
@@ -212,7 +220,7 @@ static void initDemo(int argc, char** argv)
 	auto tyresIni(std::make_unique<INIReader>(car_->carDataPath + L"tyres.ini"));
 	if (ini->ready)
 	{
-		tyresIni->getInt(L"COMPOUND_DEFAULT", L"INDEX", tyreCompound);
+		tyresIni->tryGetInt(L"COMPOUND_DEFAULT", L"INDEX", tyreCompound);
 	}
 
 	if (ini->ready)
@@ -222,14 +230,17 @@ static void initDemo(int argc, char** argv)
 		car_->autoShift->isActive = (ini->getInt(L"ASSISTS", L"AUTO_SHIFT") != 0);
 		car_->autoBlip->isActive = (ini->getInt(L"ASSISTS", L"AUTO_BLIP") != 0);
 
-		//if (ini->getInt(L"CAR_TUNE", L"OVERRIDE_DEFAULTS") != 0)
-		{
-			ini->getInt(L"CAR_TUNE", L"TYRE_COMPOUND", tyreCompound);
-			ini->getFloat(L"CAR_TUNE", L"DIFF_POWER", car_->drivetrain->diffPowerRamp);
-			ini->getFloat(L"CAR_TUNE", L"DIFF_COAST", car_->drivetrain->diffCoastRamp);
-			ini->getFloat(L"CAR_TUNE", L"BRAKE_POWER", car_->brakeSystem->brakePowerMultiplier);
-			ini->getFloat(L"CAR_TUNE", L"BRAKE_FRONT_BIAS", car_->brakeSystem->frontBias);
-		}
+		float diffPowerRamp = (float)car_->drivetrain->diffPowerRamp;
+		float diffCoastRamp = (float)car_->drivetrain->diffCoastRamp;
+
+		ini->tryGetInt(L"CAR_TUNE", L"TYRE_COMPOUND", tyreCompound);
+		ini->tryGetFloat(L"CAR_TUNE", L"DIFF_POWER", diffPowerRamp);
+		ini->tryGetFloat(L"CAR_TUNE", L"DIFF_COAST", diffCoastRamp);
+		ini->tryGetFloat(L"CAR_TUNE", L"BRAKE_POWER", car_->brakeSystem->brakePowerMultiplier);
+		ini->tryGetFloat(L"CAR_TUNE", L"BRAKE_FRONT_BIAS", car_->brakeSystem->frontBias);
+
+		car_->drivetrain->diffPowerRamp = diffPowerRamp;
+		car_->drivetrain->diffCoastRamp = diffCoastRamp;
 	}
 
 	for (int i = 0; i < 4; ++i)
@@ -272,7 +283,8 @@ static void processInput(float dt)
 	if (asyncKeydown(SDL_SCANCODE_T)) { car_->teleport(pitPos_); }
 
 	if (asyncKeydown(SDL_SCANCODE_N)) { inpDrawSky_ = !inpDrawSky_; }
-	if (asyncKeydown(SDL_SCANCODE_B)) { inpWireWalls_ = !inpWireWalls_; }
+	if (asyncKeydown(SDL_SCANCODE_B)) { inpWireframe_ = !inpWireframe_; }
+	if (asyncKeydown(SDL_SCANCODE_P)) { inpDrawRacePoints_ = !inpDrawRacePoints_; }
 
 	if (asyncKeydown(SDL_SCANCODE_V))
 	{
@@ -329,11 +341,13 @@ static void render(float dt)
 		sky_.draw();
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
+	trackAvatar_.setLight(v(camPos_), v(camFront_));
 	trackAvatar_.drawOrigin();
-	trackAvatar_.drawSurfaces(v(camPos_), v(camFront_));
-	if (inpWireWalls_)
-		trackAvatar_.drawWalls();
+	trackAvatar_.drawTrack(inpWireframe_);
+	if (inpDrawRacePoints_)
+		trackAvatar_.drawRacePoints();
 
 	bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
 	carAvatar_.draw(drawBody);
@@ -383,7 +397,6 @@ int main(int argc, char** argv)
 		_telemetry.reserve(10000);
 
 	double prevTime = 0;
-	double simAccum = 0;
 	double drawAccum = 0;
 	double statAccum = 0;
 	double telemAccum = 0;
@@ -416,14 +429,14 @@ int main(int argc, char** argv)
 
 		bool simStepDone = false;
 		auto sim0 = clock::now();
-		simAccum += dt;
-		while (simAccum >= simTickRate_)
+		simAccum_ += dt;
+		while (simAccum_ >= simTickRate_)
 		{
-			simAccum -= simTickRate_;
-			if (simAccum > simTickRate_ * 3.0)
+			simAccum_ -= simTickRate_;
+			if (simAccum_ > simTickRate_ * 10.0)
 			{
-				simAccum = 0;
-				log_printf(L"RESET: simAccum");
+				simAccum_ = 0;
+				//log_printf(L"RESET: simAccum");
 			}
 
 			if (inpSimOnce_ || inpSimFlag_)
@@ -486,10 +499,10 @@ int main(int argc, char** argv)
 			if (drawAccum >= drawTickRate_)
 			{
 				drawAccum -= drawTickRate_;
-				if (drawAccum > drawTickRate_ * 3.0)
+				if (drawAccum > drawTickRate_ * 10.0)
 				{
 					drawAccum = 0;
-					log_printf(L"RESET: drawAccum");
+					//log_printf(L"RESET: drawAccum");
 				}
 
 				drawDt = (float)drawTickRate_;

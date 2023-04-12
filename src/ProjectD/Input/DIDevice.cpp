@@ -31,9 +31,6 @@ bool DIDevice::init(HWND window, LPDIRECTINPUT8 di, const DIDEVICEINSTANCE& _inf
 		HR_GUARD_WARN(hr, break);
 		device.reset(_device);
 
-		hr = device->SetDataFormat(&c_dfDIJoystick);
-		HR_GUARD_WARN(hr, break);
-
 		hr = device->SetCooperativeLevel(window, DISCL_EXCLUSIVE | DISCL_BACKGROUND);
 		if (FAILED(hr))
 		{
@@ -45,11 +42,16 @@ bool DIDevice::init(HWND window, LPDIRECTINPUT8 di, const DIDEVICEINSTANCE& _inf
 		}
 		HR_GUARD_WARN(hr, break);
 
+		hr = device->SetDataFormat(&c_dfDIJoystick);
+		HR_GUARD_WARN(hr, break);
+
 		DI_MAKE_PROP(DIPROPRANGE, p);
 		p.lMin = -10000;
 		p.lMax = 10000;
 		hr = device->SetProperty(DIPROP_RANGE, &p.diph);
 		HR_GUARD_WARN(hr, break);
+
+		hr = device->Acquire();
 
 		// SUCCESS
 		return true;

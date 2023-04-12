@@ -97,6 +97,7 @@ static void renderText()
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
 	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
 	font_.draw(x, y, "maxDraw %.3f ms", statMaxDraw_); y += dy;
+	font_.draw(x, y, "simAccum %.4f", simAccum_); y += dy;
 	font_.draw(x, y, "simHZ %d %" PRIu64, (int)statSimRate_, simId_); y += dy;
 	font_.draw(x, y, "drawHZ %d %" PRIu64, (int)statDrawRate_, drawId_); y += dy;
 
@@ -117,10 +118,10 @@ static void renderText()
 	}
 
 	font_.draw(x, y, "steer %.3f", car_->controls.steer); y += dy;
-	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
+	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
 	font_.draw(x, y, "brake %.3f", car_->controls.brake); y += dy;
 	font_.draw(x, y, "handBrake %.3f", car_->controls.handBrake); y += dy;
-	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
+	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
 
 	font_.draw(x, y, "geartime #%d %.3f", gear, timeSinceShift_); y += dy;
 	font_.draw(x, y, "collisions %d", (int)sim_->collisions.size()); y += dy;
@@ -210,27 +211,30 @@ static void renderText()
 
 	// STATUS BAR
 
-	if (rpm < 4000)
-		glColor3ub(0, 255, 0);
-	else if (rpm < 6000)
-		glColor3ub(255, 255, 0);
-	else
-		glColor3ub(255, 0, 0);
-
-	float w = (float)width_;
-	float h = (float)height_;
-
-	font_.setHeight(25);
-	font_.draw(w * 0.35f, h * 0.7f, "%d", (int)rpm);
-	font_.draw(w * 0.45f, h * 0.7f, "%d", gear);
-
-	glColor3ub(255, 255, 255);
-	font_.draw(w * 0.55f, h * 0.7f, "%.1f", car_->speed.kmh());
-
-	if (car_->drivetrain->isGearGrinding)
+	if (inpCamMode_ == (int)ECamMode::Eye || inpCamMode_ == (int)ECamMode::Rear)
 	{
-		glColor3ub(255, 0, 0);
-		font_.draw(width_ * 0.4f, height_ * 0.6f, "MONEY SHIFT!");
+		if (rpm < 4000)
+			glColor3ub(0, 255, 0);
+		else if (rpm < 6000)
+			glColor3ub(255, 255, 0);
+		else
+			glColor3ub(255, 0, 0);
+
+		float w = (float)width_;
+		float h = (float)height_;
+
+		font_.setHeight(25);
+		font_.draw(w * 0.35f, h * 0.7f, "%d", (int)rpm);
+		font_.draw(w * 0.45f, h * 0.7f, "%d", gear);
+
+		glColor3ub(255, 255, 255);
+		font_.draw(w * 0.55f, h * 0.7f, "%.1f", car_->speed.kmh());
+
+		if (car_->drivetrain->isGearGrinding)
+		{
+			glColor3ub(255, 0, 0);
+			font_.draw(width_ * 0.4f, height_ * 0.6f, "MONEY SHIFT!");
+		}
 	}
 
 	//===

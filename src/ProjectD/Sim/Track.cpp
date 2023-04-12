@@ -27,6 +27,8 @@ bool Track::init(const std::wstring& trackName)
 
 	loadSurfaceBlob();
 	loadPits();
+	
+	initTrackPoints();
 
 	return true;
 }
@@ -45,6 +47,11 @@ void Track::loadSurfaceBlob()
 	{
 		GUARD_FATAL(blob.magic == 0xAABBCCDD);
 		GUARD_FATAL(blob.numVertices > 0 && blob.numIndices > 0);
+
+		if (!(blob.collisionCategory == C_CATEGORY_TRACK || blob.collisionCategory == C_CATEGORY_WALL))
+		{
+			log_printf(L"UNKNOWN collisionCategory=%u", blob.collisionCategory);
+		}
 
 		auto trimesh = sim->physics->createTriMesh();
 		trimesh->resize(blob.numVertices, blob.numIndices);
@@ -67,15 +74,10 @@ void Track::loadSurfaceBlob()
 		pSurf->isValidTrack = blob.isValidTrack;
 		pSurf->isPitlane = blob.isPitlane;
 
-		log_printf(L"Surface: sectorID=%u collisionCategory=%u gripMod=%.3f damping=%.3f", pSurf->sectorID, pSurf->collisionCategory, pSurf->gripMod, pSurf->damping);
+		//log_printf(L"Surface: sectorID=%u collisionCategory=%u gripMod=%.3f damping=%.3f", pSurf->sectorID, pSurf->collisionCategory, pSurf->gripMod, pSurf->damping);
 
 		auto pCollider = sim->physics->createCollider(pSurf->trimesh, false, pSurf->sectorID, pSurf->collisionCategory, C_MASK_SURFACE);
 		pCollider->setUserPointer(pSurf.get());
-
-		if (!(pSurf->collisionCategory == C_CATEGORY_TRACK || pSurf->collisionCategory == C_CATEGORY_WALL))
-		{
-			log_printf(L"UNKNOWN collisionCategory=%d", pSurf->collisionCategory);
-		}
 
 		surfaces.emplace_back(std::move(pSurf));
 		colliders.emplace_back(std::move(pCollider));
@@ -107,6 +109,198 @@ void Track::loadPits()
 			pits.emplace_back(m);
 		}
 	}
+}
+
+void Track::initTrackPoints()
+{
+	traceBadSectors.clear();
+
+	auto ini(std::make_unique<INIReader>(dataFolder + L"spline.ini"));
+	if (ini->ready)
+	{
+		traceSides = ini->getInt(L"SPLINE", L"TRACE_SIDES") != 0;
+
+		ini->tryGetFloat(L"SPLINE", L"TRACE_RAY_OFFSET_Y", traceRayOffsetY);
+		ini->tryGetFloat(L"SPLINE", L"TRACE_RAY_LENGTH", traceRayLength);
+		ini->tryGetFloat(L"SPLINE", L"TRACE_SIDE_MAX", traceSideMax);
+		ini->tryGetFloat(L"SPLINE", L"TRACE_DIFF_HEIGHT_MAX", traceDiffHeightMax);
+		ini->tryGetFloat(L"SPLINE", L"TRACE_DIFF_GRIP_MAX", traceDiffGripMax);
+		ini->tryGetFloat(L"SPLINE", L"TRACE_STEP", traceStep);
+
+		if (ini->hasKey(L"SPLINE", L"TRACE_BAD_SECTORS"))
+		{
+			std::wstring list = ini->getString(L"SPLINE", L"TRACE_BAD_SECTORS");
+			auto items = split(list, L"|");
+			for (const auto& item : items)
+			{
+				auto id = std::stoi(item);
+				traceBadSectors.insert(id);
+			}
+		}
+	}
+
+	loadSlimPoints();
+	loadFatPoints();
+
+	if (fatPoints.size() != slimPoints.size())
+	{
+		fatPoints.clear();
+	}
+
+	if (fatPoints.empty() && !slimPoints.empty())
+	{
+		computeFatPoints();
+		saveFatPoints();
+	}
+}
+
+void Track::loadSlimPoints()
+{
+	slimPoints.clear();
+
+	FileHandle file;
+	auto strPath = dataFolder + L"spline.bin";
+	if (file.open(strPath.c_str(), L"rb"))
+	{
+		const size_t size = file.size();
+		const size_t numPoints = size / sizeof(slimPoints[0]);
+		if (numPoints > 0)
+		{
+			slimPoints.resize(numPoints);
+			fread(slimPoints.data(), sizeof(slimPoints[0]) * numPoints, 1, file.fd);
+		}
+	}
+}
+
+void Track::loadFatPoints()
+{
+	fatPoints.clear();
+
+	FileHandle file;
+	auto strPath = dataFolder + L"spline.cache";
+	if (file.open(strPath.c_str(), L"rb"))
+	{
+		const size_t size = file.size();
+		const size_t numPoints = size / sizeof(fatPoints[0]);
+		if (numPoints > 0)
+		{
+			fatPoints.resize(numPoints);
+			fread(fatPoints.data(), sizeof(fatPoints[0]) * numPoints, 1, file.fd);
+		}
+	}
+}
+
+void Track::saveFatPoints()
+{
+	FileHandle file;
+	auto strPath = dataFolder + L"spline.cache";
+	if (file.open(strPath.c_str(), L"wb"))
+	{
+		const auto numPoints = fatPoints.size();
+		if (numPoints > 0)
+		{
+			fwrite(fatPoints.data(), sizeof(fatPoints[0]) * numPoints, 1, file.fd);
+		}
+	}
+}
+
+void Track::computeFatPoints()
+{
+	fatPoints.clear();
+
+	const auto numPoints = slimPoints.size();
+	if (!numPoints)
+		return;
+
+	fatPoints.resize(numPoints);
+	memset(fatPoints.data(), 0, sizeof(fatPoints[0]) * numPoints);
+
+	const vec3f rayOff(0, traceRayOffsetY, 0);
+	const int numTraceSteps = (int)(traceSideMax / traceStep);
+
+	TrackRayCastHit hit;
+
+	for (auto i = 0; i < numPoints; ++i)
+	{
+		const auto& slim = slimPoints[i];
+		auto& fat = fatPoints[i];
+
+		const auto& rayStart = slim.best + rayOff;
+
+		if (rayCast(rayStart, vec3f(0, -1, 0), traceRayLength, hit))
+		{
+			const auto roadCategory = hit.surface->collisionCategory;
+			fat.best = hit.pos;
+
+			const float baseGrip = hit.surface->gripMod;
+
+			auto nextI = i + 1;
+			if (nextI >= numPoints)
+				nextI = 0;
+
+			fat.forwardDir = (slimPoints[nextI].best - slim.best).get_norm();
+
+			auto leftDir = fat.forwardDir.cross(vec3f(0, -1, 0)).get_norm();
+			auto rightDir = leftDir * -1.0f;
+
+			if (!traceSides)
+			{
+				fat.left = fat.best + leftDir * slimPoints[i].sides[0];
+				fat.right = fat.best + rightDir * slimPoints[i].sides[1];
+
+				if (rayCast(fat.left + rayOff, vec3f(0, -1, 0), traceRayLength, hit))
+				{
+					fat.left = hit.pos;
+				}
+
+				if (rayCast(fat.right + rayOff, vec3f(0, -1, 0), traceRayLength, hit))
+				{
+					fat.right = hit.pos;
+				}
+			}
+			else // trace sides (slow)
+			{
+				fat.left = rayCastSide(slim, fat, hit, rayStart, leftDir, numTraceSteps);
+				fat.right = rayCastSide(slim, fat, hit, rayStart, rightDir, numTraceSteps);
+			}
+
+			fat.center = (fat.left + fat.right) * 0.5f;
+		}
+	}
+}
+
+vec3f Track::rayCastSide(const SlimTrackPoint& slim, FatTrackPoint& fat, const TrackRayCastHit& origHit, const vec3f& rayStart, const vec3f& traceDir, int numSteps)
+{
+	vec3f result = origHit.pos;
+	vec3f prevHit = origHit.pos;
+	float prevGrip = origHit.surface->gripMod;
+
+	TrackRayCastHit hit;
+
+	for (int traceId = 1; traceId < numSteps; ++traceId)
+	{
+		const auto rayEnd = origHit.pos + traceDir * ((float)(traceId) * traceStep);
+		const auto rayN = (rayEnd - rayStart).get_norm();
+
+		if (rayCast(rayStart, rayN, traceRayLength, hit))
+		{
+			if (hit.surface->isValidTrack && 
+				hit.surface->collisionCategory == origHit.surface->collisionCategory && 
+				fabsf(hit.pos.y - prevHit.y) < traceDiffHeightMax && 
+				fabsf(hit.surface->gripMod - prevGrip) < traceDiffGripMax &&
+				traceBadSectors.find(hit.surface->sectorID) == traceBadSectors.end()
+			)
+			{
+				result = hit.pos;
+				prevHit = hit.pos;
+				prevGrip = hit.surface->gripMod;
+			}
+			else
+				break;
+		}
+	}
+
+	return result;
 }
 
 IRayCasterPtr Track::createRayCaster(float length)

@@ -9,13 +9,21 @@ struct Track;
 struct GLTrack
 {
 	void init(Track* track);
-	void drawSurfaces(const vec3f& lightPos, const vec3f& lightDir);
-	void drawWalls();
+	
 	void drawOrigin();
+	void drawTrack(bool wireframe);
+	void drawRacePoints();
+
+	void setLight(const vec3f& pos, const vec3f& dir);
+	void beginEnv(bool wireframe);
+	void endEnv(bool wireframe);
 
 	Track* track = nullptr;
-	GLDisplayList surfaces;
-	GLDisplayList walls;
+	vec3f lightPos;
+	vec3f lightDir;
+	GLDisplayList trackBatch;
+	GLDisplayList wallsBatch;
+	GLDisplayList racePoints;
 };
 
 }
