@@ -22,7 +22,7 @@ static void initCharts()
 {
 	const int ChartN = 512;
 	float y0 = 0;
-	float y1 = 5;
+	float y1 = 10;
 	chartDT_.init(ChartN, 64);
 	serSim_.init(ChartN, y0, y1);
 	serDraw_.init(ChartN, y0, y1);
@@ -100,6 +100,8 @@ static void renderText()
 	font_.draw(x, y, "simAccum %.4f", simAccum_); y += dy;
 	font_.draw(x, y, "simHZ %d %" PRIu64, (int)statSimRate_, simId_); y += dy;
 	font_.draw(x, y, "drawHZ %d %" PRIu64, (int)statDrawRate_, drawId_); y += dy;
+	font_.draw(x, y, "simHitches %d", statSimHitches_); y += dy;
+	font_.draw(x, y, "drawHitches %d", statDrawHitches_); y += dy;
 
 	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
 	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;

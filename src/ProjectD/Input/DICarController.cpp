@@ -196,7 +196,7 @@ void DICarController::acquireControls(CarControlsInput* input, CarControls* cont
 
 	if (isShifterManual)
 	{
-		controls->requestedGearIndex = manualGearId;
+		controls->requestedGearIndex = (int8_t)manualGearId;
 
 		if ((varGearUp.getInputBool() || varGearDown.getInputBool()) && manualGearId == 1)
 		{

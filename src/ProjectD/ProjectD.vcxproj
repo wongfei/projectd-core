@@ -26,7 +26,9 @@
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Core.h" />
     <ClInclude Include="Core\CubicSpline.h" />
+    <ClInclude Include="Core\SharedMemory.h" />
     <ClInclude Include="Core\Speed.h" />
+    <ClInclude Include="Core\VertexHash.h" />
     <ClInclude Include="Input\DICarController.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -296,6 +298,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Core\SharedMemory.cpp" />
     <ClCompile Include="Input\DICarController.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>

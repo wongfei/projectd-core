@@ -2,6 +2,7 @@
 
 #include "Core/Core.h"
 #include <cmath>
+#include <intrin.h>
 
 #if !defined(M_PI)
 #define M_PI 3.1415926535897932384626433832795f
@@ -11,6 +12,19 @@
 #define M_RAD2DEG 57.295779513082320876798154814105f
 
 namespace D {
+
+// thanks UE!
+#if 1
+inline int truncToInt(float F) { return _mm_cvtt_ss2si(_mm_set_ss(F)); }
+inline int floorToInt(float F) { return _mm_cvt_ss2si(_mm_set_ss(F + F - 0.5f)) >> 1; }
+inline int roundToInt(float F) { return _mm_cvt_ss2si(_mm_set_ss(F + F + 0.5f)) >> 1; }
+inline int ceilToInt(float F) { return -(_mm_cvt_ss2si(_mm_set_ss(-0.5f - (F + F))) >> 1); }
+#else
+inline int truncToInt(float F) { return (int)F; }
+inline int floorToInt(float F) { return truncToInt(floorf(F)); }
+inline int roundToInt(float F) { return floorToInt(F + 0.5f); }
+inline int ceilToInt(float F) { return truncToInt(ceilf(F)); }
+#endif
 
 template<typename T>
 inline T tmin(const T& a, const T& b) { return (a < b ? a : b); }
@@ -188,5 +202,17 @@ inline vec3f randV(float min, float max) {
 inline vec3f rgb(int r, int g, int b) {
 	return vec3f((float)r, (float)g, (float)b) / 255.0f;
 }
+
+struct ray3f
+{
+	vec3f pos;
+	vec3f dir;
+	float length = 0;
+
+	inline ray3f() {}
+	inline ray3f(const vec3f& _pos, const vec3f& _dir, float _length) : pos(_pos), dir(_dir), length(_length) {}
+
+	static ray3f fromTwoPoints(const vec3f& a, const vec3f& b) { const auto ba = b - a; const float len = ba.len(); return ray3f(a, ba / len, len); }
+};
 
 }

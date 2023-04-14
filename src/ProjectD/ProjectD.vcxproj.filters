@@ -303,6 +303,8 @@
     <ClInclude Include="Car\AutoBlip.h" />
     <ClInclude Include="Car\AutoShifter.h" />
     <ClInclude Include="Car\AutoClutch.h" />
+    <ClInclude Include="Core\VertexHash.h" />
+    <ClInclude Include="Core\SharedMemory.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Car\Car.cpp">
@@ -464,5 +466,6 @@
     <ClCompile Include="Car\AutoBlip.cpp" />
     <ClCompile Include="Car\AutoShifter.cpp" />
     <ClCompile Include="Car\AutoClutch.cpp" />
+    <ClCompile Include="Core\SharedMemory.cpp" />
   </ItemGroup>
 </Project>

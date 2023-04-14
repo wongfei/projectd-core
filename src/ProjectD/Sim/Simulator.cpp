@@ -2,6 +2,8 @@
 #include "Physics/PhysicsFactory.h"
 #include "Sim/Track.h"
 #include "Car/Car.h"
+#include "Car/CarState.h"
+#include "Core/SharedMemory.h"
 
 namespace D {
 
@@ -19,6 +21,21 @@ bool Simulator::init(const std::wstring& _basePath)
 {
 	log_printf(L"Simulator: init: basePath=\"%s\"", _basePath.c_str());
 	basePath = _basePath;
+
+	interopEnabled = 0;
+	interopMaxCars = 32;
+
+	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	if (ini->ready)
+	{
+		ini->tryGetInt(L"INTEROP", L"ENABLED", interopEnabled);
+		ini->tryGetInt(L"INTEROP", L"MAX_CARS", interopMaxCars);
+	}
+
+	if (interopMaxCars <= 0)
+		interopEnabled = 0;
+	else if (interopMaxCars > 1024)
+		interopMaxCars = 1024;
 
 	float defT = 20.0f;
 	roadTemperature = defT;
@@ -42,6 +59,15 @@ bool Simulator::init(const std::wstring& _basePath)
 
 	physics = PhysicsFactory::createPhysicsEngine();
 	physics->setCollisionCallback(this);
+
+	if (interopEnabled)
+	{
+		sharedState.reset(new SharedMemory());
+		sharedInputs.reset(new SharedMemory());
+
+		sharedState->allocate(L"projectd_state", (sizeof(CarState) * interopMaxCars) + 1024);
+		sharedInputs->allocate(L"projectd_inputs", (sizeof(CarControls) * interopMaxCars) + 1024);
+	}
 
 	return true;
 }
@@ -94,6 +120,8 @@ void Simulator::step(float dt, double physicsTime, double gameTime)
 	this->gameTime = gameTime;
 	this->stepCounter++;
 
+	readInteropInputs();
+
 	evOnPreStep.fire(dt);
 
 	track->step(dt);
@@ -102,6 +130,9 @@ void Simulator::step(float dt, double physicsTime, double gameTime)
 	physics->step(dt);
 
 	evOnStepCompleted.fire(dt);
+
+	// should be called after evOnStepCompleted
+	updateInteropState();
 
 	if (collisions.size() > 100)
 		collisions.clear();
@@ -140,6 +171,49 @@ void Simulator::stepCars(float dt)
 	for (auto* pCar : this->cars)
 	{
 		pCar->step(dt);
+	}
+}
+
+void Simulator::readInteropInputs() // TODO: this is lame
+{
+	if (!sharedInputs || !sharedInputs->isValid())
+		return;
+
+	const int32_t actualCars = tmin((int32_t)cars.size(), (int32_t)interopMaxCars);
+
+	auto* sharedData = (uint8_t*)sharedInputs->data();
+	size_t pos = 0;
+
+	int32_t numCars = 0;
+	memcpy(&numCars, sharedData + pos, sizeof(numCars)); pos += sizeof(numCars);
+	numCars = tmin(numCars, actualCars);
+
+	for (int32_t carId = 0; carId < numCars; ++carId)
+	{
+		auto* pCar = cars[carId];
+
+		memcpy(&pCar->controls, sharedData + pos, sizeof(CarControls)); pos += sizeof(CarControls);
+		pCar->externalControls = true;
+	}
+}
+
+void Simulator::updateInteropState() // TODO: this is lame
+{
+	if (!sharedState || !sharedState->isValid())
+		return;
+
+	const int32_t numCars = tmin((int32_t)cars.size(), (int32_t)interopMaxCars);
+
+	auto* sharedData = (uint8_t*)sharedState->data();
+	size_t pos = 0;
+
+	memcpy(sharedData + pos, &numCars, sizeof(numCars)); pos += sizeof(numCars);
+
+	for (int32_t carId = 0; carId < numCars; ++carId)
+	{
+		auto* pCar = cars[carId];
+
+		memcpy(sharedData + pos, pCar->state.get(), sizeof(CarState)); pos += sizeof(CarState);
 	}
 }
 

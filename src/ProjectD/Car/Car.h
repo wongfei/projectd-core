@@ -160,6 +160,8 @@ struct Car : public virtual IObject
 
 	CarControls controls;
 	float finalSteerAngleSignal = 0;
+	bool lockControls = false;
+	bool externalControls = false;
 
 	mat44f pitPosition;
 	Speed speed;
@@ -186,6 +188,10 @@ struct Car : public virtual IObject
 	float lastFF = 0;
 	float lastDamp = 0;
 	VibrationDef lastVibr;
+
+	// obstacle probes
+	std::vector<ray3f> probes;
+	std::vector<float> probeHits;
 };
 
 }

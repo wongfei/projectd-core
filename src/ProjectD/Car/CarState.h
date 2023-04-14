@@ -7,22 +7,23 @@ namespace D {
 
 struct CarState
 {
+	int32_t carId = 0;
+	int32_t gear = 0;
+	float engineRPM = 0;
+	float speedMS = 0;
+
 	CarControls controls;
 
-	mat44f bodyMatrix = {};
-	vec3f bodyPos = {};
-	vec3f bodyEuler = {};
+	mat44f bodyMatrix;
+	vec3f bodyPos;
+	vec3f bodyEuler;
 
-	mat44f graphicsMatrix = {};
-	vec3f graphicsPos = {};
-	vec3f graphicsEuler = {};
+	mat44f graphicsMatrix;
+	vec3f graphicsPos;
+	vec3f graphicsEuler;
 
-	mat44f hubMatrix[4] = {};
-	vec3f tyreContacts[4] = {};
-	
-	float speedMS = 0;
-	float engineRPM = 0;
-	int gear = 0;
+	mat44f hubMatrix[4];
+	vec3f tyreContacts[4];
 };
 
 }

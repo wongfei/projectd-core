@@ -19,7 +19,7 @@ void GLCar::init(Car* _car)
 	wheelMesh.wireframe = true;
 }
 
-void GLCar::draw(bool drawBody)
+void GLCar::draw(bool drawBody, bool drawProbes)
 {
 	// body
 	if (drawBody)
@@ -150,13 +150,44 @@ void GLCar::draw(bool drawBody)
 		glVertex3fv(&n.p.x);
 	}
 	glEnd();
+
+	// probes
+	const auto numRays = car->probes.size();
+	if (drawProbes && numRays > 0)
+	{
+		glBegin(GL_LINES);
+		glColor3f(1.0f, 1.0f, 0.0f);
+		for (size_t rayId = 0; rayId < numRays; ++rayId)
+		{
+			const auto& r = car->probes[rayId];
+			const auto rayStart = car->body->localToWorld(r.pos);
+			const auto rayEnd = car->body->localToWorld(r.pos + r.dir * r.length);
+			glVertex3fv(&rayStart.x);
+			glVertex3fv(&rayEnd.x);
+		}
+		glEnd();
+
+		glPointSize(6);
+		glBegin(GL_POINTS);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		for (size_t rayId = 0; rayId < numRays; ++rayId)
+		{
+			//if (car->probeHits[rayId] > 0.0f)
+			{
+				const auto& r = car->probes[rayId];
+				const auto hitPos = car->body->localToWorld(r.pos + r.dir * car->probeHits[rayId]);
+				glVertex3fv(&hitPos.x);
+			}
+		}
+		glEnd();
+	}
 }
 
-void GLCar::drawInstance(Car* instance, bool drawBody) // TODO: lame hack
+void GLCar::drawInstance(Car* instance, bool drawBody, bool drawProbes) // TODO: lame hack
 {
 	auto tmp = car;
 	car = instance;
-	draw(drawBody);
+	draw(drawBody, drawProbes);
 	car = tmp;
 }
 

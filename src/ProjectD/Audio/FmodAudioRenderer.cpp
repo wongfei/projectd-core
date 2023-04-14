@@ -153,7 +153,7 @@ void FmodAudioRenderer::update(float dt)
 		float fSkidPitchBase = 0.75f;
 		float fSkidPitchGain = 0.8f;
 		float fSkidVolumeGain = 2.5f;
-		float fSkidSmoothAlhpa = 60.0f;
+		//float fSkidSmoothAlhpa = 60.0f;
 
 		float speed = car->speed.value;
 		float fSpeedKmh = car->speed.kmh();

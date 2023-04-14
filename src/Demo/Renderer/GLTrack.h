@@ -12,18 +12,20 @@ struct GLTrack
 	
 	void drawOrigin();
 	void drawTrack(bool wireframe);
-	void drawRacePoints();
+	void drawTrackPoints();
+	void drawNearbyPoints(const vec3f& cameraPos);
 
 	void setLight(const vec3f& pos, const vec3f& dir);
-	void beginEnv(bool wireframe);
-	void endEnv(bool wireframe);
+	void beginSurface(bool wireframe);
+	void endSurface(bool wireframe);
 
 	Track* track = nullptr;
 	vec3f lightPos;
 	vec3f lightDir;
 	GLDisplayList trackBatch;
 	GLDisplayList wallsBatch;
-	GLDisplayList racePoints;
+	GLDisplayList fatPointsBatch;
+	std::vector<size_t> nearbyPoints;
 };
 
 }

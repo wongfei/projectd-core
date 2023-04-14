@@ -95,7 +95,9 @@ bool inpSimFlag_ = true;
 bool inpSimOnce_ = false;
 bool inpDrawSky_ = true;
 bool inpWireframe_ = false;
-bool inpDrawRacePoints_ = false;
+bool inpDrawTrackPoints_ = false;
+bool inpDrawNearbyPoints_ = false;
+bool inpDrawCarProbes_ = false;
 
 double dt_ = 0;
 double gameTime_ = 0;
@@ -109,6 +111,8 @@ float statMaxSim_ = 0;
 float statMaxDraw_ = 0;
 int statSimRate_ = 0;
 int statDrawRate_ = 0;
+int statSimHitches_ = 0;
+int statDrawHitches_ = 0;
 
 float timeSinceShift_ = 0;
 int lastGear_ = 0;
@@ -129,7 +133,7 @@ static void initEngine(int argc, char** argv)
 	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
 	if (ini->ready)
 	{
-		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") == 1;
+		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") != 0;
 		width_ = ini->getInt(L"SYS", L"RESX");
 		height_ = ini->getInt(L"SYS", L"RESY");
 
@@ -139,13 +143,9 @@ static void initEngine(int argc, char** argv)
 		inpMouseSens_ = ini->getFloat(L"SYS", L"MOUSE_SENS");
 	}
 
-	if (width_ <= 100) width_ = 1280;
-	if (height_ <= 100) height_ = 720;
-
 	initSDL();
 	clearViewport();
 	swap();
-	
 
 	font_.initDefault();
 }
@@ -207,6 +207,11 @@ static void initDemo(int argc, char** argv)
 	track_ = sim_->initTrack(trackName);
 	car_ = sim_->initCar(track_, carModel);
 	//carB_ = sim_->initCar(track_, carModel);
+
+	const float frontRayLength = track_->fatPointsHash.cellSize;
+	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(0, 0, 1), frontRayLength)); // forward
+	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(1, 0, 0), 10)); // left
+	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(-1, 0, 0), 10)); // right
 
 	audioRenderer_ = std::make_unique<FmodAudioRenderer>(car_.get(), basePath, carModel);
 	car_->audioRenderer = audioRenderer_.get();
@@ -284,7 +289,9 @@ static void processInput(float dt)
 
 	if (asyncKeydown(SDL_SCANCODE_N)) { inpDrawSky_ = !inpDrawSky_; }
 	if (asyncKeydown(SDL_SCANCODE_B)) { inpWireframe_ = !inpWireframe_; }
-	if (asyncKeydown(SDL_SCANCODE_P)) { inpDrawRacePoints_ = !inpDrawRacePoints_; }
+	if (asyncKeydown(SDL_SCANCODE_P)) { inpDrawTrackPoints_ = !inpDrawTrackPoints_; }
+	if (asyncKeydown(SDL_SCANCODE_O)) { inpDrawNearbyPoints_ = !inpDrawNearbyPoints_; }
+	if (asyncKeydown(SDL_SCANCODE_I)) { inpDrawCarProbes_ = !inpDrawCarProbes_; }
 
 	if (asyncKeydown(SDL_SCANCODE_V))
 	{
@@ -346,14 +353,42 @@ static void render(float dt)
 	trackAvatar_.setLight(v(camPos_), v(camFront_));
 	trackAvatar_.drawOrigin();
 	trackAvatar_.drawTrack(inpWireframe_);
-	if (inpDrawRacePoints_)
-		trackAvatar_.drawRacePoints();
+
+	if (inpDrawTrackPoints_)
+		trackAvatar_.drawTrackPoints();
+
+	if (inpDrawNearbyPoints_)
+	{
+		trackAvatar_.drawNearbyPoints(v(camPos_));
+
+		float obstacleDist = track_->rayCastTrackBounds(v(camPos_) + vec3f(0, -0.5f, 0), v(camFront_));
+		if (obstacleDist > 0.0f)
+		{
+			auto interPos = camPos_ + camFront_ * obstacleDist;
+
+			TrackRayCastHit hit;
+			if (track_->rayCast(v(interPos), vec3f(0, -1, 0), 10, hit))
+			{
+				glBegin(GL_LINES);
+					glColor3f(1.0f, 0.0f, 0.0f);
+					glVertex3fv(&interPos.x);
+					glVertex3fv(&hit.pos.x);
+				glEnd();
+			}
+
+			glPointSize(6);
+			glBegin(GL_POINTS);
+				glColor3f(1.0f, 0.0f, 0.0f);
+				glVertex3fv(&interPos.x);
+			glEnd();
+		}
+	}
 
 	bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
-	carAvatar_.draw(drawBody);
+	carAvatar_.draw(drawBody, inpDrawCarProbes_);
 
 	if (carB_)
-		carAvatar_.drawInstance(carB_.get(), true);
+		carAvatar_.drawInstance(carB_.get(), true, true);
 
 	glDisable(GL_DEPTH_TEST);
 
@@ -406,16 +441,18 @@ int main(int argc, char** argv)
 	float maxDraw = 0;
 	int simCount = 0;
 	int drawCount = 0;
-	bool isWindowVisible = false;
+	
+	// flicker fix
+	int skipFrames = 3;
+	bool isFirstFrameDone = false;
 
 	typedef std::chrono::high_resolution_clock clock;
-	auto t0 = clock::now();
-	auto t1 = t0;
+	auto tick0 = clock::now();
 
 	while (!exitFlag_)
 	{
-		auto t2 = clock::now();
-		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t0).count() * 1e-6;
+		auto tick1 = clock::now();
+		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tick1 - tick0).count() * 1e-6;
 		const float gameTime = (float)gameTime_;
 
 		const double dt = gameTime_ - prevTime;
@@ -424,6 +461,8 @@ int main(int argc, char** argv)
 		maxDt = tmax(maxDt, (float)dt * 1e3f);
 
 		processEvents();
+
+		car_->lockControls = (inpCamMode_ == (int)ECamMode::Free);
 
 		// SIMULATE
 
@@ -436,6 +475,7 @@ int main(int argc, char** argv)
 			if (simAccum_ > simTickRate_ * 10.0)
 			{
 				simAccum_ = 0;
+				++statSimHitches_;
 				//log_printf(L"RESET: simAccum");
 			}
 
@@ -502,6 +542,7 @@ int main(int argc, char** argv)
 				if (drawAccum > drawTickRate_ * 10.0)
 				{
 					drawAccum = 0;
+					++statDrawHitches_;
 					//log_printf(L"RESET: drawAccum");
 				}
 
@@ -560,13 +601,20 @@ int main(int argc, char** argv)
 			serBrake_.add_value(gameTime, car_->controls.brake);
 			serGas_.add_value(gameTime, car_->controls.gas);
 
-			if (!isWindowVisible)
+			if (!isFirstFrameDone && skipFrames == 0)
 			{
-				isWindowVisible = true;
-				SDL_ShowWindow(appWindow_);
+				isFirstFrameDone = true;
+
+				if (fullscreen_)
+				{
+					SDL_ShowWindow(appWindow_);
+					SDL_SetRelativeMouseMode(SDL_TRUE);
+				}
 
 				initInput();
 			}
+
+			if (skipFrames > 0) --skipFrames;
 		}
 
 		// STATS

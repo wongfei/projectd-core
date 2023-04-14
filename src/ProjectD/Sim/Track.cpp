@@ -1,6 +1,12 @@
 #include "Sim/Track.h"
 #include "Sim/Simulator.h"
 
+#define TRACK_DEBUG_DRAW 0
+
+#if (TRACK_DEBUG_DRAW)
+#include <SDL_opengl.h>
+#endif
+
 namespace D {
 
 Track::Track(SimulatorPtr _sim)
@@ -31,6 +37,51 @@ bool Track::init(const std::wstring& trackName)
 	initTrackPoints();
 
 	return true;
+}
+
+void Track::step(float dt) // TODO?
+{
+}
+
+IRayCasterPtr Track::createRayCaster(float length)
+{
+	return sim->physics->createRayCaster(length);
+}
+
+bool Track::rayCast(const vec3f& org, const vec3f& dir, float length, TrackRayCastHit& result)
+{
+	auto hit = sim->physics->rayCast(org, dir, length);
+	if (hit.hasContact)
+	{
+		result.surface = (Surface*)hit.collisionObject->getUserPointer();
+		result.collisionObject = hit.collisionObject;
+		result.pos = hit.pos;
+		result.normal = hit.normal;
+		result.hasContact = hit.hasContact;
+	}
+	else
+	{
+		memzero(result);
+	}
+	return hit.hasContact;
+}
+
+bool Track::rayCastWithRayCaster(const vec3f& org, const vec3f& dir, IRayCasterPtr rayCaster, TrackRayCastHit& result)
+{
+	auto hit = rayCaster->rayCast(org, dir);
+	if (hit.hasContact)
+	{
+		result.surface = (Surface*)hit.collisionObject->getUserPointer();
+		result.collisionObject = hit.collisionObject;
+		result.pos = hit.pos;
+		result.normal = hit.normal;
+		result.hasContact = hit.hasContact;
+	}
+	else
+	{
+		memzero(result);
+	}
+	return hit.hasContact;
 }
 
 void Track::loadSurfaceBlob()
@@ -152,6 +203,18 @@ void Track::initTrackPoints()
 		computeFatPoints();
 		saveFatPoints();
 	}
+
+	if (!fatPoints.empty())
+	{
+		fatPointsHash.init(50, 4096); // allows to query points around specific location
+		pointCachePos.y = FLT_MAX;
+
+		// skip first point
+		for (size_t id = 1; id < fatPoints.size(); ++id)
+		{
+			fatPointsHash.add(fatPoints[id].center, id);
+		}
+	}
 }
 
 void Track::loadSlimPoints()
@@ -220,7 +283,7 @@ void Track::computeFatPoints()
 
 	TrackRayCastHit hit;
 
-	for (auto i = 0; i < numPoints; ++i)
+	for (size_t i = 0; i < numPoints; ++i)
 	{
 		const auto& slim = slimPoints[i];
 		auto& fat = fatPoints[i];
@@ -234,11 +297,15 @@ void Track::computeFatPoints()
 
 			const float baseGrip = hit.surface->gripMod;
 
-			auto nextI = i + 1;
+			/*auto nextI = i + 1;
 			if (nextI >= numPoints)
 				nextI = 0;
+			fat.forwardDir = (slimPoints[nextI].best - slim.best).get_norm();*/
 
-			fat.forwardDir = (slimPoints[nextI].best - slim.best).get_norm();
+			if (i + 1 < numPoints)
+				fat.forwardDir = (slimPoints[i + 1].best - slim.best).get_norm();
+			else if (i > 0)
+				fat.forwardDir = (slim.best - slimPoints[i - 1].best).get_norm();
 
 			auto leftDir = fat.forwardDir.cross(vec3f(0, -1, 0)).get_norm();
 			auto rightDir = leftDir * -1.0f;
@@ -258,10 +325,10 @@ void Track::computeFatPoints()
 					fat.right = hit.pos;
 				}
 			}
-			else // trace sides (slow)
+			else // ray trace sides (slow)
 			{
-				fat.left = rayCastSide(slim, fat, hit, rayStart, leftDir, numTraceSteps);
-				fat.right = rayCastSide(slim, fat, hit, rayStart, rightDir, numTraceSteps);
+				fat.left = computeSideLocation(slim, fat, hit, rayStart, leftDir, numTraceSteps);
+				fat.right = computeSideLocation(slim, fat, hit, rayStart, rightDir, numTraceSteps);
 			}
 
 			fat.center = (fat.left + fat.right) * 0.5f;
@@ -269,7 +336,7 @@ void Track::computeFatPoints()
 	}
 }
 
-vec3f Track::rayCastSide(const SlimTrackPoint& slim, FatTrackPoint& fat, const TrackRayCastHit& origHit, const vec3f& rayStart, const vec3f& traceDir, int numSteps)
+vec3f Track::computeSideLocation(const SlimTrackPoint& slim, FatTrackPoint& fat, const TrackRayCastHit& origHit, const vec3f& rayStart, const vec3f& traceDir, int numSteps)
 {
 	vec3f result = origHit.pos;
 	vec3f prevHit = origHit.pos;
@@ -303,49 +370,103 @@ vec3f Track::rayCastSide(const SlimTrackPoint& slim, FatTrackPoint& fat, const T
 	return result;
 }
 
-IRayCasterPtr Track::createRayCaster(float length)
+inline bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float &i_x, float &i_y)
 {
-	return sim->physics->createRayCaster(length);
+	// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+
+	float s1_x, s1_y, s2_x, s2_y;
+	s1_x = p1_x - p0_x; s1_y = p1_y - p0_y;
+	s2_x = p3_x - p2_x; s2_y = p3_y - p2_y;
+
+	float s, t;
+	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+	t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+	{
+		i_x = p0_x + (t * s1_x);
+		i_y = p0_y + (t * s1_y);
+		return true;
+	}
+
+	return false;
 }
 
-bool Track::rayCast(const vec3f& org, const vec3f& dir, float length, TrackRayCastHit& result)
+inline bool getLineIntersection(const vec2f& p0, const vec2f& p1, const vec2f& p2, const vec2f& p3, vec2f& i)
 {
-	auto hit = sim->physics->rayCast(org, dir, length);
-	if (hit.hasContact)
-	{
-		result.surface = (Surface*)hit.collisionObject->getUserPointer();
-		result.collisionObject = hit.collisionObject;
-		result.pos = hit.pos;
-		result.normal = hit.normal;
-		result.hasContact = hit.hasContact;
-	}
-	else
-	{
-		memzero(result);
-	}
-	return hit.hasContact;
+	return getLineIntersection(p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, i.x, i.y);
 }
 
-bool Track::rayCastWithRayCaster(const vec3f& org, const vec3f& dir, IRayCasterPtr rayCaster, TrackRayCastHit& result)
+// many tracks don't have guardrails/walls, fake them by tracing against track side splines
+float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDistance)
 {
-	auto hit = rayCaster->rayCast(org, dir);
-	if (hit.hasContact)
-	{
-		result.surface = (Surface*)hit.collisionObject->getUserPointer();
-		result.collisionObject = hit.collisionObject;
-		result.pos = hit.pos;
-		result.normal = hit.normal;
-		result.hasContact = hit.hasContact;
-	}
-	else
-	{
-		memzero(result);
-	}
-	return hit.hasContact;
-}
+	float result = -1.0f;
 
-void Track::step(float dt) // TODO?
-{
+	if (maxDistance <= 0.0f)
+		maxDistance = fatPointsHash.cellSize;
+
+	// allow points to be cached by query position
+	const float cacheDistanceTolerance = 1.0f;
+	if ((pointCachePos - pos).sqlen() > cacheDistanceTolerance * cacheDistanceTolerance)
+	{
+		pointCachePos = pos;
+		nearbyPoints.clear();
+		fatPointsHash.queryNeighbours(pos, nearbyPoints, maxDistance);
+	}
+
+	if (!nearbyPoints.empty())
+	{
+		const auto rayEnd = pos + dir * (maxDistance * 1.1f); // make ray a little longer then point cutoff distance
+
+		const auto rayA = vec2f(pos.x, pos.z);
+		const auto rayB = vec2f(rayEnd.x, rayEnd.z);
+
+		vec2f inter(0, 0);
+		float bestDist = FLT_MAX;
+		bool interFlag = false;
+
+		for (auto id : nearbyPoints)
+		{
+			auto sideA = fatPoints[id - 1].left;
+			auto sideB = fatPoints[id].left;
+
+			if (getLineIntersection(rayA, rayB, vec2f(sideA.x, sideA.z), vec2f(sideB.x, sideB.z), inter))
+			{
+				bestDist = tmin(bestDist, (rayA - inter).len());
+				interFlag = true;
+
+				#if (TRACK_DEBUG_DRAW)
+				glBegin(GL_LINES);
+					glColor3f(1.0f, 0.0f, 0.0f);
+					glVertex3fv(&sideA.x);
+					glVertex3fv(&sideB.x);
+				glEnd();
+				#endif
+			}
+
+			sideA = fatPoints[id - 1].right;
+			sideB = fatPoints[id].right;
+
+			if (getLineIntersection(rayA, rayB, vec2f(sideA.x, sideA.z), vec2f(sideB.x, sideB.z), inter))
+			{
+				bestDist = tmin(bestDist, (rayA - inter).len());
+				interFlag = true;
+
+				#if (TRACK_DEBUG_DRAW)
+				glBegin(GL_LINES);
+					glColor3f(1.0f, 0.0f, 0.0f);
+					glVertex3fv(&sideA.x);
+					glVertex3fv(&sideB.x);
+				glEnd();
+				#endif
+			}
+		}
+
+		if (interFlag)
+			result = bestDist;
+	}
+
+	return result;
 }
 
 }

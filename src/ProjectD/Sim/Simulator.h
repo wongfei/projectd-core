@@ -43,6 +43,9 @@ struct Simulator : public virtual ICollisionCallback, std::enable_shared_from_th
 	TrackPtr initTrack(const std::wstring& trackName);
 	CarPtr initCar(TrackPtr track, const std::wstring& modelName);
 	void step(float dt, double physicsTime, double gameTime);
+	
+	void readInteropInputs();
+	void updateInteropState();
 
 	// ICollisionCallback
 	void onCollisionCallback(
@@ -67,6 +70,8 @@ struct Simulator : public virtual ICollisionCallback, std::enable_shared_from_th
 
 	// config
 	std::wstring basePath;
+	int interopEnabled = 0;
+	int interopMaxCars = 0;
 
 	// objects
 	IPhysicsEnginePtr physics;
@@ -77,6 +82,10 @@ struct Simulator : public virtual ICollisionCallback, std::enable_shared_from_th
 	Track* track = nullptr;
 	std::vector<Car*> cars;
 	std::vector<SlipStream*> slipStreams;
+
+	// shared memory
+	std::unique_ptr<struct SharedMemory> sharedState;
+	std::unique_ptr<struct SharedMemory> sharedInputs;
 
 	// step
 	float deltaTime = 0;

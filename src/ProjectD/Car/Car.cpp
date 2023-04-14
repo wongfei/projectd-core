@@ -402,10 +402,7 @@ void Car::step(float dt)
 		fuelTankJoint->setERPCFM(fERP, -1.0f);
 	}
 
-	if (controlsProvider)
-	{
-		pollControls(dt);
-	}
+	pollControls(dt);
 
 	updateAirPressure();
 
@@ -609,6 +606,21 @@ void Car::stepComponents(float dt)
 	//colliderManager.step(dt);
 	//stabilityControl.step(dt);
 	//fuelLapEvaluator.step(dt);
+
+	const auto numRays = probes.size();
+	if (numRays > 0)
+	{
+		if (probeHits.size() != numRays)
+			probeHits.resize(numRays);
+
+		for (size_t rayId = 0; rayId < numRays; ++rayId)
+		{
+			const auto& r = probes[rayId];
+			const auto rayStart = body->localToWorld(r.pos);
+			const auto rayEnd = body->localToWorld(r.pos + r.dir * r.length);
+			probeHits[rayId] = track->rayCastTrackBounds(rayStart, (rayEnd - rayStart).get_norm(), r.length);
+		}
+	}
 }
 
 //=============================================================================
@@ -634,6 +646,12 @@ void Car::postStep(float dt)
 
 void Car::updateCarState()
 {
+	state->carId = (int32_t)physicsGUID;
+	
+	state->gear = drivetrain->currentGear;
+	state->engineRPM = getEngineRpm();
+	state->speedMS = speed.ms();
+
 	state->controls = controls;
 
 	auto bodyM = body->getWorldMatrix(0);
@@ -651,10 +669,6 @@ void Car::updateCarState()
 		state->hubMatrix[i] = (suspensions[i]->getHubWorldMatrix());
 		state->tyreContacts[i] = (tyres[i]->contactPoint);
 	}
-
-	state->speedMS = speed.ms();
-	state->engineRPM = getEngineRpm();
-	state->gear = drivetrain->currentGear;
 }
 
 //=============================================================================
@@ -791,7 +805,19 @@ void Car::onCollisionCallback(
 
 void Car::pollControls(float dt)
 {
-	VibrationDef vd;
+	if (externalControls) // controls managed by external system
+		return;
+
+	if (lockControls)
+	{
+		controls.clutch = 0;
+		controls.brake = 1;
+		controls.gas = 0;
+		return;
+	}
+
+	if (!controlsProvider)
+		return;
 
 	CarControlsInput input = {steerLock, speed.value};
 	controlsProvider->acquireControls(&input, &controls, dt);
@@ -831,6 +857,7 @@ void Car::pollControls(float dt)
 	if (fMaxSlip <= 1.0f)
 		fMaxSlip *= fMaxSlip;
 
+	VibrationDef vd;
 	float fVibAvg = fVibSum / (float)iSurfCount;
 
 	if (fVibAvg != 0.0f && fMaxGain != 0.0f)

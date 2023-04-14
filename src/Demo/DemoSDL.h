@@ -5,6 +5,9 @@ static void initSDL()
 	int rc = SDL_Init(SDL_INIT_VIDEO);
 	GUARD_FATAL(rc == 0);
 
+	SDL_DisplayMode mode = {};
+	SDL_GetDesktopDisplayMode(0, &mode);
+
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
@@ -12,13 +15,28 @@ static void initSDL()
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	int posy = 0; //fullscreen_ ? 0 : 100;
+	int posy = fullscreen_ ? 0 : 26;
 	unsigned int winFlags = SDL_WINDOW_OPENGL;
 
 	if (fullscreen_)
-		winFlags |= (SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN_DESKTOP);
+		winFlags |= (SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_HIDDEN); // hidden to prevent flicker
 	else
-		winFlags |= (SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+		winFlags |= (SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+
+	if (!width_ || !height_)
+	{
+		if (fullscreen_)
+		{
+			width_ = mode.w;
+			height_ = mode.h;
+		}
+		else
+		{
+			winFlags |= SDL_WINDOW_MAXIMIZED;
+			width_ = mode.w / 2;
+			height_ = mode.h / 2;
+		}
+	}
 
 	appWindow_ = SDL_CreateWindow("DEMO", 0, posy, width_, height_, winFlags);
 	glContext_ = SDL_GL_CreateContext(appWindow_);
@@ -86,6 +104,12 @@ static void processEvents()
 			{
 				if (event.button.button == SDL_BUTTON_LEFT) inpMouseBtn_[0] = event.button.state;
 				if (event.button.button == SDL_BUTTON_RIGHT) inpMouseBtn_[1] = event.button.state;
+
+				if (!fullscreen_ && event.button.button == SDL_BUTTON_RIGHT)
+				{
+					SDL_SetRelativeMouseMode((event.button.state == SDL_PRESSED) ? SDL_TRUE : SDL_FALSE);
+				}
+
 				break;
 			}
 

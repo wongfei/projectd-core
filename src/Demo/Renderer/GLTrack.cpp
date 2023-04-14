@@ -46,10 +46,13 @@ void GLTrack::init(Track* _track)
 
 	if (!track->fatPoints.empty())
 	{
-		GLCompileScoped compile(racePoints);
+		GLCompileScoped compile(fatPointsBatch);
 		glPointSize(6);
 		
 		glBegin(GL_POINTS);
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glVertex3fv(&track->fatPoints[0].center.x);
+
 		glColor3f(1.0f, 1.0f, 0.0f);
 		for (const auto& pt : track->fatPoints)
 		{
@@ -140,18 +143,36 @@ void GLTrack::drawOrigin()
 
 void GLTrack::drawTrack(bool wireframe)
 {
-	beginEnv(wireframe);
+	beginSurface(wireframe);
 
 	trackBatch.draw();
 	wallsBatch.draw();
 
-	endEnv(wireframe);
+	endSurface(wireframe);
 }
 
-void GLTrack::drawRacePoints()
+void GLTrack::drawTrackPoints()
 {
 	if (!track->fatPoints.empty())
-		racePoints.draw();
+		fatPointsBatch.draw();
+}
+
+void GLTrack::drawNearbyPoints(const vec3f& cameraPos)
+{
+	#if 1
+	nearbyPoints.clear();
+	track->fatPointsHash.queryNeighbours(cameraPos, nearbyPoints);
+
+	glPointSize(10);
+	glBegin(GL_POINTS);
+	glColor3f(1.0f, 1.0f, 1.0f);
+	for (const auto& id : nearbyPoints)
+	{
+		glVertex3fv(&track->fatPoints[id].left.x);
+		glVertex3fv(&track->fatPoints[id].right.x);
+	}
+	glEnd();
+	#endif
 }
 
 void GLTrack::setLight(const vec3f& pos, const vec3f& dir)
@@ -162,7 +183,7 @@ void GLTrack::setLight(const vec3f& pos, const vec3f& dir)
 
 #define ENABLE_LINE_AA 0
 
-void GLTrack::beginEnv(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
+void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 {
 	if (wireframe)
 	{
@@ -197,7 +218,7 @@ void GLTrack::beginEnv(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 	}
 }
 
-void GLTrack::endEnv(bool wireframe)
+void GLTrack::endSurface(bool wireframe)
 {
 	if (wireframe)
 	{

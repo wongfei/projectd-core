@@ -9,8 +9,8 @@ struct Car;
 struct GLCar
 {
 	void init(Car* car);
-	void draw(bool drawBody = true);
-	void drawInstance(Car* instance, bool drawBody = true);
+	void draw(bool drawBody = true, bool drawProbes = false);
+	void drawInstance(Car* instance, bool drawBody = true, bool drawProbes = false);
 
 	Car* car = nullptr;
 	GLPrimitive bodyMesh;

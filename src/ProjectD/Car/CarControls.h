@@ -11,10 +11,10 @@ struct CarControls
 	float brake = 0;
 	float handBrake = 0;
 	float gas = 0;
-	int requestedGearIndex = -1;
-	uint8_t gearUp = 0;
-	uint8_t gearDn = 0;
-	uint8_t isShifterSupported = 1;
+	int8_t isShifterSupported = 1;
+	int8_t requestedGearIndex = -1;
+	int8_t gearUp = 0;
+	int8_t gearDn = 0;
 };
 
 }

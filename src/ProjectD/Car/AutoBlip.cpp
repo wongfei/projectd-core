@@ -56,7 +56,7 @@ void AutoBlip::step(float dt)
 		if (fBlipElapsed >= 0.0 && fBlipElapsed < blipPerformTime && blipProfile.getCount() == 4)
 		{
 			float fGas = car->controls.gas;
-			float fProfile = blipProfile.getValue(fBlipElapsed);
+			float fProfile = blipProfile.getValue((float)fBlipElapsed);
 
 			if (fGas <= fProfile)
 				fGas = fProfile;
