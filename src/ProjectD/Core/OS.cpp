@@ -78,7 +78,7 @@ std::wstring osGetDirPath(const std::wstring& path)
 			break;
 		}
 	}
-	return std::move(res);
+	return res;
 }
 
 std::wstring osGetFileName(const std::wstring& path)
@@ -93,7 +93,7 @@ std::wstring osGetFileName(const std::wstring& path)
 			break;
 		}
 	}
-	return std::move(res);
+	return res;
 }
 
 struct OSFindWindowData

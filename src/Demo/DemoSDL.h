@@ -15,13 +15,17 @@ static void initSDL()
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	int posy = fullscreen_ ? 0 : 26;
 	unsigned int winFlags = SDL_WINDOW_OPENGL;
 
 	if (fullscreen_)
 		winFlags |= (SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_HIDDEN); // hidden to prevent flicker
 	else
 		winFlags |= (SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+
+	if (fullscreen_)
+	{
+		posx_ = posy_ = 0;
+	}
 
 	if (!width_ || !height_)
 	{
@@ -35,12 +39,14 @@ static void initSDL()
 			winFlags |= SDL_WINDOW_MAXIMIZED;
 			width_ = mode.w / 2;
 			height_ = mode.h / 2;
+			posx_ = (mode.w / 2) - width_ / 2;
+			posy_ = (mode.h / 2) - height_ / 2;
 		}
 	}
 
-	appWindow_ = SDL_CreateWindow("DEMO", 0, posy, width_, height_, winFlags);
+	appWindow_ = SDL_CreateWindow("DEMO", posx_, posy_, width_, height_, winFlags);
 	glContext_ = SDL_GL_CreateContext(appWindow_);
-	SDL_GL_SetSwapInterval(swapInterval_);
+	SDL_GL_SetSwapInterval(swapInterval_); // 0 immediate, 1 vsync, -1 adaptive
 
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
@@ -53,7 +59,7 @@ static void shutSDL()
 {
 	SDL_GL_DeleteContext(glContext_);
 	SDL_DestroyWindow(appWindow_);
-	SDL_Quit();
+	//SDL_Quit();
 }
 
 static void clearViewport()

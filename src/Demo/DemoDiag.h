@@ -5,6 +5,8 @@
 GLChart chartDT_;
 ChartSeries serSim_;
 ChartSeries serDraw_;
+ChartSeries serSwap_;
+ChartSeries serIdle_;
 
 GLChart chartInput_;
 ChartSeries serSteer_;
@@ -26,6 +28,8 @@ static void initCharts()
 	chartDT_.init(ChartN, 64);
 	serSim_.init(ChartN, y0, y1);
 	serDraw_.init(ChartN, y0, y1);
+	serSwap_.init(ChartN, y0, y1);
+	serIdle_.init(ChartN, y0, y1);
 
 	y0 = -1.1f;
 	y1 = 1.1f;
@@ -56,6 +60,8 @@ static void drawCharts()
 	chartDT_.clear();
 	chartDT_.plot(serSim_, ChartColor(255, 165, 0, 255)); // orange
 	chartDT_.plot(serDraw_, ChartColor(255, 0, 255, 255)); // magenta
+	chartDT_.plot(serSwap_, ChartColor(0, 0, 255, 0));
+	chartDT_.plot(serIdle_, ChartColor(0, 255, 0, 0));
 	chartDT_.present(x, y, 1.0f); x += dx;
 
 	chartInput_.clear();
@@ -93,15 +99,26 @@ static void renderText()
 	float rpm = ((float)car_->drivetrain->engine.velocity * 0.15915507f) * 60.0f;
 
 	float x = 1, y = 1, dy = 25;
-	font_.draw(x, y, "TS %.3f", gameTime_); y += dy;
+	font_.draw(x, y, "gameTime %.2f", gameTime_); y += dy;
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
 	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
 	font_.draw(x, y, "maxDraw %.3f ms", statMaxDraw_); y += dy;
-	font_.draw(x, y, "simAccum %.4f", simAccum_); y += dy;
-	font_.draw(x, y, "simHZ %d %" PRIu64, (int)statSimRate_, simId_); y += dy;
-	font_.draw(x, y, "drawHZ %d %" PRIu64, (int)statDrawRate_, drawId_); y += dy;
-	font_.draw(x, y, "simHitches %d", statSimHitches_); y += dy;
-	font_.draw(x, y, "drawHitches %d", statDrawHitches_); y += dy;
+	font_.draw(x, y, "simHZ %d (%llu)", (int)statSimRate_, simId_); y += dy;
+	font_.draw(x, y, "drawHZ %d (%llu)", (int)statDrawRate_, drawId_); y += dy;
+	font_.draw(x, y, "simHitches %d", (int)statSimHitches_); y += dy;
+	font_.draw(x, y, "drawHitches %d", (int)statDrawHitches_); y += dy;
+	font_.draw(x, y, "lastHitch %.2f", lastHitchTime_); y += dy;
+
+	#if 1
+	if (sim_->interopEnabled && sim_->interopInput && sim_->interopState)
+	{
+		auto* header = (SimInteropHeader*)sim_->interopInput->data();
+		font_.draw(x, y, "interopInput %llu / %llu", header->producerId, header->consumerId); y += dy;
+
+		header = (SimInteropHeader*)sim_->interopState->data();
+		font_.draw(x, y, "interopState %llu / %llu", header->producerId, header->consumerId); y += dy;
+	}
+	#endif
 
 	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
 	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;
@@ -125,8 +142,10 @@ static void renderText()
 	font_.draw(x, y, "handBrake %.3f", car_->controls.handBrake); y += dy;
 	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
 
-	font_.draw(x, y, "geartime #%d %.3f", gear, timeSinceShift_); y += dy;
-	font_.draw(x, y, "collisions %d", (int)sim_->collisions.size()); y += dy;
+	font_.draw(x, y, "gearReq %d", car_->controls.requestedGearIndex); y += dy;
+	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
+	font_.draw(x, y, "collisions %d", (int)sim_->dbgCollisions.size()); y += dy;
+	font_.draw(x, y, "trackPoint %d", (int)car_->nearestTrackPointId); y += dy;
 
 	#if 0
 	for (int i = 0; i < 4; ++i)

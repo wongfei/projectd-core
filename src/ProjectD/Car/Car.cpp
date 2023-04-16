@@ -4,13 +4,12 @@
 
 namespace D {
 
-Car::Car(TrackPtr _track)
-:
-	track(_track)
+Car::Car(Track* _track)
 {
 	TRACE_CTOR(Car);
 
-	sim = track->sim.get();
+	track = _track;
+	sim = _track->sim;
 
 	bounds.length = 4.0f;
 	bounds.width = 2.0f;
@@ -24,7 +23,7 @@ Car::~Car()
 {
 	TRACE_DTOR(Car);
 
-	sim->unregisterCar(this);
+	//sim->unregisterCar(this);
 }
 
 //=============================================================================
@@ -46,6 +45,7 @@ bool Car::init(const std::wstring& modelName)
 	log_printf(L"carDataPath=\"%s\"", carDataPath.c_str());
 
 	initCarData();
+	initProbes();
 
 	fuelTankBody->setMassBox(1.0f, 0.5f, 0.5f, 0.5f); // TODO: check
 	fuelTankBody->setPosition(fuelTankPos);
@@ -122,7 +122,7 @@ bool Car::init(const std::wstring& modelName)
 		suspensionsImpl.emplace_back(std::move(pSusp));
 
 		auto pTyre = std::make_unique<Tyre>();
-		pTyre->init(this, pSuspInterface, sim->track, index, carDataPath);
+		pTyre->init(this, pSuspInterface, sim->track.get(), index, carDataPath);
 		tyres.emplace_back(std::move(pTyre));
 	}
 
@@ -145,26 +145,6 @@ bool Car::init(const std::wstring& modelName)
 			pSpring->init(body.get(), susA, susB, isFront, carDataPath);
 			heaveSprings.emplace_back(std::move(pSpring));
 		}
-	}
-	#endif
-
-	#if 0
-	bool numDWSusp = 0;
-	for (int i = 0; i < 4; i++)
-	{
-		if (suspensions[i]->getType() == SuspensionType::DoubleWishbone)
-			++numDWSusp;
-	}
-	if (numDWSusp == 4)
-	{
-		auto pFront = std::make_unique<HeaveSpring>();
-		pFront->init(body.get(), (SuspensionDW*)&suspensions[0], (SuspensionDW*)&suspensions[1], true, carDataPath);
-
-		auto pRear = std::make_unique<HeaveSpring>();
-		pRear->init(body.get(), (SuspensionDW*)&suspensions[2], (SuspensionDW*)&suspensions[3], false, carDataPath);
-
-		heaveSprings.emplace_back(std::move(pFront));
-		heaveSprings.emplace_back(std::move(pRear));
 	}
 	#endif
 
@@ -295,6 +275,25 @@ void Car::initCarData()
 
 	graphicsOffset = ini->getFloat3(L"BASIC", L"GRAPHICS_OFFSET");
 	graphicsPitchRotation = ini->getFloat(L"BASIC", L"GRAPHICS_PITCH_ROTATION") * (M_PI / 180.0f);
+}
+
+void Car::initProbes()
+{
+	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	if (!ini->ready)
+		return;
+
+	for (int id = 1; id <= CarState::MaxProbes; ++id)
+	{
+		auto section = strwf(L"CAR_PROBE_%d", id);
+		if (!ini->hasSection(section))
+			break;
+
+		float yaw = ini->getFloat(section, L"YAW");
+		float length = ini->getFloat(section, L"LENGTH");
+
+		probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(0, 0, 1).rotateAxisAngle(vec3f(0, 1, 0), yaw * M_DEG2RAD), length));
+	}
 }
 
 //=============================================================================
@@ -480,6 +479,7 @@ void Car::step(float dt)
 
 	stepThermalObjects(dt);
 	stepComponents(dt);
+
 	//updateColliderStatus(dt); // TODO
 	//if (!physicsGUID) stepJumpStart(dt); // TODO
 }
@@ -606,21 +606,6 @@ void Car::stepComponents(float dt)
 	//colliderManager.step(dt);
 	//stabilityControl.step(dt);
 	//fuelLapEvaluator.step(dt);
-
-	const auto numRays = probes.size();
-	if (numRays > 0)
-	{
-		if (probeHits.size() != numRays)
-			probeHits.resize(numRays);
-
-		for (size_t rayId = 0; rayId < numRays; ++rayId)
-		{
-			const auto& r = probes[rayId];
-			const auto rayStart = body->localToWorld(r.pos);
-			const auto rayEnd = body->localToWorld(r.pos + r.dir * r.length);
-			probeHits[rayId] = track->rayCastTrackBounds(rayStart, (rayEnd - rayStart).get_norm(), r.length);
-		}
-	}
 }
 
 //=============================================================================
@@ -636,6 +621,7 @@ void Car::postStep(float dt)
 	vec3f vBodyPos = body->getPosition(0);
 	slipStream->setPosition(vBodyPos, vBodyVel);
 
+	updateTrackLocator();
 	updateCarState();
 
 	if (audioRenderer)
@@ -644,31 +630,91 @@ void Car::postStep(float dt)
 
 //=============================================================================
 
+void Car::updateTrackLocator()
+{
+	const auto numRays = probes.size();
+	if (numRays > 0)
+	{
+		if (probeHits.size() != numRays)
+			probeHits.resize(numRays);
+
+		for (size_t rayId = 0; rayId < numRays; ++rayId)
+		{
+			const auto& r = probes[rayId];
+			const auto rayStart = body->localToWorld(r.pos);
+			const auto rayEnd = body->localToWorld(r.pos + r.dir * r.length);
+			probeHits[rayId] = track->rayCastTrackBounds(rayStart, (rayEnd - rayStart).get_norm(), r.length);
+		}
+	}
+
+	const auto bodyPos = body->getPosition(0);
+	float bestDistSq = FLT_MAX;
+	int bestPoint = -1;
+
+	for (const auto& pointId : track->nearbyPoints)
+	{
+		const auto pointPos = track->fatPoints[pointId].center;
+		const auto distSq = (pointPos - bodyPos).sqlen();
+		if (bestDistSq > distSq)
+		{
+			bestDistSq = distSq;
+			bestPoint = (int)pointId;
+		}
+	}
+
+	nearestTrackPointId = bestPoint;
+}
+
+//=============================================================================
+
 void Car::updateCarState()
 {
+	// see Car::getPhysicsState, SharedMemoryWriter::updatePhysics
+
 	state->carId = (int32_t)physicsGUID;
 	
-	state->gear = drivetrain->currentGear;
+	state->controls = controls;
+
 	state->engineRPM = getEngineRpm();
 	state->speedMS = speed.ms();
-
-	state->controls = controls;
+	state->gear = drivetrain->currentGear;
+	state->gearGrinding = drivetrain->isGearGrinding ? 1 : 0;
 
 	auto bodyM = body->getWorldMatrix(0);
 	state->bodyMatrix = (bodyM);
+	state->accG = accG;
+	state->velocity = body->getVelocity();
+	state->localVelocity = body->getLocalVelocity();
+	state->angularVelocity = body->getAngularVelocity();
+	state->localAngularVelocity = body->getLocalAngularVelocity();
+	
+	for (int i = 0; i < 4; ++i)
+	{
+		auto* pTyre = tyres[i].get();
+		state->hubMatrix[i] = (suspensions[i]->getHubWorldMatrix());
+		state->tyreContacts[i] = pTyre->contactPoint;
+		state->tyreSlip[i] = pTyre->status.ndSlip;
+		state->tyreLoad[i] = pTyre->status.load;
+		state->tyreAngularSpeed[i] = pTyre->status.angularVelocity;
+	}
+
+	for (int i = 0; i < (int)probes.size(); ++i)
+	{
+		state->probes[i] = probeHits[i];
+	}
+
+	state->nearestTrackPointId = nearestTrackPointId;
+
+	#if 0
+	auto bodyGM = getGraphicsOffsetMatrix();
+	state->graphicsMatrix = (bodyGM);
+
 	state->bodyPos = {bodyM.M41, bodyM.M42, bodyM.M43};
 	state->bodyEuler = (bodyM.getEulerAngles());
 
-	auto bodyGM = getGraphicsOffsetMatrix();
-	state->graphicsMatrix = (bodyGM);
 	state->graphicsPos = {bodyGM.M41, bodyGM.M42, bodyGM.M43};
 	state->graphicsEuler = (bodyGM.getEulerAngles());
-
-	for (int i = 0; i < 4; ++i)
-	{
-		state->hubMatrix[i] = (suspensions[i]->getHubWorldMatrix());
-		state->tyreContacts[i] = (tyres[i]->contactPoint);
-	}
+	#endif
 }
 
 //=============================================================================

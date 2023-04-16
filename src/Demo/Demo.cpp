@@ -9,6 +9,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Core/SharedMemory.h"
 #include "Sim/Simulator.h"
 #include "Sim/Track.h"
 #include "Car/CarImpl.h"
@@ -33,14 +34,17 @@ using namespace D;
 
 //=======================================================================================
 
-double simTickRate_ = 1 / 333.0f;
-double drawTickRate_ = 1 / 100.0;
-
-bool fullscreen_ = false;
 bool recordTelemetry_ = false;
+
+double simTickRate_ = 1.0 / 333.0;
+double drawTickRate_ = 1.0 / 111.0;
+
+int posx_ = 0;
+int posy_ = 0;
 int width_ = 1280;
 int height_ = 720;
 int swapInterval_ = -1;
+bool fullscreen_ = false;
 
 SDL_Window* appWindow_ = nullptr;
 SDL_GLContext glContext_ = nullptr;
@@ -50,14 +54,9 @@ bool keys_[SDL_NUM_SCANCODES] = {};
 bool asynckeys_[SDL_NUM_SCANCODES] = {};
 
 SimulatorPtr sim_;
-TrackPtr track_;
-CarPtr car_;
-CarPtr carB_;
+Track* track_ = nullptr;
+Car* car_ = nullptr;
 mat44f pitPos_;
-
-std::unique_ptr<FmodAudioRenderer> audioRenderer_;
-std::unique_ptr<DICarController> controlsProvider_;
-std::unique_ptr<KeyboardCarController> kbControlsProvider_;
 
 GLFont font_;
 GLSkyBox sky_;
@@ -65,7 +64,7 @@ GLTrack trackAvatar_;
 GLCar carAvatar_;
 
 Surface* lookatSurf_ = nullptr;
-vec3f lookatPos_;
+vec3f lookatHit_;
 
 glm::vec3 camPos_ = {};
 glm::vec3 camYpr_ = {90, 0, 0};
@@ -81,7 +80,7 @@ enum class ECamMode {
 	COUNT // LAST
 };
 int inpCamMode_ = (int)ECamMode::Eye;
-vec3f eyeOff_(-0.33f, 0.48f, -0.15f);
+vec3f eyeOff_(0.0f, 0.0f, 0.0f);
 float fov_ = 56.0f;
 float eyeTuneSpeed_ = 0.2f;
 float fovTuneSpeed_ = 5.0f;
@@ -98,11 +97,15 @@ bool inpWireframe_ = false;
 bool inpDrawTrackPoints_ = false;
 bool inpDrawNearbyPoints_ = false;
 bool inpDrawCarProbes_ = false;
+bool inpDrawWorld_ = true;
 
 double dt_ = 0;
 double gameTime_ = 0;
 double physicsTime_ = 0;
-double simAccum_ = 0;
+double simTime_ = 0;
+double drawTime_ = 0;
+double statTime_ = 0;
+double lastHitchTime_ = 0;
 uint64_t simId_ = 0;
 uint64_t drawId_ = 0;
 
@@ -133,12 +136,14 @@ static void initEngine(int argc, char** argv)
 	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
 	if (ini->ready)
 	{
-		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") != 0;
+		posx_ = ini->getInt(L"SYS", L"POSX");
+		posy_ = ini->getInt(L"SYS", L"POSY");
 		width_ = ini->getInt(L"SYS", L"RESX");
 		height_ = ini->getInt(L"SYS", L"RESY");
+		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") != 0;
 
 		int iFpsLimit = ini->getInt(L"SYS", L"FPS_LIMIT");
-		drawTickRate_ = iFpsLimit > 0 ? (1.0f / (float)iFpsLimit) : 0.0f;
+		drawTickRate_ = iFpsLimit > 0 ? (1.0 / (double)iFpsLimit) : 0.0;
 		swapInterval_ = tclamp(ini->getInt(L"SYS", L"SWAP_INTERVAL"), -1, 1);
 		inpMouseSens_ = ini->getFloat(L"SYS", L"MOUSE_SENS");
 	}
@@ -146,8 +151,6 @@ static void initEngine(int argc, char** argv)
 	initSDL();
 	clearViewport();
 	swap();
-
-	font_.initDefault();
 }
 
 static void initInput()
@@ -162,20 +165,18 @@ static void initInput()
 
 	if (forceKeyboard)
 	{
-		kbControlsProvider_ = std::make_unique<KeyboardCarController>(car_.get(), sysWindow_);
-		car_->controlsProvider = kbControlsProvider_.get();
+		car_->controlsProvider = std::make_shared<KeyboardCarController>(car_, sysWindow_);
 	}
 	else
 	{
-		controlsProvider_ = std::make_unique<DICarController>(sysWindow_);
-		if (controlsProvider_->diWheel)
+		auto controlsProvider = std::make_shared<DICarController>(sysWindow_);
+		if (controlsProvider->diWheel)
 		{
-			car_->controlsProvider = controlsProvider_.get();
+			car_->controlsProvider = controlsProvider;
 		}
 		else
 		{
-			kbControlsProvider_ = std::make_unique<KeyboardCarController>(car_.get(), sysWindow_);
-			car_->controlsProvider = kbControlsProvider_.get();
+			car_->controlsProvider = std::make_shared<KeyboardCarController>(car_, sysWindow_);
 		}
 	}
 
@@ -199,25 +200,30 @@ static void initDemo(int argc, char** argv)
 		carModel = ini->getString(L"CAR", L"MODEL");
 	}
 
+	font_.initDefault();
 	sky_.load(10000, "content/demo", "sky", "jpg");
 
 	sim_ = std::make_shared<Simulator>();
 	sim_->init(basePath);
 
-	track_ = sim_->initTrack(trackName);
-	car_ = sim_->initCar(track_, carModel);
-	//carB_ = sim_->initCar(track_, carModel);
+	track_ = sim_->loadTrack(trackName);
+	GUARD_FATAL(track_->pits.size() > 0);
 
-	const float frontRayLength = track_->fatPointsHash.cellSize;
-	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(0, 0, 1), frontRayLength)); // forward
-	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(1, 0, 0), 10)); // left
-	car_->probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(-1, 0, 0), 10)); // right
+	trackAvatar_.init(track_);
 
-	audioRenderer_ = std::make_unique<FmodAudioRenderer>(car_.get(), basePath, carModel);
-	car_->audioRenderer = audioRenderer_.get();
+	const int maxCars = tmin(sim_->maxCars, (int)track_->pits.size());
+	for (int i = 0; i < maxCars; ++i)
+	{
+		auto* car = sim_->addCar(carModel);
+		car->teleport(track_->pits[i]);
+	}
 
-	trackAvatar_.init(track_.get());
-	carAvatar_.init(car_.get());
+	car_ = sim_->cars[0].get();
+	pitPos_ = track_->pits[0];
+	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
+
+	carAvatar_.init(car_);
+	car_->audioRenderer = std::make_shared<FmodAudioRenderer>(car_, basePath, carModel);
 
 	// CAR TUNE
 
@@ -246,6 +252,14 @@ static void initDemo(int argc, char** argv)
 
 		car_->drivetrain->diffPowerRamp = diffPowerRamp;
 		car_->drivetrain->diffCoastRamp = diffCoastRamp;
+
+		std::wstring eyeOffStr;
+		if (ini->tryGetString(L"CAR_TUNE", L"EYE_OFFSET", eyeOffStr))
+		{
+			auto parts = split(eyeOffStr, L",");
+			if (parts.size() == 3)
+				eyeOff_ = vec3f(std::stof(parts[0]), std::stof(parts[1]), std::stof(parts[2]));
+		}
 	}
 
 	for (int i = 0; i < 4; ++i)
@@ -261,22 +275,6 @@ static void initDemo(int argc, char** argv)
 	((SuspensionAxle*)car_->suspensions[3])->damper.reboundSlow = 7000;
 	((SuspensionAxle*)car_->suspensions[3])->damper.bumpSlow = 5600;
 	#endif
-
-	// TELEPORT
-
-	if (track_->pits.size() > 0)
-		pitPos_ = track_->pits[0];
-	car_->teleport(pitPos_);
-	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
-	
-	auto pitB = pitPos_;
-	if (track_->pits.size() > 1)
-		pitB = track_->pits[1];
-	else
-		pitB.M41 += 3;
-
-	if (carB_)
-		carB_->teleport(pitB);
 }
 
 static void processInput(float dt)
@@ -292,13 +290,12 @@ static void processInput(float dt)
 	if (asyncKeydown(SDL_SCANCODE_P)) { inpDrawTrackPoints_ = !inpDrawTrackPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_O)) { inpDrawNearbyPoints_ = !inpDrawNearbyPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_I)) { inpDrawCarProbes_ = !inpDrawCarProbes_; }
+	if (asyncKeydown(SDL_SCANCODE_U)) { inpDrawWorld_ = !inpDrawWorld_; }
 
 	if (asyncKeydown(SDL_SCANCODE_V))
 	{
 		if (++inpCamMode_ >= (int)ECamMode::COUNT)
 			inpCamMode_ = 0;
-		if (kbControlsProvider_)
-			kbControlsProvider_->keyboardEnabled = (inpCamMode_ != (int)ECamMode::Free);
 	}
 
 	inpMove_[0] = getkeyf(SDL_SCANCODE_W) + getkeyf(SDL_SCANCODE_S) * -1.0f;
@@ -336,12 +333,14 @@ static void updateCamera(float dt)
 	camPos_ += camFront_ * inpMove_[0] * inpMoveSpeed_ * inpMoveSpeedScale_ * (float)dt;
 	camPos_ += camRight_ * inpMove_[2] * inpMoveSpeed_ * inpMoveSpeedScale_ * (float)dt;
 
+	#pragma warning(push)
+	#pragma warning(disable: 4127)
 	camView_ = glm::lookAt(camPos_, camPos_ + camFront_, camUp_);
+	#pragma warning(pop)
 }
 
-static void render(float dt)
+static void renderWorld(float dt)
 {
-	clearViewport();
 	begin3d();
 
 	if (inpDrawSky_)
@@ -361,51 +360,54 @@ static void render(float dt)
 	{
 		trackAvatar_.drawNearbyPoints(v(camPos_));
 
-		float obstacleDist = track_->rayCastTrackBounds(v(camPos_) + vec3f(0, -0.5f, 0), v(camFront_));
+		const float obstacleDist = track_->rayCastTrackBounds(v(camPos_) + vec3f(0, -0.5f, 0), v(camFront_));
 		if (obstacleDist > 0.0f)
 		{
-			auto interPos = camPos_ + camFront_ * obstacleDist;
+			const auto interPos = camPos_ + camFront_ * obstacleDist;
 
 			TrackRayCastHit hit;
 			if (track_->rayCast(v(interPos), vec3f(0, -1, 0), 10, hit))
 			{
 				glBegin(GL_LINES);
-					glColor3f(1.0f, 0.0f, 0.0f);
-					glVertex3fv(&interPos.x);
-					glVertex3fv(&hit.pos.x);
+				glColor3f(1.0f, 0.0f, 0.0f);
+				glVertex3fv(&interPos.x);
+				glVertex3fv(&hit.pos.x);
 				glEnd();
 			}
 
 			glPointSize(6);
 			glBegin(GL_POINTS);
-				glColor3f(1.0f, 0.0f, 0.0f);
-				glVertex3fv(&interPos.x);
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glVertex3fv(&interPos.x);
 			glEnd();
 		}
 	}
 
-	bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
+	const bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
+
+	// player car
 	carAvatar_.draw(drawBody, inpDrawCarProbes_);
 
-	if (carB_)
-		carAvatar_.drawInstance(carB_.get(), true, true);
+	// other cars
+	for (size_t i = 1; i < sim_->cars.size(); ++i)
+	{
+		carAvatar_.drawInstance(sim_->cars[i].get(), true, inpDrawCarProbes_);
+	}
 
 	glDisable(GL_DEPTH_TEST);
 
-	if (!sim_->collisions.empty())
+	if (!sim_->dbgCollisions.empty())
 	{
 		glPointSize(3);
 		glBegin(GL_POINTS);
-		for (auto& c : sim_->collisions)
+		for (auto& c : sim_->dbgCollisions)
 		{
 			glColor3f(1.0f, 1.0f, 0.0f);
 			glVertex3fv(&c.pos.x);
 		}
 		glEnd();
-		sim_->collisions.clear();
 	}
 
-	// lookat rayhit point
 	if (inpCamMode_ == (int)ECamMode::Free)
 	{
 		glColor3f(1.0f, 0.0f, 0.0f);
@@ -413,17 +415,34 @@ static void render(float dt)
 		glBegin(GL_POINTS);
 		{
 			glColor3f(0.0f, 1.0f, 0.0f);
-			glVertex3fv(&lookatPos_.x);
+			glVertex3fv(&lookatHit_.x);
 		}
 		glEnd();
 	}
+}
+
+static void render(float dt)
+{
+	#if 1
+		TrackRayCastHit hit;
+		track_->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
+		lookatSurf_ = hit.surface;
+		lookatHit_ = hit.pos;
+	#endif
+
+	clearViewport();
+
+	if (inpDrawWorld_)
+		renderWorld(dt);
 
 	renderText();
-	swap();
 }
 
 int main(int argc, char** argv)
 {
+	typedef std::chrono::high_resolution_clock clock;
+	const auto tick0 = clock::now();
+
 	initEngine(argc, argv);
 	initDemo(argc, argv);
 	initCharts();
@@ -431,27 +450,20 @@ int main(int argc, char** argv)
 	if (recordTelemetry_)
 		_telemetry.reserve(10000);
 
+	const double hitchRate = 5.0;
 	double prevTime = 0;
-	double drawAccum = 0;
-	double statAccum = 0;
-	double telemAccum = 0;
-	double telemRate = 1 / 100.0f;
 	float maxDt = 0;
 	float maxSim = 0;
 	float maxDraw = 0;
 	int simCount = 0;
 	int drawCount = 0;
 	
-	// flicker fix
 	int skipFrames = 3;
 	bool isFirstFrameDone = false;
 
-	typedef std::chrono::high_resolution_clock clock;
-	auto tick0 = clock::now();
-
 	while (!exitFlag_)
 	{
-		auto tick1 = clock::now();
+		const auto tick1 = clock::now();
 		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tick1 - tick0).count() * 1e-6;
 		const float gameTime = (float)gameTime_;
 
@@ -459,25 +471,25 @@ int main(int argc, char** argv)
 		prevTime = gameTime_;
 		dt_ = dt;
 		maxDt = tmax(maxDt, (float)dt * 1e3f);
-
-		processEvents();
+		bool hitchFlag = false;
 
 		car_->lockControls = (inpCamMode_ == (int)ECamMode::Free);
 
 		// SIMULATE
 
-		bool simStepDone = false;
-		auto sim0 = clock::now();
-		simAccum_ += dt;
-		while (simAccum_ >= simTickRate_)
+		if (simTime_ + simTickRate_ * hitchRate < gameTime_)
 		{
-			simAccum_ -= simTickRate_;
-			if (simAccum_ > simTickRate_ * 10.0)
-			{
-				simAccum_ = 0;
-				++statSimHitches_;
-				//log_printf(L"RESET: simAccum");
-			}
+			++statSimHitches_;
+			lastHitchTime_ = gameTime_;
+			simTime_ = gameTime_;
+			hitchFlag = true;
+		}
+
+		bool simStepDone = false;
+		const auto sim0 = clock::now();
+		while (simTime_ + simTickRate_ <= gameTime_)
+		{
+			simTime_ += simTickRate_;
 
 			if (inpSimOnce_ || inpSimFlag_)
 			{
@@ -503,48 +515,35 @@ int main(int argc, char** argv)
 				simStepDone = true;
 			}
 		}
-		auto sim1 = clock::now();
+		const auto sim1 = clock::now();
 		const float simMillis = std::chrono::duration_cast<std::chrono::microseconds>(sim1 - sim0).count() * 1e-3f;
 		maxSim = tmax(maxSim, simMillis);
 		if (simStepDone)
 			serSim_.add_value(gameTime, simMillis);
-
-		// TELEMETRY
-
-		if (recordTelemetry_)
-		{
-			telemAccum += dt;
-			if (telemAccum >= telemRate)
-			{
-				telemAccum -= telemRate;
-				if (telemAccum >= telemRate)
-					telemAccum = 0;
-				record_telemetry();
-			}
-		}
 
 		// DRAW
 
 		float drawDt = 0;
 		bool redraw = false;
 
-		if (drawTickRate_ <= 0.0f)
+		if (drawTickRate_ <= 0.0)
 		{
 			drawDt = (float)dt;
 			redraw = true;
 		}
 		else
 		{
-			drawAccum += dt;
-			if (drawAccum >= drawTickRate_)
+			if (drawTime_ + drawTickRate_ * hitchRate < gameTime_)
 			{
-				drawAccum -= drawTickRate_;
-				if (drawAccum > drawTickRate_ * 10.0)
-				{
-					drawAccum = 0;
-					++statDrawHitches_;
-					//log_printf(L"RESET: drawAccum");
-				}
+				++statDrawHitches_;
+				lastHitchTime_ = gameTime_;
+				drawTime_ = gameTime_;
+				hitchFlag = true;
+			}
+
+			if (drawTime_ + drawTickRate_ <= gameTime_)
+			{
+				drawTime_ += drawTickRate_;
 
 				drawDt = (float)drawTickRate_;
 				redraw = true;
@@ -553,6 +552,7 @@ int main(int argc, char** argv)
 
 		if (redraw)
 		{
+			processEvents();
 			processInput(drawDt);
 
 			if (inpCamMode_ == (int)ECamMode::Free)
@@ -561,18 +561,18 @@ int main(int argc, char** argv)
 			}
 			else if (inpCamMode_ == (int)ECamMode::Rear)
 			{
-				auto eyePos = car_->body->localToWorld(vec3f(0, 2, -5));
-				auto targPos = car_->body->localToWorld(vec3f(0, 0, 0));
+				const auto eyePos = car_->body->localToWorld(vec3f(0, 2, -5));
+				const auto targPos = car_->body->localToWorld(vec3f(0, 0, 0));
 
 				camPos_ = v(eyePos);
 				camView_ = glm::lookAt(camPos_, v(targPos), glm::vec3(0, 1, 0));
 			}
 			else if (inpCamMode_ == (int)ECamMode::Eye)
 			{
-				auto bodyR = car_->body->getWorldMatrix(0).getRotator();
-				auto bodyFront = (vec3f(0, 0, 1) * bodyR).get_norm();
-				auto bodyUp = (vec3f(0, 1, 0) * bodyR).get_norm();
-				auto eyePos = car_->body->localToWorld(eyeOff_);
+				const auto bodyR = car_->body->getWorldMatrix(0).getRotator();
+				const auto bodyFront = (vec3f(0, 0, 1) * bodyR).get_norm();
+				const auto bodyUp = (vec3f(0, 1, 0) * bodyR).get_norm();
+				const auto eyePos = car_->body->localToWorld(eyeOff_);
 
 				camFront_ = v(bodyFront);
 				camUp_ = v(bodyUp);
@@ -580,26 +580,29 @@ int main(int argc, char** argv)
 				camView_ = glm::lookAt(camPos_, camPos_ + camFront_, camUp_);
 			}
 
-			TrackRayCastHit hit;
-			track_->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
-			lookatSurf_ = hit.surface;
-			lookatPos_ = hit.pos;
-
-			auto draw0 = clock::now();
+			const auto draw0 = clock::now();
 			{
 				render(drawDt);
 				drawId_++;
 				drawCount++;
 			}
-			auto draw1 = clock::now();
+			const auto draw1 = clock::now();
 			const float drawMillis = std::chrono::duration_cast<std::chrono::microseconds>(draw1 - draw0).count() * 1e-3f;
 			maxDraw = tmax(maxDraw, drawMillis);
 
+			const auto swap0 = clock::now();
+			swap();
+			const auto swap1 = clock::now();
+			const float swapMillis = std::chrono::duration_cast<std::chrono::microseconds>(swap1 - swap0).count() * 1e-3f;
+
 			serDraw_.add_value(gameTime, drawMillis);
+			serSwap_.add_value(gameTime, swapMillis);
 			serSteer_.add_value(gameTime, car_->controls.steer);
 			serClutch_.add_value(gameTime, car_->controls.clutch);
 			serBrake_.add_value(gameTime, car_->controls.brake);
 			serGas_.add_value(gameTime, car_->controls.gas);
+
+			sim_->dbgCollisions.clear();
 
 			if (!isFirstFrameDone && skipFrames == 0)
 			{
@@ -619,17 +622,37 @@ int main(int argc, char** argv)
 
 		// STATS
 
-		statAccum += dt;
-		if (statAccum >= 1.0)
+		if (statTime_ + 1.0 * hitchRate < gameTime_)
 		{
-			statAccum -= 1.0;
-			if (statAccum > 1.0)
-				statAccum = 0;
+			statTime_ = gameTime_;
+		}
+
+		if (statTime_ + 1.0 <= gameTime_)
+		{
+			statTime_ += 1.0;
 			statDrawRate_ = drawCount; drawCount = 0;
 			statSimRate_ = simCount; simCount = 0;
 			statMaxDt_ = maxDt; maxDt = 0;
 			statMaxSim_ = maxSim; maxSim = 0;
 			statMaxDraw_ = maxDraw; maxDraw = 0;
+		}
+
+		// SLEEP
+
+		if (!hitchFlag)
+		{
+			#if 0
+				::Sleep(0);
+			#else
+				// estimate time to next frame
+				const auto tick2 = clock::now();
+				const double endFrameTime = std::chrono::duration_cast<std::chrono::microseconds>(tick2 - tick0).count() * 1e-6;
+				const double simIdle = tmax(0.0, ((simTime_ + simTickRate_) - endFrameTime));
+				const double drawIdle = tmax(0.0, ((drawTime_ + drawTickRate_) - endFrameTime));
+				const int idleMs = floorToInt((float)(tmin(simIdle, drawIdle) * 1000.0));
+				serIdle_.add_value(gameTime, (float)idleMs);
+				::Sleep((DWORD)idleMs);
+			#endif
 		}
 	}
 
@@ -638,8 +661,8 @@ int main(int argc, char** argv)
 		dump_telemetry();
 	}
 
-	car_.reset();
-	track_.reset();
+	log_printf(L"SHUTDOWN..");
+
 	sim_.reset();
 
 	shutSDL();

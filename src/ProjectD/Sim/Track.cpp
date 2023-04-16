@@ -9,18 +9,18 @@
 
 namespace D {
 
-Track::Track(SimulatorPtr _sim)
-	:
-	sim(_sim)
+Track::Track(Simulator* _sim)
 {
 	TRACE_CTOR(Track);
+
+	sim = _sim;
 }
 
 Track::~Track()
 {
 	TRACE_DTOR(Track);
 
-	sim->unregisterTrack(this);
+	//sim->unregisterTrack(this);
 }
 
 bool Track::init(const std::wstring& trackName)
@@ -30,6 +30,12 @@ bool Track::init(const std::wstring& trackName)
 	name = trackName;
 	dataFolder = sim->basePath + L"content/tracks/" + name + L"/";
 	log_printf(L"dataFolder=\"%s\"", dataFolder.c_str());
+
+	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	if (ini->ready)
+	{
+		ini->tryGetFloat(L"ENVIRONMENT", L"TRACK_GRIP", dynamicGripLevel);
+	}
 
 	loadSurfaceBlob();
 	loadPits();
@@ -206,8 +212,18 @@ void Track::initTrackPoints()
 
 	if (!fatPoints.empty())
 	{
-		fatPointsHash.init(50, 4096); // allows to query points around specific location
-		pointCachePos.y = FLT_MAX;
+		float cellSize = 50;
+		int tableSize = 4096;
+
+		auto simIni(std::make_unique<INIReader>(L"cfg/sim.ini"));
+		if (simIni->ready)
+		{
+			simIni->tryGetFloat(L"VERTEX_HASH", L"CELL_SIZE", cellSize);
+			simIni->tryGetInt(L"VERTEX_HASH", L"TABLE_SIZE", tableSize);
+		}
+
+		fatPointsHash.init(cellSize, (size_t)tableSize); // allows to query points around specific location
+		pointCachePos = vec3f(0, -10000, 0);
 
 		// skip first point
 		for (size_t id = 1; id < fatPoints.size(); ++id)

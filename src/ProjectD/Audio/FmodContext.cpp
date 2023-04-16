@@ -31,8 +31,12 @@ void FmodContext::init()
 {
 	FMOD_RESULT rc;
 
-	unsigned int debugFlags = FMOD_DEBUG_LEVEL_LOG | FMOD_DEBUG_TYPE_TRACE | FMOD_DEBUG_TYPE_CODEC;
-	//debugFlags |= (FMOD_DEBUG_TYPE_MEMORY|FMOD_DEBUG_TYPE_FILE);
+	unsigned int debugFlags = FMOD_DEBUG_LEVEL_LOG;
+
+	#if defined(DEBUG)
+		debugFlags |= (FMOD_DEBUG_TYPE_TRACE | FMOD_DEBUG_TYPE_CODEC);
+		//debugFlags |= (FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_TYPE_FILE);
+	#endif
 
 	rc = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_FILE, nullptr, "fmod.log");
 

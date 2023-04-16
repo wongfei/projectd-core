@@ -35,6 +35,7 @@ struct DICarController : public ICarControlsProvider
 	float getFeedbackFilter() override { return ffFilter; }
 
 	// config
+	int pollSkipFrames = 1;
 	float steerLock = 900;
 	float steerScale = 1;
 	float steerLinearity = 1;
@@ -76,6 +77,7 @@ struct DICarController : public ICarControlsProvider
 	int ffInterval = 0;
 	int ffCounter = 0;
 	bool isShifterManual = true;
+	int pollSkipCounter = 0;
 };
 
 }

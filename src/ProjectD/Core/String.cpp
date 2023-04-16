@@ -8,25 +8,25 @@ typedef std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter_t;
 std::string stra(const wchar_t* str)
 {
 	converter_t converter;
-	return std::move(converter.to_bytes(str));
+	return converter.to_bytes(str);
 }
 
 std::string stra(const std::wstring& str)
 {
 	converter_t converter;
-	return std::move(converter.to_bytes(str));
+	return converter.to_bytes(str);
 }
 
 std::wstring strw(const char* str)
 {
 	converter_t converter;
-	return std::move(converter.from_bytes(str));
+	return converter.from_bytes(str);
 }
 
 std::wstring strw(const std::string& str)
 {
 	converter_t converter;
-	return std::move(converter.from_bytes(str));
+	return converter.from_bytes(str);
 }
 
 std::string strafv(const char* format, va_list args)
@@ -44,7 +44,7 @@ std::string strafv(const char* format, va_list args)
 	if (n > 0)
 		str.assign(buf, n);
 
-	return std::move(str);
+	return str;
 }
 
 std::string straf(const char* format, ...)
@@ -54,7 +54,7 @@ std::string straf(const char* format, ...)
 	auto str = strafv(format, args);
 	va_end(args);
 
-	return std::move(str);
+	return str;
 }
 
 std::wstring strwfv(const wchar_t* format, va_list args)
@@ -72,7 +72,7 @@ std::wstring strwfv(const wchar_t* format, va_list args)
 	if (n > 0)
 		str.assign(buf, n);
 
-	return std::move(str);
+	return str;
 }
 
 std::wstring strwf(const wchar_t* format, ...)
@@ -82,7 +82,7 @@ std::wstring strwf(const wchar_t* format, ...)
 	auto str = strwfv(format, args);
 	va_end(args);
 
-	return std::move(str);
+	return str;
 }
 
 std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim)
@@ -103,7 +103,7 @@ std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim
 			break;
 		}
 	}
-	return std::move(res);
+	return res;
 }
 
 std::vector<std::string> split(const std::string& s, const std::string& delim)
@@ -124,7 +124,7 @@ std::vector<std::string> split(const std::string& s, const std::string& delim)
 			break;
 		}
 	}
-	return std::move(res);
+	return res;
 }
 
 }

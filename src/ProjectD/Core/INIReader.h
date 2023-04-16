@@ -33,6 +33,7 @@ struct INIReader : public NonCopyable
 	vec4f getFloat4(const std::wstring& section, const std::wstring& key, bool required = true) const;
 	Curve getCurve(const std::wstring& section, const std::wstring& key, bool required = true) const;
 
+	bool tryGetString(const std::wstring& section, const std::wstring& key, std::wstring& outValue) const;
 	bool tryGetInt(const std::wstring& section, const std::wstring& key, int& outValue) const;
 	bool tryGetFloat(const std::wstring& section, const std::wstring& key, float& outValue) const;
 

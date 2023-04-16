@@ -42,12 +42,13 @@ struct OnCollisionEvent
 
 struct Car : public virtual IObject
 {
-	Car(TrackPtr track);
+	Car(Track* track);
 	~Car();
 
 	// init
 	bool init(const std::wstring& modelName);
 	void initCarData();
+	void initProbes();
 	void loadColliderBlob();
 	void initColliderMesh(ITriMeshPtr mesh, const mat44f& bodyMatrix);
 
@@ -59,6 +60,7 @@ struct Car : public virtual IObject
 	float calcBodyMass();
 	void stepThermalObjects(float dt);
 	void stepComponents(float dt);
+	void updateTrackLocator();
 	void postStep(float dt);
 	void updateCarState();
 
@@ -126,12 +128,13 @@ struct Car : public virtual IObject
 
 	// RUNTIME
 
-	void* tag = nullptr; // weak
-	Simulator* sim = nullptr; // weak
-	ICarAudioRenderer* audioRenderer = nullptr; // weak
-	ICarControlsProvider* controlsProvider = nullptr; // weak
+	Track* track = nullptr;
+	Simulator* sim = nullptr;
+	void* tag = nullptr;
 
-	TrackPtr track;
+	std::shared_ptr<ICarAudioRenderer> audioRenderer;
+	std::shared_ptr<ICarControlsProvider> controlsProvider;
+
 	IRigidBodyPtr body;
 	IRigidBodyPtr fuelTankBody;
 	IRigidBodyPtr rigidAxle;
@@ -192,6 +195,7 @@ struct Car : public virtual IObject
 	// obstacle probes
 	std::vector<ray3f> probes;
 	std::vector<float> probeHits;
+	int nearestTrackPointId = 0;
 };
 
 }

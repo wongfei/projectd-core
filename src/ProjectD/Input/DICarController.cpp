@@ -17,6 +17,8 @@ DICarController::DICarController(void* windowHandle)
 	diContext->init((HWND)windowHandle);
 
 	loadConfig();
+
+	pollSkipCounter = pollSkipFrames;
 }
 
 DICarController::~DICarController()
@@ -46,6 +48,9 @@ void DICarController::loadConfig()
 	auto ini(std::make_unique<INIReader>(L"cfg/dinput.ini"));
 	if (!ini->ready)
 		return;
+
+	pollSkipFrames = tclamp(ini->getInt(L"DINPUT", L"POLL_SKIP_FRAMES"), 0, 10);
+	pollSkipCounter = pollSkipFrames;
 
 	const auto strSteerDevice = ini->getString(L"STEER", L"DEVICE");
 	diWheel = diContext->findDeviceBySubstring(strSteerDevice);
@@ -143,8 +148,16 @@ void DICarController::acquireControls(CarControlsInput* input, CarControls* cont
 {
 	lastSpeed = input->speed;
 
-	for (auto* dev : activeDevices)
-		dev->poll();
+	if (pollSkipCounter > 0)
+	{
+		--pollSkipCounter;
+	}
+	else
+	{
+		pollSkipCounter = pollSkipFrames;
+		for (auto* dev : activeDevices)
+			dev->poll();
+	}
 
 	const float fSteerAxis = tclamp(varSteer.getInput(), -1.0f, 1.0f);
 	const float fClutchAxis = tclamp(varClutch.getInput(), 0.0f, 1.0f);

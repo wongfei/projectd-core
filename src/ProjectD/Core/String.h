@@ -8,8 +8,8 @@
 
 namespace D {
 
-inline std::string stra(const char* str) { return std::move(std::string(str)); }
-inline std::wstring strw(const wchar_t* str) { return std::move(std::wstring(str)); }
+inline std::string stra(const char* str) { return std::string(str); }
+inline std::wstring strw(const wchar_t* str) { return std::wstring(str); }
 
 std::string stra(const wchar_t* str);
 std::string stra(const std::wstring& str);

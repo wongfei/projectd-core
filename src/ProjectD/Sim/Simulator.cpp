@@ -15,6 +15,8 @@ Simulator::Simulator()
 Simulator::~Simulator()
 {
 	TRACE_DTOR(Simulator);
+
+	unloadTrack();
 }
 
 bool Simulator::init(const std::wstring& _basePath)
@@ -22,26 +24,9 @@ bool Simulator::init(const std::wstring& _basePath)
 	log_printf(L"Simulator: init: basePath=\"%s\"", _basePath.c_str());
 	basePath = _basePath;
 
-	interopEnabled = 0;
-	interopMaxCars = 32;
-
-	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
-	if (ini->ready)
-	{
-		ini->tryGetInt(L"INTEROP", L"ENABLED", interopEnabled);
-		ini->tryGetInt(L"INTEROP", L"MAX_CARS", interopMaxCars);
-	}
-
-	if (interopMaxCars <= 0)
-		interopEnabled = 0;
-	else if (interopMaxCars > 1024)
-		interopMaxCars = 1024;
-
-	float defT = 20.0f;
-	roadTemperature = defT;
-	ambientTemperature = defT;
-	dynamicTemp.baseRoad = defT;
-	dynamicTemp.baseAir = defT;
+	maxCars = 1;
+	roadTemperature = 20.0;
+	ambientTemperature = 20.0;
 
 	fuelConsumptionRate = 0.0f;
 	tyreConsumptionRate = 0.0f;
@@ -57,57 +42,97 @@ bool Simulator::init(const std::wstring& _basePath)
 	mzLowSpeedReduction.speedKMH = 3.0f;
 	mzLowSpeedReduction.minValue = 0.01f;
 
+	interopEnabled = 0;
+	interopSyncState = 0;
+	interopSyncInput = 0;
+
+	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	if (ini->ready)
+	{
+		ini->tryGetInt(L"SIM", L"MAX_CARS", maxCars);
+		maxCars = tclamp(maxCars, 1, 100);
+
+		ini->tryGetFloat(L"ENVIRONMENT", L"ROAD_TEMP", roadTemperature);
+		ini->tryGetFloat(L"ENVIRONMENT", L"AMBIENT_TEMP", ambientTemperature);
+
+		ini->tryGetInt(L"INTEROP", L"ENABLED", interopEnabled);
+		ini->tryGetInt(L"INTEROP", L"SYNC_STATE", interopSyncState);
+		ini->tryGetInt(L"INTEROP", L"SYNC_INPUT", interopSyncInput);
+	}
+
+	dynamicTemp.baseRoad = roadTemperature;
+	dynamicTemp.baseAir = ambientTemperature;
+
 	physics = PhysicsFactory::createPhysicsEngine();
 	physics->setCollisionCallback(this);
 
 	if (interopEnabled)
 	{
-		sharedState.reset(new SharedMemory());
-		sharedInputs.reset(new SharedMemory());
+		interopState.reset(new SharedMemory());
+		interopInput.reset(new SharedMemory());
 
-		sharedState->allocate(L"projectd_state", (sizeof(CarState) * interopMaxCars) + 1024);
-		sharedInputs->allocate(L"projectd_inputs", (sizeof(CarControls) * interopMaxCars) + 1024);
+		const size_t stateSize = (sizeof(SimInteropHeader) + (sizeof(CarState) * maxCars));
+		const size_t inputSize = (sizeof(SimInteropHeader) + (sizeof(CarControls) * maxCars));
+
+		interopState->allocate(L"Local\\projectd_state", stateSize);
+		interopInput->allocate(L"Local\\projectd_input", inputSize);
 	}
 
 	return true;
 }
 
-TrackPtr Simulator::initTrack(const std::wstring& trackName)
+Track* Simulator::loadTrack(const std::wstring& trackName)
 {
-	auto newTrack = std::make_shared<Track>(shared_from_this());
-	newTrack->init(trackName);
+	log_printf(L"Simulator: loadTrack: trackName=\"%s\"", trackName.c_str());
 
-	// weak
-	track = newTrack.get();
+	track = std::make_shared<Track>(this);
+	track->init(trackName);
 
-	return newTrack;
+	return track.get();
 }
 
-void Simulator::unregisterTrack(Track* obj)
+void Simulator::unloadTrack()
 {
-	if (track == obj)
-		track = nullptr;
+	log_printf(L"Simulator: unloadTrack");
+
+	slipStreams.clear();
+	cars.clear();
+	track.reset();
 }
 
-CarPtr Simulator::initCar(TrackPtr _track, const std::wstring& modelName)
+Car* Simulator::addCar(const std::wstring& modelName)
 {
-	auto newCar = std::make_shared<Car>(_track);
-	newCar->init(modelName);
+	log_printf(L"Simulator: addCar: trackName=\"%s\"", modelName.c_str());
 
-	// weak
-	cars.emplace_back(newCar.get());
-	slipStreams.emplace_back(newCar->slipStream.get());
+	GUARD_FATAL(track.get());
 
-	return newCar;
+	auto car = std::make_shared<Car>(track.get());
+	car->init(modelName);
+	slipStreams.emplace_back(car->slipStream.get());
+
+	auto* rawCar = car.get();
+	cars.emplace_back(std::move(car));
+
+	return rawCar;
 }
 
 template<typename T>
-inline void remove_item(std::vector<T>& container, const T& value) { container.erase(std::remove(container.begin(), container.end(), value), container.end()); }
+inline void removeItem(std::vector<T>& container, const T& value) { container.erase(std::remove(container.begin(), container.end(), value), container.end()); }
 
-void Simulator::unregisterCar(Car* obj)
+void Simulator::removeCar(unsigned int carId)
 {
-	remove_item(cars, obj);
-	remove_item(slipStreams, obj->slipStream.get());
+	log_printf(L"Simulator: removeCar: carId=%u", carId);
+
+	for (size_t i = 0; i < cars.size(); ++i)
+	{
+		if (cars[i]->physicsGUID == carId)
+		{
+			auto car = cars[i];
+			removeItem(slipStreams, car->slipStream.get());
+			removeItem(cars, car);
+			break;
+		}
+	}
 }
 
 void Simulator::step(float dt, double physicsTime, double gameTime)
@@ -115,10 +140,10 @@ void Simulator::step(float dt, double physicsTime, double gameTime)
 	if (!track)
 		return;
 
-	this->deltaTime = dt;
-	this->physicsTime = physicsTime;
-	this->gameTime = gameTime;
-	this->stepCounter++;
+	deltaTime = dt;
+	physicsTime = physicsTime;
+	gameTime = gameTime;
+	stepCounter++;
 
 	readInteropInputs();
 
@@ -134,23 +159,23 @@ void Simulator::step(float dt, double physicsTime, double gameTime)
 	// should be called after evOnStepCompleted
 	updateInteropState();
 
-	if (collisions.size() > 100)
-		collisions.clear();
+	if (dbgCollisions.size() > 500)
+		dbgCollisions.clear();
 }
 
 void Simulator::stepWind(float dt)
 {
 	#if 0
 
-	if (this->wind.speed.value >= 0.01f)
+	if (wind.speed.value >= 0.01f)
 	{
-		float fChange = (float)sin((this->physicsTime - this->sessionInfo.startTimeMS) * 0.0001);
-		float fSpeed = this->wind.speed.value * ((fChange * 0.1f) + 1.0f);
-		vec3f vWind = this->wind.vector.get_norm() * fSpeed;
+		float fChange = (float)sin((physicsTime - sessionInfo.startTimeMS) * 0.0001);
+		float fSpeed = wind.speed.value * ((fChange * 0.1f) + 1.0f);
+		vec3f vWind = wind.vector.get_norm() * fSpeed;
 
 		if (isfinite(vWind.x) && isfinite(vWind.y) && isfinite(vWind.z))
 		{
-			this->wind.vector = vWind;
+			wind.vector = vWind;
 		}
 		else
 		{
@@ -163,58 +188,76 @@ void Simulator::stepWind(float dt)
 
 void Simulator::stepCars(float dt)
 {
-	for (auto* pCar : this->cars)
+	for (auto& pCar : cars)
 	{
 		pCar->stepPreCacheValues(dt);
 	}
 
-	for (auto* pCar : this->cars)
+	for (auto& pCar : cars)
 	{
 		pCar->step(dt);
 	}
 }
 
-void Simulator::readInteropInputs() // TODO: this is lame
+void Simulator::readInteropInputs() // sim is consumer
 {
-	if (!sharedInputs || !sharedInputs->isValid())
+	if (!interopInput || !interopInput->isValid())
 		return;
 
-	const int32_t actualCars = tmin((int32_t)cars.size(), (int32_t)interopMaxCars);
-
-	auto* sharedData = (uint8_t*)sharedInputs->data();
+	auto* sharedData = (uint8_t*)interopInput->data();
 	size_t pos = 0;
 
-	int32_t numCars = 0;
-	memcpy(&numCars, sharedData + pos, sizeof(numCars)); pos += sizeof(numCars);
-	numCars = tmin(numCars, actualCars);
+	auto* header = (SimInteropHeader*)sharedData; pos += sizeof(SimInteropHeader);
+	const auto producerId = header->producerId;
 
-	for (int32_t carId = 0; carId < numCars; ++carId)
+	// check if new frame available
+	if (interopSyncInput && (header->consumerId == producerId))
+		return;
+
+	const int actualCars = tmin((int)cars.size(), (int)maxCars);
+	const int numCars =  tclamp((int)header->numCars, 0, actualCars);
+
+	for (int carId = 0; carId < numCars; ++carId)
 	{
-		auto* pCar = cars[carId];
+		auto* pCar = cars[carId].get();
 
 		memcpy(&pCar->controls, sharedData + pos, sizeof(CarControls)); pos += sizeof(CarControls);
 		pCar->externalControls = true;
 	}
+
+	_mm_sfence();
+
+	header->consumerId = producerId;
 }
 
-void Simulator::updateInteropState() // TODO: this is lame
+void Simulator::updateInteropState() // sim is producer
 {
-	if (!sharedState || !sharedState->isValid())
+	if (!interopState || !interopState->isValid())
 		return;
 
-	const int32_t numCars = tmin((int32_t)cars.size(), (int32_t)interopMaxCars);
-
-	auto* sharedData = (uint8_t*)sharedState->data();
+	auto* sharedData = (uint8_t*)interopState->data();
 	size_t pos = 0;
 
-	memcpy(sharedData + pos, &numCars, sizeof(numCars)); pos += sizeof(numCars);
+	auto* header = (SimInteropHeader*)sharedData; pos += sizeof(SimInteropHeader);
+	const auto consumerId = header->consumerId;
 
-	for (int32_t carId = 0; carId < numCars; ++carId)
+	// check if consumer received last frame
+	if (interopSyncState && (header->producerId != consumerId))
+		return;
+
+	const int numCars = tmin((int)cars.size(), (int)maxCars);
+	header->numCars = (int32_t)numCars;
+
+	for (int carId = 0; carId < numCars; ++carId)
 	{
-		auto* pCar = cars[carId];
+		auto* pCar = cars[carId].get();
 
 		memcpy(sharedData + pos, pCar->state.get(), sizeof(CarState)); pos += sizeof(CarState);
 	}
+
+	_mm_sfence();
+
+	++header->producerId;
 }
 
 void Simulator::onCollisionCallback(
@@ -225,9 +268,9 @@ void Simulator::onCollisionCallback(
 	bool bFlag0 = false;
 	bool bFlag1 = false;
 
-	collisions.push_back({pos, normal, depth, (float)physicsTime});
+	dbgCollisions.push_back({pos, normal, depth, (float)physicsTime});
 
-	for (auto* pCar : this->cars) // TODO: check
+	for (auto& pCar : cars) // TODO: check
 	{
 		if (pCar->body.get() == rb0)
 			bFlag0 = true;
@@ -242,7 +285,7 @@ void Simulator::onCollisionCallback(
 		std::swap(shape0, shape1);
 	}
 
-	for (auto* pCar : this->cars)
+	for (auto& pCar : cars)
 	{
 		pCar->onCollisionCallback(rb0, shape0, rb1, shape1, normal, pos, depth);
 	}
@@ -265,7 +308,7 @@ void Simulator::setWind(Speed speed, float directionDEG)
 
 float Simulator::getAirDensity() const
 {
-	return 1.2922f - (this->ambientTemperature * 0.0041f);
+	return 1.2922f - (ambientTemperature * 0.0041f);
 }
 
 }

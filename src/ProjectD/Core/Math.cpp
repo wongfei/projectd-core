@@ -2,10 +2,12 @@
 #include <DirectXMath.h>
 #include <cstring>
 
+using namespace DirectX;
+
 namespace D {
 
-inline DirectX::XMMATRIX xmload(const mat44f& m) { return DirectX::XMMATRIX(&m.M11); }
-inline mat44f xmstore(const DirectX::XMMATRIX& m) { DirectX::XMFLOAT4X4 f44; DirectX::XMStoreFloat4x4(&f44, m); return *(mat44f*)&f44._11; }
+inline XMMATRIX xmload(const mat44f& m) { return XMMATRIX(&m.M11); }
+inline mat44f xmstore(const XMMATRIX& m) { XMFLOAT4X4 f44; XMStoreFloat4x4(&f44, m); return *(mat44f*)&f44._11; }
 
 plane4f::plane4f(const vec3f& p1, const vec3f& p2, const vec3f& p3)
 {
@@ -117,15 +119,19 @@ mat44f mat44f::createFromAxisAngle(const vec3f& axis, float angle)
 
 mat44f mat44f::mult(const mat44f& a, const mat44f& b)
 {
-	auto res = DirectX::XMMatrixMultiply(xmload(a), xmload(b));
+	auto res = XMMatrixMultiply(xmload(a), xmload(b));
 	return xmstore(res);
 }
 
 mat44f mat44f::rotate(const mat44f& m, const vec3f& axis, float angle)
 {
 	mat44f rotator = mat44f::createFromAxisAngle(axis, angle);
-	//return mat44f::mult(m, rotator);
 	return mat44f::mult(rotator, m);
+}
+
+vec3f vec3f::rotateAxisAngle(const vec3f& axis, float angle)
+{
+	return *this * mat44f::createFromAxisAngle(axis, angle);
 }
 
 }

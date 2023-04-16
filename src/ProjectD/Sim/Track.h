@@ -25,7 +25,7 @@ struct FatTrackPoint
 
 struct Track : public ITrackRayCastProvider
 {
-	Track(SimulatorPtr sim);
+	Track(Simulator* sim);
 	~Track();
 
 	bool init(const std::wstring& trackName);
@@ -51,7 +51,7 @@ struct Track : public ITrackRayCastProvider
 	std::wstring dataFolder;
 	float dynamicGripLevel = 1.0f;
 
-	SimulatorPtr sim;
+	Simulator* sim = nullptr;
 	std::vector<SurfacePtr> surfaces;
 	std::vector<ICollisionObjectPtr> colliders;
 	std::vector<mat44f> pits;

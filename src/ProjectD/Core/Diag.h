@@ -16,16 +16,15 @@
 #define GUARD_WARN(expr) if (!(expr)) { SHOULD_NOT_REACH_WARN; }
 #define GUARD_FATAL(expr) if (!(expr)) { SHOULD_NOT_REACH_FATAL; }
 
+#define TRACE_CTOR(name) log_printf(L"+" STRINGIZE_W(name) L" %p", this)
+#define TRACE_DTOR(name) log_printf(L"~" STRINGIZE_W(name) L" %p", this)
+
 #if defined(DEBUG)
 	#define DEBUG_GUARD_WARN GUARD_WARN
 	#define DEBUG_GUARD_FATAL GUARD_FATAL
-    #define TRACE_CTOR(name) log_printf(L"+" STRINGIZE_W(name) L" %p", this)
-    #define TRACE_DTOR(name) log_printf(L"~" STRINGIZE_W(name) L" %p", this)
 #else
 	#define DEBUG_GUARD_WARN(expr)
 	#define DEBUG_GUARD_FATAL(expr)
-    #define TRACE_CTOR(name)
-    #define TRACE_DTOR(name)
 #endif
 
 namespace D {

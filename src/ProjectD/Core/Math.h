@@ -125,6 +125,8 @@ struct vec3f
 	inline vec3f get_norm() const { return clone().norm(); }
 
 	inline vec3f cross(const vec3f& v) const { return vec3f(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
+
+	vec3f rotateAxisAngle(const vec3f& axis, float angle);
 };
 
 struct vec4f

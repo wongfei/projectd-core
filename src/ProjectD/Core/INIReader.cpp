@@ -158,6 +158,16 @@ float INIReader::getFloat(const std::wstring& section, const std::wstring& key, 
 	return 0;
 }
 
+bool INIReader::tryGetString(const std::wstring& section, const std::wstring& key, std::wstring& outValue) const
+{
+	if (hasKey(section, key))
+	{
+		outValue = getString(section, key, true);
+		return true;
+	}
+	return false;
+}
+
 bool INIReader::tryGetInt(const std::wstring& section, const std::wstring& key, int& outValue) const
 {
 	if (hasKey(section, key))
@@ -225,7 +235,7 @@ Curve INIReader::getCurve(const std::wstring& section, const std::wstring& key, 
 		}
 	}
 
-	return std::move(curve);
+	return curve;
 }
 
 }
