@@ -27,6 +27,9 @@ bool Track::init(const std::wstring& trackName)
 {
 	log_printf(L"Track: init: trackName=\"%s\"", trackName.c_str());
 
+	GUARD_FATAL(sim);
+	GUARD_FATAL(sim->physics);
+
 	name = trackName;
 	dataFolder = sim->basePath + L"content/tracks/" + name + L"/";
 	log_printf(L"dataFolder=\"%s\"", dataFolder.c_str());
@@ -39,9 +42,9 @@ bool Track::init(const std::wstring& trackName)
 
 	loadSurfaceBlob();
 	loadPits();
-	
 	initTrackPoints();
 
+	log_printf(L"Track: init: DONE");
 	return true;
 }
 
@@ -97,7 +100,10 @@ void Track::loadSurfaceBlob()
 
 	FileHandle file;
 	auto strPath = dataFolder + L"surfaces.bin";
-	GUARD_FATAL(file.open(strPath.c_str(), L"rb"));
+	log_printf(L"loadSurfaceBlob: %s", strPath.c_str());
+
+	const bool fileValid = file.open(strPath.c_str(), L"rb");
+	GUARD_FATAL(fileValid);
 
 	BlobSurface blob;
 	while (fread(&blob, sizeof(blob), 1, file.fd) == 1)
@@ -239,6 +245,8 @@ void Track::loadSlimPoints()
 
 	FileHandle file;
 	auto strPath = dataFolder + L"spline.bin";
+	log_printf(L"loadSlimPoints: %s", strPath.c_str());
+
 	if (file.open(strPath.c_str(), L"rb"))
 	{
 		const size_t size = file.size();
@@ -257,6 +265,8 @@ void Track::loadFatPoints()
 
 	FileHandle file;
 	auto strPath = dataFolder + L"spline.cache";
+	log_printf(L"loadFatPoints: %s", strPath.c_str());
+
 	if (file.open(strPath.c_str(), L"rb"))
 	{
 		const size_t size = file.size();
@@ -273,6 +283,8 @@ void Track::saveFatPoints()
 {
 	FileHandle file;
 	auto strPath = dataFolder + L"spline.cache";
+	log_printf(L"saveFatPoints: %s", strPath.c_str());
+
 	if (file.open(strPath.c_str(), L"wb"))
 	{
 		const auto numPoints = fatPoints.size();

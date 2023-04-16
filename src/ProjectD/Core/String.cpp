@@ -34,7 +34,7 @@ std::string strafv(const char* format, va_list args)
 	const size_t bufCount = 1024;
 	char buf[bufCount];
 
-	#ifdef WIN32
+	#ifdef _WINDOWS
 		int n = _vsnprintf_s(buf, bufCount, _TRUNCATE, format, args);
 	#else
 		int n = vsnprintf(buf, bufCount, format, args);
@@ -62,7 +62,7 @@ std::wstring strwfv(const wchar_t* format, va_list args)
 	const size_t bufCount = 1024;
 	wchar_t buf[bufCount];
 
-	#ifdef WIN32
+	#ifdef _WINDOWS
 		int n = _vsnwprintf_s(buf, bufCount, _TRUNCATE, format, args);
 	#else
 		int n = vswprintf(buf, bufCount, format, args);

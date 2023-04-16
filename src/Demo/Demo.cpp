@@ -218,7 +218,7 @@ static void initDemo(int argc, char** argv)
 		car->teleport(track_->pits[i]);
 	}
 
-	car_ = sim_->cars[0].get();
+	car_ = sim_->cars[0];
 	pitPos_ = track_->pits[0];
 	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
 
@@ -391,7 +391,7 @@ static void renderWorld(float dt)
 	// other cars
 	for (size_t i = 1; i < sim_->cars.size(); ++i)
 	{
-		carAvatar_.drawInstance(sim_->cars[i].get(), true, inpDrawCarProbes_);
+		carAvatar_.drawInstance(sim_->cars[i], true, inpDrawCarProbes_);
 	}
 
 	glDisable(GL_DEPTH_TEST);
@@ -438,7 +438,7 @@ static void render(float dt)
 	renderText();
 }
 
-int main(int argc, char** argv)
+int demoMain(int argc, char** argv)
 {
 	typedef std::chrono::high_resolution_clock clock;
 	const auto tick0 = clock::now();
@@ -666,6 +666,23 @@ int main(int argc, char** argv)
 	sim_.reset();
 
 	shutSDL();
+
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	#ifndef DEBUG
+	try {
+	#endif
+
+	demoMain(argc, argv);
+
+	#ifndef DEBUG
+	} catch (const std::exception& ex) {
+		log_printf(L"main: UNHANDLED EXCEPTION: %S", ex.what());
+	}
+	#endif
 
 	return 0;
 }

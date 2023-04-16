@@ -41,6 +41,14 @@ void log_printf(const wchar_t* format, ...)
 	}
 }
 
+void log_flush()
+{
+	if (_logFile) 
+	{
+		fflush(_logFile);
+	}
+}
+
 void log_close()
 {
 	if (_logFile) 
@@ -50,14 +58,15 @@ void log_close()
 	}
 }
 
-void guard_warn(const char* file, int line)
+void trace_warn(const wchar_t* msg, const char* file, int line)
 {
-	log_printf(L"GUARD_WARN at %S (line %d)", file, line);
+	log_printf(L"%s [FILE: %S LINE: %d]", msg, file, line);
 }
 
-void guard_fatal(const char* file, int line)
+void trace_error(const wchar_t* msg, const char* file, int line)
 {
-	log_printf(L"GUARD_FATAL at %S (line %d)", file, line);
+	log_printf(L"%s [FILE: %S LINE: %d]", msg, file, line);
+	log_flush(); 
 }
 
 }

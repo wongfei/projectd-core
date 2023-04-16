@@ -4,12 +4,12 @@ namespace D {
 
 SlipStream::SlipStream()
 {
-	TRACE_CTOR(SlipStream);
+	//TRACE_CTOR(SlipStream);
 }
 
 SlipStream::~SlipStream()
 {
-	TRACE_DTOR(SlipStream);
+	//TRACE_DTOR(SlipStream);
 }
 
 float SlipStream::getSlipEffect(const vec3f& p)

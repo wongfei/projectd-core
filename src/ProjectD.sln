@@ -10,26 +10,29 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo", "Demo\Demo.vcxproj",
 		{0304220B-B60A-484F-95F8-3018CD83BC0B} = {0304220B-B60A-484F-95F8-3018CD83BC0B}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PyProjectD", "PyProjectD\PyProjectD.vcxproj", "{3866AB80-BAFA-4AB2-AE47-33CEC96117B7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0304220B-B60A-484F-95F8-3018CD83BC0B} = {0304220B-B60A-484F-95F8-3018CD83BC0B}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Debug|x64.ActiveCfg = Debug|x64
 		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Debug|x64.Build.0 = Debug|x64
-		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Debug|x86.ActiveCfg = Debug|x64
 		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Release|x64.ActiveCfg = Release|x64
 		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Release|x64.Build.0 = Release|x64
-		{0304220B-B60A-484F-95F8-3018CD83BC0B}.Release|x86.ActiveCfg = Release|x64
 		{5B844107-4D37-45ED-8501-FD3194513351}.Debug|x64.ActiveCfg = Debug|x64
 		{5B844107-4D37-45ED-8501-FD3194513351}.Debug|x64.Build.0 = Debug|x64
-		{5B844107-4D37-45ED-8501-FD3194513351}.Debug|x86.ActiveCfg = Debug|x64
 		{5B844107-4D37-45ED-8501-FD3194513351}.Release|x64.ActiveCfg = Release|x64
 		{5B844107-4D37-45ED-8501-FD3194513351}.Release|x64.Build.0 = Release|x64
-		{5B844107-4D37-45ED-8501-FD3194513351}.Release|x86.ActiveCfg = Release|x64
+		{3866AB80-BAFA-4AB2-AE47-33CEC96117B7}.Debug|x64.ActiveCfg = Debug|x64
+		{3866AB80-BAFA-4AB2-AE47-33CEC96117B7}.Debug|x64.Build.0 = Debug|x64
+		{3866AB80-BAFA-4AB2-AE47-33CEC96117B7}.Release|x64.ActiveCfg = Release|x64
+		{3866AB80-BAFA-4AB2-AE47-33CEC96117B7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

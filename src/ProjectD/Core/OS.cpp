@@ -1,6 +1,6 @@
 #include "Core/OS.h"
 
-#ifdef WIN32
+#ifdef _WINDOWS
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -16,8 +16,17 @@ void osTraceDebug(const wchar_t* msg)
 
 void osFatalExit(const wchar_t* msg)
 {
-	MessageBoxW(NULL, msg, L"ERROR", MB_OK | MB_ICONERROR);
-	ExitProcess(666);
+	//if (msg) MessageBoxW(NULL, msg, L"ERROR", MB_OK | MB_ICONERROR);
+	//ExitProcess(666);
+	TerminateProcess(GetCurrentProcess(), 666);
+}
+
+void osEnsureDirExists(const std::wstring& path)
+{
+	if (!osDirExists(path.c_str()))
+	{
+		CreateDirectoryW(path.c_str(), nullptr);
+	}
 }
 
 void* osLoadLibraryA(const char* path)
@@ -47,11 +56,11 @@ bool osDirExists(const std::wstring& path)
 	return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-void osEnsureDirExists(const std::wstring& path)
+void osSetCurrentDir(const std::wstring& path)
 {
-	if (!osDirExists(path.c_str()))
+	if (!SetCurrentDirectoryW(path.c_str()))
 	{
-		CreateDirectoryW(path.c_str(), nullptr);
+		osTraceDebug(L"osSetCurrentDir failed");
 	}
 }
 
@@ -161,8 +170,8 @@ void* osFindProcessWindow(unsigned int ProcessId)
 bool FileHandle::open(const wchar_t* filename, const wchar_t* mode)
 {
 	close();
-	_wfopen_s(&fd, filename, mode);
-	return (fd != nullptr);
+	const auto err = _wfopen_s(&fd, filename, mode);
+	return (err == 0);
 }
 
 void FileHandle::close()
@@ -188,8 +197,8 @@ size_t FileHandle::size() const
 
 }
 
-#else // NOT WIN32
+#else // NOT _WINDOWS
 
 #error "Platform not supported"
 
-#endif // WIN32
+#endif

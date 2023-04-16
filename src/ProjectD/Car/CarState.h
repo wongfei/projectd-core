@@ -2,6 +2,7 @@
 
 #include "Car/CarControls.h"
 #include "Core/Math.h"
+#include <array>
 
 namespace D {
 
@@ -23,14 +24,14 @@ struct CarState
 	vec3f angularVelocity;
 	vec3f localAngularVelocity;
 
-	mat44f hubMatrix[4];
-	vec3f tyreContacts[4];
-	float tyreSlip[4] = {};
-	float tyreLoad[4] = {};
-	float tyreAngularSpeed[4] = {};
+	std::array<mat44f, 4> hubMatrix;
+	std::array<vec3f, 4> tyreContacts;
+	std::array<float, 4> tyreSlip;
+	std::array<float, 4> tyreLoad;
+	std::array<float, 4> tyreAngularSpeed;
 
 	enum { MaxProbes = 10 };
-	float probes[MaxProbes] = {};
+	std::array<float, MaxProbes> probes;
 	int32_t nearestTrackPointId = 0;
 
 	#if 0

@@ -7,8 +7,8 @@ void GLChart::init(int w, int h)
 	GUARD_FATAL(w > 0 && h > 0);
 
 	texture.resize(w, h, GL_RGB8);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); GL_GUARD_FATAL;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); GL_GUARD_FATAL;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); GL_GUARD;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); GL_GUARD;
 
 	chart.resize(w, h);
 	bg_color = ChartColor(0, 0, 0, 255);

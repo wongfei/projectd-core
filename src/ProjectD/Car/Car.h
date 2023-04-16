@@ -87,7 +87,7 @@ struct Car : public virtual IObject
 	
 	// CONFIG
 
-	unsigned int physicsGUID = 0;
+	int physicsGUID = 0;
 
 	std::wstring unixName;
 	std::wstring configName;

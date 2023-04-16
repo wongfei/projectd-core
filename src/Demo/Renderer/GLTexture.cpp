@@ -17,7 +17,7 @@ void GLTexture::gen()
 {
 	if (!id)
 	{
-		glGenTextures(1, &id); GL_GUARD_FATAL;
+		glGenTextures(1, &id); GL_GUARD;
 	}
 }
 
@@ -35,7 +35,7 @@ void GLTexture::release()
 void GLTexture::bind()
 {
 	DEBUG_GUARD_FATAL(valid());
-	glBindTexture(GL_TEXTURE_2D, id); GL_GUARD_FATAL;
+	glBindTexture(GL_TEXTURE_2D, id); GL_GUARD;
 }
 
 void GLTexture::resize(GLsizei _width, GLsizei _height, GLint _internalFormat)
@@ -83,10 +83,10 @@ void GLTexture::resize(GLsizei _width, GLsizei _height, GLint _internalFormat)
 
 	gen();
 	bind();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); GL_GUARD_FATAL;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); GL_GUARD_FATAL;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); GL_GUARD_FATAL;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); GL_GUARD_FATAL;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); GL_GUARD;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); GL_GUARD;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); GL_GUARD;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); GL_GUARD;
 }
 
 void GLTexture::load(const char* filename)
@@ -116,7 +116,7 @@ void GLTexture::load(const char* filename)
 	}
 
 	resize(image->w, image->h, format);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, internalFormat, image->w, image->h, texFormat, texType, image->pixels); GL_GUARD_FATAL;
+	gluBuild2DMipmaps(GL_TEXTURE_2D, internalFormat, image->w, image->h, texFormat, texType, image->pixels); GL_GUARD;
 }
 
 void GLTexture::update(const void* data)
@@ -124,11 +124,11 @@ void GLTexture::update(const void* data)
 	bind();
 	if (allocated)
 	{
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, texFormat, texType, data); GL_GUARD_FATAL;
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, texFormat, texType, data); GL_GUARD;
 	}
 	else
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, texFormat, texType, data); GL_GUARD_FATAL;
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, texFormat, texType, data); GL_GUARD;
 		allocated = true;
 	}
 }

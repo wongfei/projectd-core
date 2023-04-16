@@ -2,6 +2,7 @@
 
 #include "Sim/SlipStream.h"
 #include "Core/Event.h"
+#include <unordered_map>
 
 namespace D {
 
@@ -52,7 +53,8 @@ struct Simulator : public virtual ICollisionCallback // std::enable_shared_from_
 	void unloadTrack();
 
 	Car* addCar(const std::wstring& modelName);
-	void removeCar(unsigned int carId);
+	Car* getCar(int carId);
+	void removeCar(int carId);
 
 	void step(float dt, double physicsTime, double gameTime);
 
@@ -109,12 +111,14 @@ struct Simulator : public virtual ICollisionCallback // std::enable_shared_from_
 	std::vector<CollisionData> dbgCollisions;
 
 	TrackPtr track;
-	std::vector<CarPtr> cars;
-	std::vector<SlipStream*> slipStreams; // owned by cars
+	std::vector<int> freeCarIds;
+	std::unordered_map<int, CarPtr> carMap;
+	std::vector<Car*> cars;
 
 	std::unique_ptr<struct SharedMemory> interopState;
 	std::unique_ptr<struct SharedMemory> interopInput;
 
+	int carIdGenerator = 0;
 	float deltaTime = 0;
 	double physicsTime = 0;
 	double gameTime = 0;

@@ -3,6 +3,8 @@ src/.vs/
 
 bin/*.lib
 bin/*.pdb
+bin/*.exp
+bin/*.pyd
 
 *.exe
 *.ilk

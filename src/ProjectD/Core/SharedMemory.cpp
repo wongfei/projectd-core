@@ -1,7 +1,7 @@
 #include "Core/SharedMemory.h"
 #include "Core/Diag.h"
 
-#ifdef WIN32
+#ifdef _WINDOWS
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -77,8 +77,8 @@ void SharedMemory::close()
 
 }
 
-#else // NOT WIN32
+#else // NOT _WINDOWS
 
 #error "Platform not supported"
 
-#endif // WIN32
+#endif

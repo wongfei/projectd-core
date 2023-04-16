@@ -218,11 +218,12 @@ static void renderText()
 	#endif
 
 	// CAM POS
+	font_.draw(x, y, "CAM %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
+
 	#if 0
 	auto vcar = car_->body->worldToLocal({ 0, 0, 0 });
 	auto off = car_->body->worldToLocal(vec3f(camPos_.x, camPos_.y, camPos_.z));
 	font_.draw(x, y, "CAR %.2f %.2f %.2f", vcar.x, vcar.y, vcar.z); y += dy;
-	font_.draw(x, y, "CAM %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
 	font_.draw(x, y, "REL %.2f %.2f %.2f", off.x, off.y, off.z); y += dy;
 	font_.draw(x, y, "FOV %.3f", fov_); y += dy;
 

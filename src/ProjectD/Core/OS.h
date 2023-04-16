@@ -8,6 +8,7 @@ namespace D {
 void osTraceDebug(const wchar_t* msg);
 void osFatalExit(const wchar_t* msg);
 
+void osSetCurrentDir(const std::wstring& path);
 void* osLoadLibraryA(const char* path);
 void* osLoadLibraryW(const wchar_t* path);
 void* osGetProcAddress(void* lib, const char* name);

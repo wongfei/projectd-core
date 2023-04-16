@@ -33,7 +33,7 @@ bool INIReader::load(const std::wstring& filename)
 
 	if (ready && (dataFilename == filename))
 	{
-		// already loaded
+		//log_printf(L"already loaded");
 		return true;
 	}
 
@@ -99,6 +99,7 @@ bool INIReader::load(const std::wstring& filename)
 		}
 	}
 
+	//log_printf(L"INIReader: load: DONE");
 	ready = true;
 	return true;
 }

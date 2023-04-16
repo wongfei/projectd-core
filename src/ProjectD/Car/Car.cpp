@@ -32,9 +32,9 @@ Car::~Car()
 
 bool Car::init(const std::wstring& modelName)
 {
-	log_printf(L"Car: init: modelName=\"%s\"", modelName.c_str());
+	log_printf(L"Car: init: carId=%d modelName=\"%s\"", physicsGUID, modelName.c_str());
 
-	physicsGUID = (unsigned int)sim->cars.size();
+	//physicsGUID = (int)sim->cars.size(); // now managed by Simulator::addCar
 
 	auto& pCore = sim->physics;
 	body = pCore->createRigidBody();
@@ -495,10 +495,14 @@ void Car::updateAirPressure()
 		vec3f vPos = body->getPosition(0.0f);
 		float fMinSlip = 1.0f;
 
-		for (SlipStream* pSS : sim->slipStreams)
+		//for (SlipStream* pSS : sim->slipStreams)
+		for (auto* otherCar : sim->cars)
 		{
-			if (pSS != slipStream.get())
+			//if (pSS != slipStream.get())
+			if (otherCar != this)
 			{
+				auto* pSS = otherCar->slipStream.get();
+
 				float fSlip = tclamp((1.0f - (pSS->getSlipEffect(vPos) * slipStreamEffectGain)), 0.0f, 1.0f);
 
 				if (fMinSlip > fSlip)
@@ -851,9 +855,6 @@ void Car::onCollisionCallback(
 
 void Car::pollControls(float dt)
 {
-	if (externalControls) // controls managed by external system
-		return;
-
 	if (lockControls)
 	{
 		controls.clutch = 0;
@@ -861,6 +862,9 @@ void Car::pollControls(float dt)
 		controls.gas = 0;
 		return;
 	}
+
+	if (externalControls) // controls managed by external system
+		return;
 
 	if (!controlsProvider)
 		return;

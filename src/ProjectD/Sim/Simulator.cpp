@@ -78,6 +78,7 @@ bool Simulator::init(const std::wstring& _basePath)
 		interopInput->allocate(L"Local\\projectd_input", inputSize);
 	}
 
+	log_printf(L"Simulator: init: DONE");
 	return true;
 }
 
@@ -95,43 +96,68 @@ void Simulator::unloadTrack()
 {
 	log_printf(L"Simulator: unloadTrack");
 
-	slipStreams.clear();
 	cars.clear();
+	carMap.clear();
+
 	track.reset();
 }
 
 Car* Simulator::addCar(const std::wstring& modelName)
 {
-	log_printf(L"Simulator: addCar: trackName=\"%s\"", modelName.c_str());
+	log_printf(L"Simulator: addCar: modelName=\"%s\"", modelName.c_str());
 
-	GUARD_FATAL(track.get());
+	if (!track)
+	{
+		log_printf(L"addCar failed: track is null");
+		return nullptr;
+	}
 
 	auto car = std::make_shared<Car>(track.get());
+	
+	int carId = 0;
+	if (!freeCarIds.empty())
+	{
+		carId = freeCarIds.back();
+		freeCarIds.pop_back();
+	}
+	else
+	{
+		carId = carIdGenerator++;
+	}
+
+	car->physicsGUID = carId;
 	car->init(modelName);
-	slipStreams.emplace_back(car->slipStream.get());
 
 	auto* rawCar = car.get();
-	cars.emplace_back(std::move(car));
+	carMap.insert({car->physicsGUID, car});
+	cars.push_back(rawCar);
 
 	return rawCar;
+}
+
+Car* Simulator::getCar(int carId)
+{
+	auto iter = carMap.find(carId);
+	if (iter != carMap.end())
+	{
+		return iter->second.get();
+	}
+	return nullptr;
 }
 
 template<typename T>
 inline void removeItem(std::vector<T>& container, const T& value) { container.erase(std::remove(container.begin(), container.end(), value), container.end()); }
 
-void Simulator::removeCar(unsigned int carId)
+void Simulator::removeCar(int carId)
 {
-	log_printf(L"Simulator: removeCar: carId=%u", carId);
+	log_printf(L"Simulator: removeCar: carId=%d", carId);
 
-	for (size_t i = 0; i < cars.size(); ++i)
+	auto iter = carMap.find(carId);
+	if (iter != carMap.end())
 	{
-		if (cars[i]->physicsGUID == carId)
-		{
-			auto car = cars[i];
-			removeItem(slipStreams, car->slipStream.get());
-			removeItem(cars, car);
-			break;
-		}
+		removeItem(cars, iter->second.get());
+		carMap.erase(iter);
+		freeCarIds.push_back(carId);
 	}
 }
 
@@ -188,12 +214,12 @@ void Simulator::stepWind(float dt)
 
 void Simulator::stepCars(float dt)
 {
-	for (auto& pCar : cars)
+	for (auto* pCar : cars)
 	{
 		pCar->stepPreCacheValues(dt);
 	}
 
-	for (auto& pCar : cars)
+	for (auto* pCar : cars)
 	{
 		pCar->step(dt);
 	}
@@ -219,7 +245,7 @@ void Simulator::readInteropInputs() // sim is consumer
 
 	for (int carId = 0; carId < numCars; ++carId)
 	{
-		auto* pCar = cars[carId].get();
+		auto* pCar = cars[carId];
 
 		memcpy(&pCar->controls, sharedData + pos, sizeof(CarControls)); pos += sizeof(CarControls);
 		pCar->externalControls = true;
@@ -250,7 +276,7 @@ void Simulator::updateInteropState() // sim is producer
 
 	for (int carId = 0; carId < numCars; ++carId)
 	{
-		auto* pCar = cars[carId].get();
+		auto* pCar = cars[carId];
 
 		memcpy(sharedData + pos, pCar->state.get(), sizeof(CarState)); pos += sizeof(CarState);
 	}
@@ -270,7 +296,7 @@ void Simulator::onCollisionCallback(
 
 	dbgCollisions.push_back({pos, normal, depth, (float)physicsTime});
 
-	for (auto& pCar : cars) // TODO: check
+	for (auto* pCar : cars) // TODO: check
 	{
 		if (pCar->body.get() == rb0)
 			bFlag0 = true;
@@ -285,7 +311,7 @@ void Simulator::onCollisionCallback(
 		std::swap(shape0, shape1);
 	}
 
-	for (auto& pCar : cars)
+	for (auto* pCar : cars)
 	{
 		pCar->onCollisionCallback(rb0, shape0, rb1, shape1, normal, pos, depth);
 	}
