@@ -8,6 +8,7 @@
 namespace D {
 
 std::map<std::wstring, std::wstring> INIReader::_iniCache;
+bool INIReader::_debug = false;
 
 void INIReader::flushCache()
 {
@@ -29,7 +30,8 @@ INIReader::INIReader(const std::wstring& filename)
 
 bool INIReader::load(const std::wstring& filename)
 {
-	log_printf(L"INIReader: load: \"%s\"", filename.c_str());
+	if (_debug)
+		log_printf(L"INIReader: load: \"%s\"", filename.c_str());
 
 	if (ready && (dataFilename == filename))
 	{
@@ -121,9 +123,10 @@ bool INIReader::hasKey(const std::wstring& section, const std::wstring& key) con
 	return false;
 }
 
-inline void traceKeyNotFound(const std::wstring& section, const std::wstring& key)
+void INIReader::traceKeyNotFound(const std::wstring& section, const std::wstring& key) const
 {
-	log_printf(L"ERROR: INIReader: not found: [%s] -> %s", section.c_str(), key.c_str());
+	if (_debug)
+		log_printf(L"ERROR: INIReader: not found: [%s] -> %s", section.c_str(), key.c_str());
 }
 
 static const std::wstring _empty;

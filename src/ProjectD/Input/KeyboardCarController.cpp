@@ -9,14 +9,15 @@
 
 namespace D {
 
-KeyboardCarController::KeyboardCarController(Car* _car, void* _windowHandle)
+KeyboardCarController::KeyboardCarController(const std::wstring& _basePath, Car* _car, void* _windowHandle)
 {
 	TRACE_CTOR(KeyboardCarController);
 
+	basePath = _basePath;
 	car = _car;
 	windowHandle = _windowHandle;
 
-	auto ini(std::make_unique<INIReader>(L"cfg/keyboard.ini"));
+	auto ini(std::make_unique<INIReader>(basePath + L"cfg/keyboard.ini"));
 	if (ini->ready)
 	{
 		mouseSteering = (ini->getInt(L"BASIC", L"MOUSE_STEER") != 0);

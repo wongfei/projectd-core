@@ -1,4 +1,5 @@
 #include "Core/OS.h"
+#include "Core/String.h"
 
 #ifdef _WINDOWS
 
@@ -6,27 +7,18 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+//#include <shlwapi.h>
+#include <pathcch.h>
+#pragma comment(lib, "pathcch.lib")
+
+#define OS_MAX_PATH 2048
+
 namespace D {
 
 void osTraceDebug(const wchar_t* msg)
 {
 	OutputDebugStringW(msg);
 	OutputDebugStringW(L"\n");
-}
-
-void osFatalExit(const wchar_t* msg)
-{
-	//if (msg) MessageBoxW(NULL, msg, L"ERROR", MB_OK | MB_ICONERROR);
-	//ExitProcess(666);
-	TerminateProcess(GetCurrentProcess(), 666);
-}
-
-void osEnsureDirExists(const std::wstring& path)
-{
-	if (!osDirExists(path.c_str()))
-	{
-		CreateDirectoryW(path.c_str(), nullptr);
-	}
 }
 
 void* osLoadLibraryA(const char* path)
@@ -44,35 +36,43 @@ void* osGetProcAddress(void* lib, const char* name)
 	return GetProcAddress((HMODULE)lib, name);
 }
 
-bool osFileExists(const std::wstring& path)
+std::wstring osGetModuleFullPath()
 {
-	DWORD dwAttrib = GetFileAttributesW(path.c_str());
-	return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+	WCHAR buf[OS_MAX_PATH]; buf[0] = 0;
+	const size_t n = (size_t)GetModuleFileNameW(nullptr, buf, _countof(buf) - 1);
+	return std::wstring(buf, n);
 }
 
-bool osDirExists(const std::wstring& path)
+std::wstring osGetCurrentDir()
 {
-	DWORD dwAttrib = GetFileAttributesW(path.c_str());
-	return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+	WCHAR buf[OS_MAX_PATH]; buf[0] = 0;
+	const size_t n = (size_t)GetCurrentDirectoryW(_countof(buf) - 1, buf);
+	return std::wstring(buf, n);
 }
 
 void osSetCurrentDir(const std::wstring& path)
 {
 	if (!SetCurrentDirectoryW(path.c_str()))
 	{
-		osTraceDebug(L"osSetCurrentDir failed");
+		auto msg = strwf(L"SetCurrentDirectory failed: err=%u", GetLastError());
+		osTraceDebug(msg.c_str());
 	}
 }
 
-void osCreateDirectoryTree(const std::wstring& path)
+std::wstring osCanonicPath(const std::wstring& path)
 {
-	std::wstring::size_type pos = 0;
-	do
-	{
-		pos = path.find_first_of(L"\\/", pos + 1);
-		osEnsureDirExists(path.substr(0, pos).c_str());
-	}
-	while (pos != std::wstring::npos);
+	WCHAR buf[OS_MAX_PATH]; buf[0] = 0;
+	if (PathCchCanonicalize(buf, _countof(buf) - 1, path.c_str()) == S_OK)
+		return std::wstring(buf);
+	return std::wstring();
+}
+
+std::wstring osCombinePath(const std::wstring& a, const std::wstring& b)
+{
+	WCHAR buf[OS_MAX_PATH]; buf[0] = 0;
+	if (PathCchCombine(buf, _countof(buf) - 1, a.c_str(), b.c_str()) == S_OK)
+		return std::wstring(buf);
+	return std::wstring();
 }
 
 std::wstring osGetDirPath(const std::wstring& path)
@@ -103,6 +103,37 @@ std::wstring osGetFileName(const std::wstring& path)
 		}
 	}
 	return res;
+}
+
+bool osFileExists(const std::wstring& path)
+{
+	DWORD dwAttrib = GetFileAttributesW(path.c_str());
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+bool osDirExists(const std::wstring& path)
+{
+	DWORD dwAttrib = GetFileAttributesW(path.c_str());
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+void osEnsureDirExists(const std::wstring& path)
+{
+	if (!osDirExists(path.c_str()))
+	{
+		CreateDirectoryW(path.c_str(), nullptr);
+	}
+}
+
+void osCreateDirectoryTree(const std::wstring& path)
+{
+	std::wstring::size_type pos = 0;
+	do
+	{
+		pos = path.find_first_of(L"\\/", pos + 1);
+		osEnsureDirExists(path.substr(0, pos).c_str());
+	}
+	while (pos != std::wstring::npos);
 }
 
 struct OSFindWindowData

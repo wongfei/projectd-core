@@ -10,11 +10,31 @@ namespace py = pybind11;
 #include "Car/Car.h"
 #include "Car/CarState.h"
 #include "Core/OS.h"
+#include "Core/Diag.h"
 
 #include <unordered_map>
 
 static int g_uniqSimId = 0;
 static std::unordered_map<int, D::SimulatorPtr> g_simMap;
+
+//
+// CORE
+//
+
+void setSeed(unsigned int seed)
+{
+	srand(seed);
+}
+
+void initLogFile(const std::string& path)
+{
+	D::log_init(D::strw(path).c_str());
+}
+
+void closeLogFile()
+{
+	D::log_close();
+}
 
 //
 // SIMULATOR
@@ -40,11 +60,10 @@ int createSimulator(const std::string& basePath)
 {
 	try
 	{
-		D::log_printf(L"osSetCurrentDir: \"%S\"", basePath.c_str());
-		D::osSetCurrentDir(D::strw(basePath));
+		//D::INIReader::_debug = true;
 
 		auto sim = std::make_shared<D::Simulator>();
-		sim->init(L"");
+		sim->init(D::strw(basePath));
 
 		int id = g_uniqSimId++;
 		g_simMap.insert({id, sim});
@@ -67,7 +86,21 @@ void destroySimulator(int simId)
 	}
 }
 
-void stepSimulator(int simId, double dt, double physicsTime, double gameTime)
+void stepSimulator(int simId)
+{
+	auto* sim = getSimulator(simId);
+	if (sim && sim->physics)
+	{
+		const double dt = 1.0 / 333.0;
+
+		sim->step((float)dt, sim->physicsTime, sim->gameTime);
+
+		sim->physicsTime += dt;
+		sim->gameTime += dt;
+	}
+}
+
+void stepSimulatorEx(int simId, double dt, double physicsTime, double gameTime)
 {
 	auto* sim = getSimulator(simId);
 	if (sim && sim->physics)
@@ -239,9 +272,14 @@ PYBIND11_MODULE(PyProjectD, m)
 		.def_readonly("nearestTrackPointId", &D::CarState::nearestTrackPointId)
 		;
 
+	m.def("setSeed", &setSeed, "");
+	m.def("initLogFile", &initLogFile, "");
+	m.def("closeLogFile", &closeLogFile, "");
+
 	m.def("createSimulator", &createSimulator, "");
 	m.def("destroySimulator", &destroySimulator, "");
 	m.def("stepSimulator", &stepSimulator, "");
+	m.def("stepSimulatorEx", &stepSimulatorEx, "");
 
 	m.def("loadTrack", &loadTrack, "");
 	m.def("unloadTrack", &unloadTrack, "");

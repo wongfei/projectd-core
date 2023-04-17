@@ -22,8 +22,6 @@ Car::Car(Track* _track)
 Car::~Car()
 {
 	TRACE_DTOR(Car);
-
-	//sim->unregisterCar(this);
 }
 
 //=============================================================================
@@ -42,7 +40,7 @@ bool Car::init(const std::wstring& modelName)
 
 	unixName = modelName;
 	carDataPath = sim->basePath + L"content/cars/" + unixName + L"/data/";
-	log_printf(L"carDataPath=\"%s\"", carDataPath.c_str());
+	log_printf(L"carData: \"%s\"", carDataPath.c_str());
 
 	initCarData();
 	initProbes();
@@ -51,8 +49,8 @@ bool Car::init(const std::wstring& modelName)
 	fuelTankBody->setPosition(fuelTankPos);
 	fuelTankJoint = sim->physics->createFixedJoint(fuelTankBody, body);
 
-	log_printf(L"car body=%p", body.get());
-	log_printf(L"car fuelTankBody=%p", fuelTankBody.get());
+	//log_printf(L"car body=%p", body.get());
+	//log_printf(L"car fuelTankBody=%p", fuelTankBody.get());
 
 	// Suspensions
 
@@ -66,7 +64,7 @@ bool Car::init(const std::wstring& modelName)
 	{
 		rigidAxle = pCore->createRigidBody();
 		axleTorqueReaction = ini->getFloat(L"AXLE", L"TORQUE_REACTION");
-		log_printf(L"car rigidAxle=%p", rigidAxle.get());
+		//log_printf(L"car rigidAxle=%p", rigidAxle.get());
 	}
 
 	for (int index = 0; index < 4; ++index)
@@ -80,7 +78,7 @@ bool Car::init(const std::wstring& modelName)
 		else
 			strSuspType = ini->getString(L"FRONT", L"TYPE");
 
-		log_printf(L"create suspension id=%d type=%s", index, strSuspType.c_str());
+		//log_printf(L"create suspension id=%d type=%s", index, strSuspType.c_str());
 
 		if (strSuspType == L"STRUT")
 		{
@@ -279,7 +277,7 @@ void Car::initCarData()
 
 void Car::initProbes()
 {
-	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	auto ini(std::make_unique<INIReader>(sim->basePath + L"cfg/sim.ini"));
 	if (!ini->ready)
 		return;
 

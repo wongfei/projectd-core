@@ -9,7 +9,7 @@ namespace D {
 
 struct KeyboardCarController : public ICarControlsProvider
 {
-	KeyboardCarController(Car* car, void* windowHandle = nullptr);
+	KeyboardCarController(const std::wstring& basePath, Car* car, void* windowHandle = nullptr);
 	~KeyboardCarController();
 
 	// ICarControlsProvider
@@ -41,6 +41,7 @@ struct KeyboardCarController : public ICarControlsProvider
 	Curve kbSteerCenterCurve;
 
 	// runtime
+	std::wstring basePath;
 	Car* car = nullptr;
 	void* windowHandle = nullptr;
 	float oldSteer = 0;

@@ -26,4 +26,9 @@ std::wstring strwf(const wchar_t* format, ...);
 std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim);
 std::vector<std::string> split(const std::string& s, const std::string& delim);
 
+void replace(std::wstring& s, wchar_t from, wchar_t to);
+void replace(std::wstring& s, const std::wstring& from, const std::wstring& to);
+
+bool ends_with(const std::wstring& s, wchar_t ch);
+
 }

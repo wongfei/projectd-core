@@ -46,6 +46,7 @@ int height_ = 720;
 int swapInterval_ = -1;
 bool fullscreen_ = false;
 
+std::wstring appDir_;
 SDL_Window* appWindow_ = nullptr;
 SDL_GLContext glContext_ = nullptr;
 HWND sysWindow_ = nullptr;
@@ -131,9 +132,22 @@ int lastGear_ = 0;
 static void initEngine(int argc, char** argv)
 {
 	srand(666);
-	log_init(L"demo.log");
 
-	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
+	auto exePath = osGetModuleFullPath();
+	auto exeDir = osGetDirPath(exePath);
+	appDir_ = osCombinePath(exeDir, L"..\\");
+	replace(appDir_, L'\\', L'/');
+
+	const std::wstring logPath = appDir_ + L"demo.log";
+	log_init(logPath.c_str());
+
+	log_printf(L"START");
+	log_printf(L"exePath: %s", exePath.c_str());
+	log_printf(L"appDir: %s", appDir_.c_str());
+
+	INIReader::_debug = true;
+
+	auto ini(std::make_unique<INIReader>(appDir_ + L"cfg/demo.ini"));
 	if (ini->ready)
 	{
 		posx_ = ini->getInt(L"SYS", L"POSX");
@@ -156,7 +170,7 @@ static void initEngine(int argc, char** argv)
 static void initInput()
 {
 	bool forceKeyboard = false;
-	auto dinputIni(std::make_unique<INIReader>(L"cfg/dinput.ini"));
+	auto dinputIni(std::make_unique<INIReader>(appDir_ + L"cfg/dinput.ini"));
 	if (dinputIni->ready)
 	{
 		auto inputDev = dinputIni->getString(L"STEER", L"DEVICE");
@@ -165,18 +179,18 @@ static void initInput()
 
 	if (forceKeyboard)
 	{
-		car_->controlsProvider = std::make_shared<KeyboardCarController>(car_, sysWindow_);
+		car_->controlsProvider = std::make_shared<KeyboardCarController>(appDir_, car_, sysWindow_);
 	}
 	else
 	{
-		auto controlsProvider = std::make_shared<DICarController>(sysWindow_);
+		auto controlsProvider = std::make_shared<DICarController>(appDir_, sysWindow_);
 		if (controlsProvider->diWheel)
 		{
 			car_->controlsProvider = controlsProvider;
 		}
 		else
 		{
-			car_->controlsProvider = std::make_shared<KeyboardCarController>(car_, sysWindow_);
+			car_->controlsProvider = std::make_shared<KeyboardCarController>(appDir_, car_, sysWindow_);
 		}
 	}
 
@@ -189,11 +203,10 @@ static void initInput()
 
 static void initDemo(int argc, char** argv)
 {
-	std::wstring basePath = L"";
 	std::wstring trackName = L"ek_akina";
 	std::wstring carModel = L"ks_toyota_ae86_drift";
 
-	auto ini(std::make_unique<INIReader>(L"cfg/demo.ini"));
+	auto ini(std::make_unique<INIReader>(appDir_ + L"cfg/demo.ini"));
 	if (ini->ready)
 	{
 		trackName = ini->getString(L"TRACK", L"NAME");
@@ -204,7 +217,7 @@ static void initDemo(int argc, char** argv)
 	sky_.load(10000, "content/demo", "sky", "jpg");
 
 	sim_ = std::make_shared<Simulator>();
-	sim_->init(basePath);
+	sim_->init(appDir_);
 
 	track_ = sim_->loadTrack(trackName);
 	GUARD_FATAL(track_->pits.size() > 0);
@@ -223,7 +236,7 @@ static void initDemo(int argc, char** argv)
 	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
 
 	carAvatar_.init(car_);
-	car_->audioRenderer = std::make_shared<FmodAudioRenderer>(car_, basePath, carModel);
+	car_->audioRenderer = std::make_shared<FmodAudioRenderer>(car_, appDir_, carModel);
 
 	// CAR TUNE
 
@@ -672,6 +685,8 @@ int demoMain(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+	log_printf(L"ENTER main");
+
 	#ifndef DEBUG
 	try {
 	#endif
@@ -684,5 +699,6 @@ int main(int argc, char** argv)
 	}
 	#endif
 
+	log_printf(L"LEAVE main");
 	return 0;
 }

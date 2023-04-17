@@ -17,7 +17,7 @@ struct FmodContext : public virtual IObject
 	void loadGUIDs(const std::string& fileName);
 	void clearGUIDs();
 	void loadBank(const std::string& fileName);
-	void enumerate();
+	void enumerate(bool debug = false);
 	void update();
 	FMOD::Studio::EventDescription* getEventDesc(const std::string& name);
 	FMOD::Studio::EventInstance* getUniqInstance(const std::string& name);

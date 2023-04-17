@@ -46,7 +46,7 @@ bool DIContext::init(HWND _window)
 	release();
 
 	window = _window;
-	log_printf(L"DIContext: init: window=%p", window);
+	log_printf(L"DIContext: init: HWND=%p", window);
 
 	do
 	{

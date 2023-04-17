@@ -15,6 +15,7 @@ struct INIReader : public NonCopyable
 {
 	static std::map<std::wstring, std::wstring> _iniCache;
 	static void flushCache();
+	static bool _debug;
 
 	INIReader();
 	~INIReader();
@@ -24,6 +25,7 @@ struct INIReader : public NonCopyable
 
 	bool hasSection(const std::wstring& section) const;
 	bool hasKey(const std::wstring& section, const std::wstring& key) const;
+	void traceKeyNotFound(const std::wstring& section, const std::wstring& key) const;
 
 	const std::wstring& getString(const std::wstring& section, const std::wstring& key, bool required = true) const;
 	int getInt(const std::wstring& section, const std::wstring& key, bool required = true) const;

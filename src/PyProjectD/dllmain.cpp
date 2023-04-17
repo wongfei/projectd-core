@@ -9,8 +9,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	{
 		case DLL_PROCESS_ATTACH:
 			D::log_printf(L"DLL_PROCESS_ATTACH");
-			//srand(666);
-			//D::log_init(L"pyprojectd.log");
 			break;
 
 		case DLL_PROCESS_DETACH:

@@ -127,7 +127,7 @@ float Curve::getCubicSplineValue(float ref)
 
 bool Curve::load(const std::wstring& filename)
 {
-	log_printf(L"Curve: load: \"%s\"", filename.c_str());
+	//log_printf(L"Curve: load: \"%s\"", filename.c_str());
 
 	reset();
 

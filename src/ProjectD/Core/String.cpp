@@ -1,4 +1,5 @@
 #include "Core/String.h"
+#include <algorithm>
 #include <codecvt>
 
 namespace D {
@@ -85,14 +86,15 @@ std::wstring strwf(const wchar_t* format, ...)
 	return str;
 }
 
-std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim)
+template<typename T>
+inline std::vector<T> tsplit(const T& s, const T& delim)
 {
-	std::vector<std::wstring> res;
+	std::vector<T> res;
 	size_t start = 0;
 	for (;;)
 	{
 		size_t end = s.find(delim, start);
-		if (end != std::string::npos)
+		if (end != T::npos)
 		{
 			res.emplace_back(s.substr(start, end - start));
 			start = end + delim.length();
@@ -106,25 +108,37 @@ std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim
 	return res;
 }
 
+std::vector<std::wstring> split(const std::wstring& s, const std::wstring& delim)
+{
+	return tsplit(s, delim);
+}
+
 std::vector<std::string> split(const std::string& s, const std::string& delim)
 {
-	std::vector<std::string> res;
-	size_t start = 0;
-	for (;;)
+	return tsplit(s, delim);
+}
+
+void replace(std::wstring& s, wchar_t from, wchar_t to)
+{
+	std::replace(s.begin(), s.end(), from, to);
+}
+
+void replace(std::wstring& s, const std::wstring& from, const std::wstring& to)
+{
+    size_t start_pos = 0;
+    while ((start_pos = s.find(from, start_pos)) != std::wstring::npos)
 	{
-		size_t end = s.find(delim, start);
-		if (end != std::string::npos)
-		{
-			res.emplace_back(s.substr(start, end - start));
-			start = end + delim.length();
-		}
-		else
-		{
-			res.emplace_back(s.substr(start));
-			break;
-		}
-	}
-	return res;
+        s.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+}
+
+bool ends_with(const std::wstring& s, wchar_t ch)
+{
+	const size_t n = s.size();
+	if (n)
+		return s[n - 1] == ch;
+	return false;
 }
 
 }

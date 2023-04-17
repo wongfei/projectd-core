@@ -29,7 +29,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 	context->loadGUIDs(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + "GUIDs.txt");
 	context->loadBank(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + stra(carModel) + ".bank");
 
-	context->enumerate();
+	context->enumerate(false);
 
 	// CarAudioFMOD::renderAudio
 	// Car::getPhysicsState

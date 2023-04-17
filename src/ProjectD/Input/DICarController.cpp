@@ -4,10 +4,11 @@
 
 namespace D {
 
-DICarController::DICarController(void* windowHandle)
+DICarController::DICarController(const std::wstring& _basePath, void* windowHandle)
 {
 	TRACE_CTOR(DICarController);
 
+	basePath = _basePath;
 	initVars();
 
 	if (!windowHandle)
@@ -45,7 +46,7 @@ void DICarController::initVars()
 
 void DICarController::loadConfig()
 {
-	auto ini(std::make_unique<INIReader>(L"cfg/dinput.ini"));
+	auto ini(std::make_unique<INIReader>(basePath + L"cfg/dinput.ini"));
 	if (!ini->ready)
 		return;
 

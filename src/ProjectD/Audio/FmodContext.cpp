@@ -109,7 +109,7 @@ void FmodContext::loadBank(const std::string& fileName)
 	banks.emplace_back(bank);
 }
 
-void FmodContext::enumerate()
+void FmodContext::enumerate(bool debug)
 {
 	FMOD_RESULT rc;
 	const size_t PathLen = 1024;
@@ -120,7 +120,8 @@ void FmodContext::enumerate()
 	int bankId = 0;
 	for (auto* bank : banks)
 	{
-		log_printf(L"BANK: %d", bankId);
+		if (debug)
+			log_printf(L"BANK: %d", bankId);
 
 		int stringCount = 0;
 		rc = bank->getStringCount(&stringCount);
@@ -132,7 +133,8 @@ void FmodContext::enumerate()
 			rc = bank->getStringInfo(stringId, &guid, path, PathLen, nullptr);
 			GUARD_FATAL(rc == FMOD_OK);
 
-			log_printf(L"  String: %d %S", stringId, path);
+			if (debug)
+				log_printf(L"  String: %d %S", stringId, path);
 		}
 
 		int eventCount = 0;
@@ -149,7 +151,9 @@ void FmodContext::enumerate()
 
 			for (int eventId = 0; eventId < eventCount; ++eventId)
 			{
-				log_printf(L"  Event: %d", eventId);
+				if (debug)
+					log_printf(L"  Event: %d", eventId);
+
 				auto e = events[eventId];
 
 				FMOD_GUID eID = {};
@@ -160,12 +164,15 @@ void FmodContext::enumerate()
 						eID.Data1, eID.Data2, eID.Data3,
 						eID.Data4[0], eID.Data4[1], eID.Data4[2], eID.Data4[3], eID.Data4[4], eID.Data4[5], eID.Data4[6], eID.Data4[7]);
 
-					log_printf(L"    EventGUID: %S", guidStr.c_str());
+					if (debug)
+						log_printf(L"    EventGUID: %S", guidStr.c_str());
 
 					auto iter = guidToEventMap.find(guidStr);
 					if (iter != guidToEventMap.end())
 					{
-						log_printf(L"    EventPath: %S", iter->second.c_str());
+						if (debug)
+							log_printf(L"    EventPath: %S", iter->second.c_str());
+
 						eventDescMap.insert({iter->second, e});
 					}
 				}
@@ -192,7 +199,8 @@ void FmodContext::enumerate()
 					rc = e->getParameterByIndex(paramId, &desc);
 					GUARD_FATAL(rc == FMOD_OK);
 
-					log_printf(L"    EventParam: %d %S", paramId, desc.name);
+					if (debug)
+						log_printf(L"    EventParam: %d %S", paramId, desc.name);
 				}
 			}
 		}

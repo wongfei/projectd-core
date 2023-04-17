@@ -19,8 +19,6 @@ Track::Track(Simulator* _sim)
 Track::~Track()
 {
 	TRACE_DTOR(Track);
-
-	//sim->unregisterTrack(this);
 }
 
 bool Track::init(const std::wstring& trackName)
@@ -32,9 +30,9 @@ bool Track::init(const std::wstring& trackName)
 
 	name = trackName;
 	dataFolder = sim->basePath + L"content/tracks/" + name + L"/";
-	log_printf(L"dataFolder=\"%s\"", dataFolder.c_str());
+	log_printf(L"trackData: \"%s\"", dataFolder.c_str());
 
-	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	auto ini(std::make_unique<INIReader>(sim->basePath + L"cfg/sim.ini"));
 	if (ini->ready)
 	{
 		ini->tryGetFloat(L"ENVIRONMENT", L"TRACK_GRIP", dynamicGripLevel);
@@ -221,7 +219,7 @@ void Track::initTrackPoints()
 		float cellSize = 50;
 		int tableSize = 4096;
 
-		auto simIni(std::make_unique<INIReader>(L"cfg/sim.ini"));
+		auto simIni(std::make_unique<INIReader>(sim->basePath + L"cfg/sim.ini"));
 		if (simIni->ready)
 		{
 			simIni->tryGetFloat(L"VERTEX_HASH", L"CELL_SIZE", cellSize);

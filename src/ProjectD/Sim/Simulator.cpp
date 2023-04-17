@@ -22,7 +22,12 @@ Simulator::~Simulator()
 bool Simulator::init(const std::wstring& _basePath)
 {
 	log_printf(L"Simulator: init: basePath=\"%s\"", _basePath.c_str());
+	GUARD_FATAL(osDirExists(_basePath));
+
 	basePath = _basePath;
+	replace(basePath, L'\\', L'/');
+	if (!ends_with(basePath, L'/'))
+		basePath.append(L"/");
 
 	maxCars = 1;
 	roadTemperature = 20.0;
@@ -46,7 +51,7 @@ bool Simulator::init(const std::wstring& _basePath)
 	interopSyncState = 0;
 	interopSyncInput = 0;
 
-	auto ini(std::make_unique<INIReader>(L"cfg/sim.ini"));
+	auto ini(std::make_unique<INIReader>(basePath + L"cfg/sim.ini"));
 	if (ini->ready)
 	{
 		ini->tryGetInt(L"SIM", L"MAX_CARS", maxCars);

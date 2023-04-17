@@ -20,7 +20,7 @@ struct FFUpgrades
 
 struct DICarController : public ICarControlsProvider
 {
-	DICarController(void* windowHandle = nullptr);
+	DICarController(const std::wstring& basePath, void* windowHandle = nullptr);
 	~DICarController();
 
 	void initVars();
@@ -53,6 +53,7 @@ struct DICarController : public ICarControlsProvider
 	float centerBoostRange = 0.1f;
 
 	// runtime
+	std::wstring basePath;
 	std::unique_ptr<DIContext> diContext;
 	DIDevice* diWheel = nullptr;
 	DIDevice* diHandbrake = nullptr;
