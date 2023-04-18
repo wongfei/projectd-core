@@ -13,8 +13,8 @@ struct GlyphSize
 
 struct GLFont
 {
-	void init(const char* filename, const short* coords, int numCoords, float symHeight);
-	void initDefault();
+	void initDefault(const std::wstring& baseDir);
+	void init(const std::wstring& filename, const short* coords, int numCoords, float symHeight);
 	void setHeight(float size);
 	void bind();
 	void draw(float left, float top, const char* str, ...);

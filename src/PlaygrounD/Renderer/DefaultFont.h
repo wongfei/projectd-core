@@ -2,7 +2,7 @@
 
 namespace D {
 
-static const char* DefaultFontTextureFile = "content/demo/font48.png";
+static const wchar_t* DefaultFontTextureFile = L"content/demo/font48.png";
 static const int DefaultFontHeight = 48;
 
 static short DefaultFontCoords[] = 

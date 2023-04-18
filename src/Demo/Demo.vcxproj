@@ -54,13 +54,13 @@
     <ClCompile>
       <PreprocessorDefinitions>_WINDOWS;_CONSOLE;UNICODE;DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Demo;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Demo;$(SolutionDir)ProjectD;$(SolutionDir)PlaygrounD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>ProjectD_dbg.lib;ode_single.lib;fmodL64_vc.lib;fmodstudioL64_vc.lib;SDL2.lib;SDL2_image.lib;opengl32.lib;glu32.lib;dinput8.lib;dxguid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ProjectD_dbg.lib;PlaygrounD_dbg.lib;ode_single.lib;fmodL64_vc.lib;fmodstudioL64_vc.lib;SDL2.lib;SDL2_image.lib;opengl32.lib;glu32.lib;dinput8.lib;dxguid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -68,7 +68,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_WINDOWS;_CONSOLE;UNICODE;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Demo;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Demo;$(SolutionDir)ProjectD;$(SolutionDir)PlaygrounD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -76,38 +76,15 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <AdditionalDependencies>ProjectD.lib;ode_single.lib;fmod64_vc.lib;fmodstudio64_vc.lib;SDL2.lib;SDL2_image.lib;opengl32.lib;glu32.lib;dinput8.lib;dxguid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ProjectD.lib;PlaygrounD.lib;ode_single.lib;fmod64_vc.lib;fmodstudio64_vc.lib;SDL2.lib;SDL2_image.lib;opengl32.lib;glu32.lib;dinput8.lib;dxguid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Renderer\GLCar.cpp" />
-    <ClCompile Include="Renderer\GLChart.cpp" />
-    <ClCompile Include="Renderer\GLCore.cpp" />
-    <ClCompile Include="Renderer\GLFont.cpp" />
-    <ClCompile Include="Renderer\GLPrimitive.cpp" />
-    <ClCompile Include="Renderer\GLSkyBox.cpp" />
-    <ClCompile Include="Renderer\GLTexture.cpp" />
     <ClCompile Include="Demo.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Renderer\GLTrack.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="DemoDiag.h" />
-    <ClInclude Include="DemoSDL.h" />
-    <ClInclude Include="DemoTelemetry.h" />
-    <ClInclude Include="Renderer\ChartSurface.h" />
-    <ClInclude Include="Renderer\DefaultFont.h" />
-    <ClInclude Include="Renderer\GLCar.h" />
-    <ClInclude Include="Renderer\GLChart.h" />
-    <ClInclude Include="Renderer\GLCore.h" />
-    <ClInclude Include="Renderer\GLFont.h" />
-    <ClInclude Include="Renderer\GLPrimitive.h" />
-    <ClInclude Include="Renderer\GLSkyBox.h" />
-    <ClInclude Include="Renderer\GLTexture.h" />
-    <ClInclude Include="Renderer\GLTrack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

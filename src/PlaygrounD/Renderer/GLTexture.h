@@ -12,7 +12,7 @@ struct GLTexture : public GLHandle<GLuint>
 	void release();
 	void bind();
 	void resize(GLsizei width, GLsizei height, GLint internalFormat);
-	void load(const char* filename);
+	void load(const std::wstring& filename);
 	void update(const void* data);
 
 	GLsizei width = 0;

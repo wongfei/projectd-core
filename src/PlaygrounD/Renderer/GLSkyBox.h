@@ -6,7 +6,7 @@ namespace D {
 
 struct GLSkyBox
 {
-	void load(float dim, const char* path, const char* name, const char* ext);
+	void load(float dim, const std::wstring& pathPattern);
 	void draw();
 
 	GLDisplayList list;

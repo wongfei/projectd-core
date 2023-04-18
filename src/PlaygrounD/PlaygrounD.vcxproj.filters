@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{b76b0d54-604c-4b5a-be17-674e5ae06366}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{1b67de9b-5221-4544-9dbd-85704318d413}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{ee72fc92-0468-4147-8971-5dcdeadb24db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PlaygrounD">
+      <UniqueIdentifier>{c4152da7-f109-44db-8a5a-35325c48d5d2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Audio\FmodAudioRenderer.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\FmodContext.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DICarController.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DIContext.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\DIDevice.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\InputVariable.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\KeyboardCarController.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLCar.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLChart.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLCore.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLFont.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLPrimitive.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLSkyBox.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLTexture.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\GLTrack.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="PG_Main.cpp">
+      <Filter>PlaygrounD</Filter>
+    </ClCompile>
+    <ClCompile Include="PG_Window.cpp">
+      <Filter>PlaygrounD</Filter>
+    </ClCompile>
+    <ClCompile Include="PG_Debug.cpp">
+      <Filter>PlaygrounD</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Audio\FmodAudioRenderer.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\FmodContext.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DICarController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DICommon.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DIContext.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\DIDevice.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\IGameController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\InputVariable.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\KeyboardCarController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\ChartSurface.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\DefaultFont.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLCar.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLChart.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLCore.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLFont.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLPrimitive.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLSkyBox.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLTexture.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\GLTrack.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="PlaygrounD.h">
+      <Filter>PlaygrounD</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

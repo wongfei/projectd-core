@@ -2,16 +2,17 @@
 
 namespace D {
 
-void GLSkyBox::load(float dim, const char* path, const char* name, const char* ext)
+void GLSkyBox::load(float dim, const std::wstring& pathPattern)
 {
 	vec3f pos(0, 0, 0);
 	vec3f size(dim, dim, dim);
 	pos -= size * 0.5f;
 
-	char fullpath[1024];
+	//char fullpath[1024];
 	for (int i = 0; i < 6; ++i)
 	{
-		snprintf(fullpath, 255, "%s/%s%d.%s", path, name, i, ext);
+		//snprintf(fullpath, 255, "%s/%s%d.%s", path, name, i, ext);
+		auto fullpath = strwf(pathPattern.c_str(), i);
 		tex[i].load(fullpath);
 	}
 

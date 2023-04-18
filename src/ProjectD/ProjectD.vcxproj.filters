@@ -186,21 +186,6 @@
     <ClInclude Include="Car\CarDebug.h">
       <Filter>Car</Filter>
     </ClInclude>
-    <ClInclude Include="Input\DIContext.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Input\DIDevice.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Input\DICarController.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio\FmodContext.h">
-      <Filter>Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio\FmodAudioRenderer.h">
-      <Filter>Audio</Filter>
-    </ClInclude>
     <ClInclude Include="Car\CarCommon.h">
       <Filter>Car</Filter>
     </ClInclude>
@@ -285,20 +270,8 @@
     <ClInclude Include="Car\ThermalObject.h">
       <Filter>Car\Systems</Filter>
     </ClInclude>
-    <ClInclude Include="Input\DICommon.h">
-      <Filter>Input</Filter>
-    </ClInclude>
     <ClInclude Include="Car\CarImpl.h">
       <Filter>Car</Filter>
-    </ClInclude>
-    <ClInclude Include="Input\IGameController.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Input\InputVariable.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Input\KeyboardCarController.h">
-      <Filter>Input</Filter>
     </ClInclude>
     <ClInclude Include="Car\AutoBlip.h" />
     <ClInclude Include="Car\AutoShifter.h" />
@@ -400,21 +373,6 @@
     <ClCompile Include="Sim\Track.cpp">
       <Filter>Sim</Filter>
     </ClCompile>
-    <ClCompile Include="Input\DIContext.cpp">
-      <Filter>Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\DIDevice.cpp">
-      <Filter>Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\DICarController.cpp">
-      <Filter>Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\FmodAudioRenderer.cpp">
-      <Filter>Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\FmodContext.cpp">
-      <Filter>Audio</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Curve.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -456,12 +414,6 @@
     </ClCompile>
     <ClCompile Include="Car\ThermalObject.cpp">
       <Filter>Car\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\InputVariable.cpp">
-      <Filter>Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\KeyboardCarController.cpp">
-      <Filter>Input</Filter>
     </ClCompile>
     <ClCompile Include="Car\AutoBlip.cpp" />
     <ClCompile Include="Car\AutoShifter.cpp" />

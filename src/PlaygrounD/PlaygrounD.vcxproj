@@ -13,19 +13,19 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{3866ab80-bafa-4ab2-ae47-33cec96117b7}</ProjectGuid>
-    <RootNamespace>PyProjectD</RootNamespace>
+    <ProjectGuid>{0a9e7221-93eb-4058-9222-7cdc8dbc45a7}</ProjectGuid>
+    <RootNamespace>PlaygrounD</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -47,50 +47,85 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetExt>.pyd</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetExt>.pyd</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>DEBUG;_WINDOWS;_USRDLL;PYPROJECTD_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ProjectD;$(SolutionDir)PyProjectD;$(SolutionDir)..\thirdparty\python\include;$(SolutionDir)..\thirdparty\pybind11\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4100;4458</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\bin\;$(SolutionDir)..\thirdparty\python\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ProjectD_dbg.lib;ode_single.lib;dinput8.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;PYPROJECTD_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ProjectD;$(SolutionDir)PyProjectD;$(SolutionDir)..\thirdparty\python\include;$(SolutionDir)..\thirdparty\pybind11\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4100;4458</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\bin\;$(SolutionDir)..\thirdparty\python\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ProjectD.lib;ode_single.lib;dinput8.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ProjectD.lib;ode_single.lib;opengl32.lib;glu32.lib;SDL2.lib;SDL2_image.lib;dinput8.lib;dxguid.lib;fmod64_vc.lib;fmodstudio64_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="PyProjectD.cpp" />
+    <ClCompile Include="Audio\FmodAudioRenderer.cpp" />
+    <ClCompile Include="Audio\FmodContext.cpp" />
+    <ClCompile Include="PG_Debug.cpp" />
+    <ClCompile Include="Input\DICarController.cpp" />
+    <ClCompile Include="Input\DIContext.cpp" />
+    <ClCompile Include="Input\DIDevice.cpp" />
+    <ClCompile Include="Input\InputVariable.cpp" />
+    <ClCompile Include="Input\KeyboardCarController.cpp" />
+    <ClCompile Include="PG_Main.cpp" />
+    <ClCompile Include="PG_Window.cpp" />
+    <ClCompile Include="Renderer\GLCar.cpp" />
+    <ClCompile Include="Renderer\GLChart.cpp" />
+    <ClCompile Include="Renderer\GLCore.cpp" />
+    <ClCompile Include="Renderer\GLFont.cpp" />
+    <ClCompile Include="Renderer\GLPrimitive.cpp" />
+    <ClCompile Include="Renderer\GLSkyBox.cpp" />
+    <ClCompile Include="Renderer\GLTexture.cpp" />
+    <ClCompile Include="Renderer\GLTrack.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Audio\FmodAudioRenderer.h" />
+    <ClInclude Include="Audio\FmodContext.h" />
+    <ClInclude Include="Input\DICarController.h" />
+    <ClInclude Include="Input\DICommon.h" />
+    <ClInclude Include="Input\DIContext.h" />
+    <ClInclude Include="Input\DIDevice.h" />
+    <ClInclude Include="Input\IGameController.h" />
+    <ClInclude Include="Input\InputVariable.h" />
+    <ClInclude Include="Input\KeyboardCarController.h" />
+    <ClInclude Include="PlaygrounD.h" />
+    <ClInclude Include="Renderer\ChartSurface.h" />
+    <ClInclude Include="Renderer\DefaultFont.h" />
+    <ClInclude Include="Renderer\GLCar.h" />
+    <ClInclude Include="Renderer\GLChart.h" />
+    <ClInclude Include="Renderer\GLCore.h" />
+    <ClInclude Include="Renderer\GLFont.h" />
+    <ClInclude Include="Renderer\GLPrimitive.h" />
+    <ClInclude Include="Renderer\GLSkyBox.h" />
+    <ClInclude Include="Renderer\GLTexture.h" />
+    <ClInclude Include="Renderer\GLTrack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

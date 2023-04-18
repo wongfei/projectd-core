@@ -89,14 +89,14 @@ void GLTexture::resize(GLsizei _width, GLsizei _height, GLint _internalFormat)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); GL_GUARD;
 }
 
-void GLTexture::load(const char* filename)
+void GLTexture::load(const std::wstring& filename)
 {
 	release();
 
-	log_printf(L"GLTexture: load: %S", filename);
+	log_printf(L"GLTexture: load: %s", filename.c_str());
 
 	struct SurfaceDtor { void operator()(SDL_Surface* ptr) { SDL_FreeSurface(ptr); } };
-	std::unique_ptr<SDL_Surface, SurfaceDtor> image(IMG_Load(filename));
+	std::unique_ptr<SDL_Surface, SurfaceDtor> image(IMG_Load(stra(filename).c_str()));
 	GUARD_FATAL(image);
 
 	GLint format;

@@ -27,23 +27,24 @@ FmodContext::~FmodContext()
 	}
 }
 
-void FmodContext::init()
+void FmodContext::init(const std::string& basePath)
 {
 	FMOD_RESULT rc;
 
 	unsigned int debugFlags = FMOD_DEBUG_LEVEL_LOG;
 
 	#if defined(DEBUG)
-		debugFlags |= (FMOD_DEBUG_TYPE_TRACE | FMOD_DEBUG_TYPE_CODEC);
+		//debugFlags |= (FMOD_DEBUG_TYPE_TRACE | FMOD_DEBUG_TYPE_CODEC);
 		//debugFlags |= (FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_TYPE_FILE);
 	#endif
 
-	rc = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_FILE, nullptr, "fmod.log");
+	auto logPath = basePath + "fmod.log";
+	rc = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_FILE, nullptr, logPath.c_str());
 
 	rc = FMOD::Studio::System::create(&system);
 	GUARD_FATAL(system);
 
-	rc = system->initialize(128, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
+	rc = system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
 	GUARD_FATAL(rc == FMOD_OK);
 
 	auto plugin = osLoadLibraryW(L"fmod_distance_filter64.dll");

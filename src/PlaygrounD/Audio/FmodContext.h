@@ -13,7 +13,7 @@ struct FmodContext : public virtual IObject
 	FmodContext();
 	~FmodContext();
 
-	void init();
+	void init(const std::string& basePath);
 	void loadGUIDs(const std::string& fileName);
 	void clearGUIDs();
 	void loadBank(const std::string& fileName);

@@ -1,26 +1,8 @@
-#pragma once
+#include "PlaygrounD.h"
 
-#include <inttypes.h>
+namespace D {
 
-GLChart chartDT_;
-ChartSeries serSim_;
-ChartSeries serDraw_;
-ChartSeries serSwap_;
-ChartSeries serIdle_;
-
-GLChart chartInput_;
-ChartSeries serSteer_;
-ChartSeries serClutch_;
-ChartSeries serBrake_;
-ChartSeries serGas_;
-
-GLChart chartSA_;
-ChartSeries serSA_[4];
-
-GLChart chartFF_;
-ChartSeries serFF_;
-
-static void initCharts()
+void PlaygrounD::initCharts()
 {
 	const int ChartN = 512;
 	float y0 = 0;
@@ -51,7 +33,7 @@ static void initCharts()
 	serFF_.init(ChartN, y0, y1);
 }
 
-static void drawCharts()
+void PlaygrounD::renderCharts()
 {
 	float dx = 550;
 	float x = 200;
@@ -83,11 +65,8 @@ static void drawCharts()
 	chartFF_.present(200, height_ - 80.0f, 1.0f);
 }
 
-static void renderText()
+void PlaygrounD::renderStats()
 {
-	begin2d();
-
-	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
 
@@ -259,11 +238,7 @@ static void renderText()
 		}
 	}
 
-	//===
-
 	glDisable(GL_BLEND);
+}
 
-	drawCharts();
-
-	glDisable(GL_TEXTURE_2D);
 }

@@ -3,12 +3,12 @@
 
 namespace D {
 
-void GLFont::initDefault()
+void GLFont::initDefault(const std::wstring& baseDir)
 {
-	init(DefaultFontTextureFile, DefaultFontCoords, sizeof(DefaultFontCoords) / sizeof(DefaultFontCoords[0]), DefaultFontHeight);
+	init(baseDir + DefaultFontTextureFile, DefaultFontCoords, sizeof(DefaultFontCoords) / sizeof(DefaultFontCoords[0]), DefaultFontHeight);
 }
 
-void GLFont::init(const char* filename, const short* _coords, int numCoords, float _symHeight)
+void GLFont::init(const std::wstring& filename, const short* _coords, int numCoords, float _symHeight)
 {
 	texture.load(filename);
 

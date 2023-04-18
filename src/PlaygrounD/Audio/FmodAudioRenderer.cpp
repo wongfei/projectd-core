@@ -12,22 +12,23 @@ inline FMOD::Studio::EventInstance* castEvent(void* ptr) { return (FMOD::Studio:
 inline void stopEvent(void* ptr) { auto ev = castEvent(ptr); if (ev) { ev->stop(FMOD_STUDIO_STOP_IMMEDIATE); } }
 inline void releaseEvent(void*& ptr) { auto ev = castEvent(ptr); if (ev) { ev->release(); ptr = nullptr; } }
 
-FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, const std::wstring& carModel)
+FmodAudioRenderer::FmodAudioRenderer(const std::string& basePath, Car* _car)
 {
 	TRACE_CTOR(FmodAudioRenderer);
 
 	car = _car;
+	auto carModel = stra(car->unixName);
 
 	context.reset(new FmodContext());
-	context->init();
+	context->init(basePath);
 
-	const std::string basePathA(stra(basePath));
+	const std::string basePathA(basePath);
 	context->loadGUIDs(basePathA + "content/sfx/GUIDs.txt");
 	context->loadBank(basePathA + "content/sfx/common.bank");
 	//context->loadBank(basePathA + "content/sfx/common.strings.bank");
 
-	context->loadGUIDs(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + "GUIDs.txt");
-	context->loadBank(basePathA + "content/cars/" + stra(carModel) + "/sfx/" + stra(carModel) + ".bank");
+	context->loadGUIDs(basePathA + "content/cars/" + carModel + "/sfx/" + "GUIDs.txt");
+	context->loadBank(basePathA + "content/cars/" + carModel + "/sfx/" + carModel + ".bank");
 
 	context->enumerate(false);
 
@@ -37,7 +38,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 	// TODO: fix this ugly hardcoded mess
 
 	{
-		auto name = std::string("event:/cars/") + stra(carModel) + "/engine_int";
+		auto name = std::string("event:/cars/") + carModel + "/engine_int";
 		auto ev = context->getUniqInstance(name.c_str());
 		evEngineInt = ev;
 
@@ -53,7 +54,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 
 	#if 0
 	{
-		auto name = std::string("event:/cars/") + stra(carModel) + "/engine_ext";
+		auto name = std::string("event:/cars/") + carModel + "/engine_ext";
 		auto ev = context->getUniqInstance(name.c_str());
 		evEngineExt = ev;
 
@@ -68,7 +69,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 
 	#if 0
 	{
-		auto name = std::string("event:/cars/") + stra(carModel) + "/turbo";
+		auto name = std::string("event:/cars/") + carModel + "/turbo";
 		auto ev = context->getUniqInstance(name.c_str());
 		evTurbo = ev;
 
@@ -84,7 +85,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 	#endif
 
 	{
-		auto name = std::string("event:/cars/") + stra(carModel) + "/transmission";
+		auto name = std::string("event:/cars/") + carModel + "/transmission";
 		auto ev = context->getUniqInstance(name.c_str());
 		evTransmission = ev;
 
@@ -97,7 +98,7 @@ FmodAudioRenderer::FmodAudioRenderer(Car* _car, const std::wstring& basePath, co
 	}
 
 	{
-		auto name = std::string("event:/cars/") + stra(carModel) + "/skid_int";
+		auto name = std::string("event:/cars/") + carModel + "/skid_int";
 		auto ev = context->getUniqInstance(name.c_str());
 		evSkidInt = ev;
 

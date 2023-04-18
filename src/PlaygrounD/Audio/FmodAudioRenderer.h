@@ -16,7 +16,7 @@ struct SmoothValue
 
 struct FmodAudioRenderer : public ICarAudioRenderer
 {
-	FmodAudioRenderer(Car* car, const std::wstring& basePath, const std::wstring& carModel);
+	FmodAudioRenderer(const std::string& basePath, Car* car);
 	~FmodAudioRenderer();
 
 	void update(float dt) override;

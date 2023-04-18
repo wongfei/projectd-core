@@ -9,7 +9,7 @@ site.addsitedir(os.path.join(baseDir, 'bin'))
 
 import PyProjectD as pd
 
-pd.initLogFile('pyprojectd.log')
+pd.initLogFile(os.path.join(baseDir, 'pyprojectd.log'))
 
 print('createSimulator')
 sim = pd.createSimulator(baseDir)

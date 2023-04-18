@@ -1,6 +1,8 @@
-#pragma once
+#include "PlaygrounD.h"
 
-static void initSDL()
+namespace D {
+
+void PlaygrounD::initWindow()
 {
 	int rc = SDL_Init(SDL_INIT_VIDEO);
 	GUARD_FATAL(rc == 0);
@@ -44,7 +46,7 @@ static void initSDL()
 		}
 	}
 
-	appWindow_ = SDL_CreateWindow("DEMO", posx_, posy_, width_, height_, winFlags);
+	appWindow_ = SDL_CreateWindow("PlaygrounD", posx_, posy_, width_, height_, winFlags);
 	glContext_ = SDL_GL_CreateContext(appWindow_);
 	SDL_GL_SetSwapInterval(swapInterval_); // 0 immediate, 1 vsync, -1 adaptive
 
@@ -55,14 +57,22 @@ static void initSDL()
 	log_printf(L"HWND=%p", sysWindow_);
 }
 
-static void shutSDL()
+void PlaygrounD::closeWindow()
 {
-	SDL_GL_DeleteContext(glContext_);
-	SDL_DestroyWindow(appWindow_);
-	//SDL_Quit();
+	if (glContext_)
+	{
+		SDL_GL_DeleteContext(glContext_);
+		glContext_ = nullptr;
+	}
+
+	if (appWindow_)
+	{
+		SDL_DestroyWindow(appWindow_);
+		appWindow_ = nullptr;
+	}
 }
 
-static void clearViewport()
+void PlaygrounD::clearViewport()
 {
 	SDL_GetWindowSize(appWindow_, &width_, &height_);
 	glViewport(0, 0, width_, height_);
@@ -71,7 +81,7 @@ static void clearViewport()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-static void begin3d()
+void PlaygrounD::projPerspective()
 {
 	glMatrixMode(GL_PROJECTION);
 	glm::mat4 persp = glm::perspectiveFov(glm::radians(fov_), (float)width_, (float)height_, 0.2f, 20000.0f);
@@ -81,7 +91,7 @@ static void begin3d()
 	glLoadMatrixf(&camView_[0][0]);
 }
 
-static void begin2d()
+void PlaygrounD::projOrtho()
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -92,13 +102,13 @@ static void begin2d()
 	glTranslatef(0.0f, 0.0f, -1.0f);
 }
 
-static void swap()
+void PlaygrounD::swap()
 {
 	glFlush();
 	SDL_GL_SwapWindow(appWindow_);
 }
 
-static void processEvents()
+void PlaygrounD::processEvents()
 {
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
@@ -108,8 +118,8 @@ static void processEvents()
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
 			{
-				if (event.button.button == SDL_BUTTON_LEFT) inpMouseBtn_[0] = event.button.state;
-				if (event.button.button == SDL_BUTTON_RIGHT) inpMouseBtn_[1] = event.button.state;
+				if (event.button.button == SDL_BUTTON_LEFT) mouseBtn_[0] = event.button.state;
+				if (event.button.button == SDL_BUTTON_RIGHT) mouseBtn_[1] = event.button.state;
 
 				if (!fullscreen_ && event.button.button == SDL_BUTTON_RIGHT)
 				{
@@ -121,10 +131,10 @@ static void processEvents()
 
 			case SDL_MOUSEMOTION:
 			{
-				if (inpMouseBtn_[1])
+				if (mouseBtn_[1])
 				{
-					camYpr_[0] += event.motion.xrel * inpMouseSens_;
-					camYpr_[1] -= event.motion.yrel * inpMouseSens_;
+					camYpr_[0] += event.motion.xrel * mouseSens_;
+					camYpr_[1] -= event.motion.yrel * mouseSens_;
 				}
 				break;
 			}
@@ -160,8 +170,4 @@ static void processEvents()
 	}
 }
 
-inline bool getkey(SDL_Scancode scan) { return keys_[scan]; }
-inline bool getkeyf(SDL_Scancode scan) { return keys_[scan] ? 1.0f : 0.0f; }
-
-inline bool asyncKeydown(SDL_Scancode scan) { auto k = keys_[scan]; auto a = asynckeys_[scan]; asynckeys_[scan] = k; return (k && k != a); }
-inline bool asyncKeyup(SDL_Scancode scan) { auto k = keys_[scan]; auto a = asynckeys_[scan]; asynckeys_[scan] = k; return (!k && k != a); }
+}

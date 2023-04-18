@@ -19,9 +19,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="Audio\FmodAudioRenderer.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="Core\ABIValidator.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Core.h" />
@@ -29,9 +26,6 @@
     <ClInclude Include="Core\SharedMemory.h" />
     <ClInclude Include="Core\Speed.h" />
     <ClInclude Include="Core\VertexHash.h" />
-    <ClInclude Include="Input\DICarController.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="Car\CarState.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
@@ -71,12 +65,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="Input\DICommon.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Input\IGameController.h" />
-    <ClInclude Include="Input\InputVariable.h" />
-    <ClInclude Include="Input\KeyboardCarController.h" />
     <ClInclude Include="Physics\PhysicsCommon.h" />
     <ClInclude Include="Physics\ITriMesh.h" />
     <ClInclude Include="Physics\PhysicsFactory.h" />
@@ -101,15 +89,6 @@
       </ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Core\Diag.h" />
-    <ClInclude Include="Input\DIContext.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Input\DIDevice.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Audio\FmodContext.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="Physics\ODE\TriMeshODE.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
@@ -249,12 +228,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Audio\FmodContext.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Audio\FmodAudioRenderer.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="Car\AutoBlip.cpp" />
     <ClCompile Include="Car\AutoClutch.cpp" />
     <ClCompile Include="Car\AutoShifter.cpp" />
@@ -299,9 +272,6 @@
       </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Core\SharedMemory.cpp" />
-    <ClCompile Include="Input\DICarController.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="Car\Drivetrain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
@@ -330,8 +300,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Input\InputVariable.cpp" />
-    <ClCompile Include="Input\KeyboardCarController.cpp" />
     <ClCompile Include="Physics\PhysicsFactory.cpp" />
     <ClCompile Include="Physics\ODE\TriMeshODE.cpp" />
     <ClCompile Include="Sim\SlipStream.cpp">
@@ -377,12 +345,6 @@
     <ClCompile Include="Car\TyreThermalModel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Input\DIContext.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Input\DIDevice.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClInclude Include="Car\TyreUtils.inl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

@@ -1,5 +1,3 @@
-#include "PyProjectD.h"
-
 // https://pybind11.readthedocs.io/en/latest/basics.html
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
