@@ -1041,29 +1041,65 @@ float Car::getSteerFF(float dt)
 // UTILS
 //=============================================================================
 
-void Car::teleport(const mat44f& m)
+void Car::forcePosition(const vec3f& pos, float offsetY)
 {
-	vec3f pos(&m.M41);
+	vec3f bodyPos = pos;
+	auto hit = sim->physics->rayCast(pos + vec3f(0, 10, 0), vec3f(0, -1, 0), 1000);
+	if (hit.hasContact)
+	{
+		bodyPos.y = hit.pos.y;
+	}
+	bodyPos.y += (getBaseCarHeight() + offsetY + 0.01f);
 
+	// reset
 	framesToSleep = 50;
 
 	body->stop();
-	fuelTankBody->stop();
+	body->setPosition(bodyPos);
+
+	fuelTankBody->setPosition(body->localToWorld(fuelTankPos));
+
 	for (auto& susp : suspensions)
 	{
 		susp->stop();
+		susp->attach();
 	}
 
-	auto hit = sim->physics->rayCast(pos, vec3f(0, -1, 0), 1000);
-	if (hit.hasContact)
-	{
-		pos.y = hit.pos.y + 0.7f; // TODO: raceEngineer->getBaseCarHeight()
-	}
+	// Drivetrain::reset
+	drivetrain->clutchOpenState = true;
+	// Engine::reset
+	// BrakeSystem::reset
+	// Tyre::reset
+	drivetrain->setCurrentGear(1, true);
 
-	body->setPosition(pos);
+	body->stop();
+	fuelTankBody->stop();
+}
+
+void Car::forceRotation(const vec3f& heading) // TODO: WTF?
+{
+	const vec3f ihed = heading * -1.0f;
+
+	float vM13 = ihed.x;
+	float vM11 = -ihed.z;
+	float vM12 = 0;
+	float v6 = sqrtf((vM12 * vM12) + (vM11 * vM11) + (vM13 * vM13));
+	float s = 1.0f / v6;
+
+	mat44f m;
+	m.M11 = vM11 * s;
+	m.M12 = vM12 * s;
+	m.M13 = vM13 * s;
+
+	m.M21 = 0;
+	m.M22 = 1;
+	m.M23 = 0;
+
+	m.M31 = -ihed.x;
+	m.M32 = -ihed.y;
+	m.M33 = -ihed.z;
+
 	body->setRotation(m);
-
-	fuelTankBody->setPosition(body->localToWorld(fuelTankPos));
 	fuelTankBody->setRotation(m);
 
 	for (auto& susp : suspensions)
@@ -1071,8 +1107,21 @@ void Car::teleport(const mat44f& m)
 		susp->attach();
 	}
 
-	//body->stop();
-	//fuelTankBody->stop();
+	body->stop();
+	fuelTankBody->stop();
+}
+
+void Car::teleportToPits(const mat44f& m)
+{
+	forceRotation(D::vec3f(&m.M31));
+	forcePosition(D::vec3f(&m.M41));
+}
+
+float Car::getBaseCarHeight() const
+{
+	float t0 = fabsf(suspensions[0]->getBasePosition().y - tyres[0]->data.rimRadius);
+	float t2 = fabsf(suspensions[2]->getBasePosition().y - tyres[2]->data.rimRadius);
+	return tmax(t0, t2);
 }
 
 vec3f Car::getGroundWindVector() const

@@ -181,6 +181,15 @@ void removeCar(int simId, int carId)
 	}
 }
 
+void teleportCarToLocation(int simId, int carId, float x, float y, float z)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->forcePosition(D::vec3f(x, y, z));
+	}
+}
+
 void teleportCarToPits(int simId, int carId, int pitId)
 {
 	auto* car = getCar(simId, carId);
@@ -189,7 +198,23 @@ void teleportCarToPits(int simId, int carId, int pitId)
 		const auto& pits = car->sim->track->pits;
 		if (pitId >= 0 && pitId < (int)pits.size())
 		{
-			car->teleport(pits[pitId]);
+			car->teleportToPits(pits[pitId]);
+		}
+	}
+}
+
+void teleportCarToTrackPoint(int simId, int carId, int pointId, float offsetY)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		const auto& points = car->sim->track->fatPoints;
+		if (pointId >= 0 && pointId < (int)points.size())
+		{
+			auto& pt = points[pointId];
+
+			car->forceRotation(pt.forwardDir);
+			car->forcePosition(D::vec3f(&pt.center.x), offsetY);
 		}
 	}
 }
@@ -352,7 +377,9 @@ PYBIND11_MODULE(PyProjectD, m)
 
 	m.def("addCar", &addCar, "");
 	m.def("removeCar", &removeCar, "");
+	m.def("teleportCarToLocation", &teleportCarToLocation, "");
 	m.def("teleportCarToPits", &teleportCarToPits, "");
+	m.def("teleportCarToTrackPoint", &teleportCarToTrackPoint, "");
 	m.def("setCarControls", &setCarControls, "");
 	m.def("getCarState", &getCarState, "");
 

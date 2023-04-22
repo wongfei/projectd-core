@@ -322,7 +322,7 @@ void PlaygrounD::loadDemo()
 	for (int i = 0; i < maxCars; ++i)
 	{
 		auto* car = sim->addCar(carModel);
-		car->teleport(track->pits[i]);
+		car->teleportToPits(track->pits[i]);
 	}
 
 	pitPos_ = track->pits[0];
@@ -490,7 +490,7 @@ void PlaygrounD::processInput(float dt)
 
 	if (asyncKeydown(SDL_SCANCODE_C)) { simEnabled_ = !simEnabled_; }
 	if (asyncKeydown(SDL_SCANCODE_X)) { simStepOnce_ = true; }
-	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleport(pitPos_); }
+	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleportToPits(pitPos_); }
 
 	if (asyncKeydown(SDL_SCANCODE_M)) { drawWorld_ = !drawWorld_; }
 	if (asyncKeydown(SDL_SCANCODE_N)) { drawSky_ = !drawSky_; }
@@ -545,6 +545,8 @@ void PlaygrounD::updateCamera(float dt)
 
 			camPos_ = v(eyePos);
 			camView_ = glm::lookAt(camPos_, v(targPos), glm::vec3(0, 1, 0));
+
+			// TODO: compute camYpr_
 		}
 		else if (inpCamMode_ == (int)ECamMode::Eye)
 		{

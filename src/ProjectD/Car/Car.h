@@ -73,7 +73,10 @@ struct Car : public virtual IObject
 	float getSteerFF(float dt);
 
 	// utils
-	void teleport(const mat44f& m);
+	void forcePosition(const vec3f& pos, float offsetY = 0);
+	void forceRotation(const vec3f& heading);
+	void teleportToPits(const mat44f& m);
+	float getBaseCarHeight() const;
 	vec3f getGroundWindVector() const;
 	float getPointGroundHeight(const vec3f& pt) const;
 	mat44f getGraphicsOffsetMatrix() const;

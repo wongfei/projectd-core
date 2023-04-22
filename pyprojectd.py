@@ -14,7 +14,10 @@ pd.initLogFile(os.path.join(baseDir, 'projectd.log'))
 sim = pd.createSimulator(baseDir)
 pd.loadTrack(sim, 'driftplayground')
 car = pd.addCar(sim, 'gravygarage_street_ae86_readie')
-pd.teleportCarToPits(sim, car, 0) # simId, carId, pitId
+
+#pd.teleportCarToLocation(sim, car, 70.57, 66.34, 14.29)
+#pd.teleportCarToPits(sim, car, 0) # simId, carId, pitId
+pd.teleportCarToTrackPoint(sim, car, 1, 0.1) # simId, carId, pointId, offsetY
 
 pd.initPlayground(baseDir)
 pd.setActiveSimulator(sim, True) # simId, simEnabled
