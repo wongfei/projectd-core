@@ -294,8 +294,6 @@ typedef dReal dQuaternion[dQUE__MAX];
 #define dCeil(x) ceilf(x)			/* ceil */
 #define dCopySign(a,b) _ode_copysignf(a, b) /* copy value sign */
 #define dNextAfter(x, y) _ode_nextafterf(x, y) /* next value after */
-#define dMax(a, b) _ode_fmaxf(a, b)
-#define dMin(a, b) _ode_fminf(a, b)
 
 #ifdef HAVE___ISNANF
 #define dIsNan(x) (__isnanf(x))
@@ -333,8 +331,6 @@ typedef dReal dQuaternion[dQUE__MAX];
 #define dCeil(x) ceil(x)
 #define dCopySign(a,b) _ode_copysign(a, b)
 #define dNextAfter(x, y) _ode_nextafter(x, y)
-#define dMax(a, b) _ode_fmax(a, b)
-#define dMin(a, b) _ode_fmin(a, b)
 
 #ifdef HAVE___ISNAN
 #define dIsNan(x) (__isnan(x))
@@ -349,6 +345,9 @@ typedef dReal dQuaternion[dQUE__MAX];
 #else
 #error You must #define dSINGLE or dDOUBLE
 #endif
+
+ODE_PURE_INLINE dReal dMin(dReal x, dReal y) { return x <= y ? x : y; }
+ODE_PURE_INLINE dReal dMax(dReal x, dReal y) { return x <= y ? y : x; }
 
 
 /* internal object types (all prefixed with `dx') */
@@ -546,16 +545,6 @@ dGeomID dGeomGetBodyNext (dGeomID);
  * ODE_EXT_gimpact
  * ODE_OPC_16bit_indices
  * ODE_OPC_new_collider
- * ODE_EXT_libccd
- * ODE_CCD_IMPL_internal
- * ODE_CCD_COLL_box_cyl
- * ODE_CCD_COLL_cyl_cyl
- * ODE_CCD_COLL_cap_cyl
- * ODE_CCD_COLL_box_conv
- * ODE_CCD_COLL_cap_conv
- * ODE_CCD_COLL_conv_cyl
- * ODE_CCD_COLL_conv_sph
- * ODE_CCD_COLL_conv_conv
  * ODE_EXT_mt_collisions
  * ODE_EXT_threading
  * ODE_THR_builtin_impl

@@ -3,12 +3,16 @@
 #include <pybind11/stl.h>
 namespace py = pybind11;
 
+#include "PlaygrounD.h"
+
+#if 0
+#include "Core/OS.h"
+#include "Core/Diag.h"
 #include "Sim/Simulator.h"
 #include "Sim/Track.h"
 #include "Car/Car.h"
 #include "Car/CarState.h"
-#include "Core/OS.h"
-#include "Core/Diag.h"
+#endif
 
 #include <unordered_map>
 
@@ -44,6 +48,16 @@ inline D::Simulator* getSimulator(int simId)
 	if (iter != g_simMap.end())
 	{
 		return iter->second.get();
+	}
+	return nullptr;
+}
+
+inline D::SimulatorPtr getSimulatorShared(int simId)
+{
+	auto iter = g_simMap.find(simId);
+	if (iter != g_simMap.end())
+	{
+		return iter->second;
 	}
 	return nullptr;
 }
@@ -199,6 +213,60 @@ void getCarState(int simId, int carId, D::CarState& state)
 }
 
 //
+// PLAYGROUND
+//
+
+static std::unique_ptr<D::PlaygrounD> g_playground;
+
+void initPlayground(const std::string& basePath)
+{
+	if (!g_playground)
+	{
+		g_playground.reset(new D::PlaygrounD());
+		g_playground->init(basePath, true);
+	}
+}
+
+void shutPlayground()
+{
+	g_playground.reset();
+}
+
+void tickPlayground()
+{
+	if (g_playground)
+	{
+		g_playground->tick();
+	}
+}
+
+bool isPlaygroundExited()
+{
+	return !g_playground || (g_playground && g_playground->exitFlag_);
+}
+
+void setActiveSimulator(int simId, bool simEnabled)
+{
+	if (g_playground)
+	{
+		auto sim = getSimulatorShared(simId);
+		if (sim)
+		{
+			g_playground->setSimulator(sim);
+			g_playground->simEnabled_ = simEnabled;
+		}
+	}
+}
+
+void setActiveCar(int carId, bool takeControls, bool enableSound)
+{
+	if (g_playground)
+	{
+		g_playground->setActiveCar(carId, takeControls, enableSound);
+	}
+}
+
+//
 // MODULE
 //
 
@@ -287,4 +355,11 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("teleportCarToPits", &teleportCarToPits, "");
 	m.def("setCarControls", &setCarControls, "");
 	m.def("getCarState", &getCarState, "");
+
+	m.def("initPlayground", &initPlayground, "");
+	m.def("shutPlayground", &shutPlayground, "");
+	m.def("tickPlayground", &tickPlayground, "");
+	m.def("isPlaygroundExited", &isPlaygroundExited, "");
+	m.def("setActiveSimulator", &setActiveSimulator, "");
+	m.def("setActiveCar", &setActiveCar, "");
 }

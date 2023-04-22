@@ -74,9 +74,6 @@ void PlaygrounD::renderStats()
 	font_.setHeight(14);
 	glColor3ub(255, 255, 255);
 
-	int gear = car_->drivetrain->currentGear - 1;
-	float rpm = ((float)car_->drivetrain->engine.velocity * 0.15915507f) * 60.0f;
-
 	float x = 1, y = 1, dy = 25;
 	font_.draw(x, y, "gameTime %.2f", gameTime_); y += dy;
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
@@ -87,20 +84,9 @@ void PlaygrounD::renderStats()
 	font_.draw(x, y, "simHitches %d", (int)statSimHitches_); y += dy;
 	font_.draw(x, y, "drawHitches %d", (int)statDrawHitches_); y += dy;
 	font_.draw(x, y, "lastHitch %.2f", lastHitchTime_); y += dy;
+	y += dy;
 
-	#if 1
-	if (sim_->interopEnabled && sim_->interopInput && sim_->interopState)
-	{
-		auto* header = (SimInteropHeader*)sim_->interopInput->data();
-		font_.draw(x, y, "interopInput %llu / %llu", header->producerId, header->consumerId); y += dy;
-
-		header = (SimInteropHeader*)sim_->interopState->data();
-		font_.draw(x, y, "interopState %llu / %llu", header->producerId, header->consumerId); y += dy;
-	}
-	#endif
-
-	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
-	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;
+	font_.draw(x, y, "camera %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
 
 	if (lookatSurf_) {
 		font_.draw(x, y, "surf sector=%u cat=%u istrack=%d grip=%.3f",
@@ -115,6 +101,36 @@ void PlaygrounD::renderStats()
 		font_.draw(x, y, "surf ?"); y += dy;
 	}
 
+	if (sim_)
+	{
+		#if 1
+		if (sim_->interopEnabled && sim_->interopInput && sim_->interopState)
+		{
+			auto* header = (SimInteropHeader*)sim_->interopInput->data();
+			font_.draw(x, y, "interopInput %llu / %llu", header->producerId, header->consumerId); y += dy;
+
+			header = (SimInteropHeader*)sim_->interopState->data();
+			font_.draw(x, y, "interopState %llu / %llu", header->producerId, header->consumerId); y += dy;
+		}
+		#endif
+
+		font_.draw(x, y, "collisions %d", (int)sim_->dbgCollisions.size()); y += dy;
+	}
+
+	if (car_)
+		renderCarStats(x, y + dy, dy);
+
+	glDisable(GL_BLEND);
+}
+
+void PlaygrounD::renderCarStats(float x, float y, float dy)
+{
+	int gear = car_->drivetrain->currentGear - 1;
+	float rpm = ((float)car_->drivetrain->engine.velocity * 0.15915507f) * 60.0f;
+
+	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
+	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;
+
 	font_.draw(x, y, "steer %.3f", car_->controls.steer); y += dy;
 	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
 	font_.draw(x, y, "brake %.3f", car_->controls.brake); y += dy;
@@ -123,7 +139,6 @@ void PlaygrounD::renderStats()
 
 	font_.draw(x, y, "gearReq %d", car_->controls.requestedGearIndex); y += dy;
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
-	font_.draw(x, y, "collisions %d", (int)sim_->dbgCollisions.size()); y += dy;
 	font_.draw(x, y, "trackPoint %d", (int)car_->nearestTrackPointId); y += dy;
 
 	#if 0
@@ -196,9 +211,6 @@ void PlaygrounD::renderStats()
 	font_.draw(x, y, "slips %.4f", car_->lastVibr.slips); y += dy;
 	#endif
 
-	// CAM POS
-	font_.draw(x, y, "CAM %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
-
 	#if 0
 	auto vcar = car_->body->worldToLocal({ 0, 0, 0 });
 	auto off = car_->body->worldToLocal(vec3f(camPos_.x, camPos_.y, camPos_.z));
@@ -237,8 +249,6 @@ void PlaygrounD::renderStats()
 			font_.draw(width_ * 0.4f, height_ * 0.6f, "MONEY SHIFT!");
 		}
 	}
-
-	glDisable(GL_BLEND);
 }
 
 }

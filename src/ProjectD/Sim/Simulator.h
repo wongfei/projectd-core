@@ -123,6 +123,8 @@ struct Simulator : public virtual ICollisionCallback // std::enable_shared_from_
 	double physicsTime = 0;
 	double gameTime = 0;
 	unsigned int stepCounter = 0;
+
+	std::unique_ptr<IAvatar> avatar;
 };
 
 }

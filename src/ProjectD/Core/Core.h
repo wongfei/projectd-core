@@ -29,6 +29,11 @@ struct IObject : public NonCopyable
 	virtual ~IObject() {}
 };
 
+struct IAvatar : public virtual IObject
+{
+	virtual void draw() {}
+};
+
 template<typename T>
 inline void memzero(T& obj) { memset(&obj, 0, sizeof(T)); }
 

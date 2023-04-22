@@ -16,12 +16,12 @@ struct SmoothValue
 
 struct FmodAudioRenderer : public ICarAudioRenderer
 {
-	FmodAudioRenderer(const std::string& basePath, Car* car);
+	FmodAudioRenderer(std::shared_ptr<FmodContext> context, const std::string& basePath, Car* car);
 	~FmodAudioRenderer();
 
 	void update(float dt) override;
 
-	std::unique_ptr<FmodContext> context;
+	std::shared_ptr<FmodContext> context;
 	Car* car = nullptr;
 	void* evEngineInt = nullptr;
 	void* evEngineExt = nullptr;

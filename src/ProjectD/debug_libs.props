@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>ProjectD_dbg.lib;PlaygrounD_dbg.lib;fmodL64_vc.lib;fmodstudioL64_vc.lib;ode_singles.lib;dinput8.lib;dxguid.lib;SDL2-static.lib;SDL2_image-static.lib;turbojpeg-static.lib;libpng16_static.lib;zlibstatic.lib;opengl32.lib;glu32.lib;Imm32.lib;Winmm.lib;Version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\thirdparty\ode\lib\;$(SolutionDir)..\thirdparty\fmod\lib\;$(SolutionDir)..\thirdparty\sdl2s\lib\;$(SolutionDir)..\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

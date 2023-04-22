@@ -145,6 +145,10 @@ void DICarController::bind(InputVariable* var, DIDevice* device, EInputType type
 	insert_uniq(activeDevices, device);
 }
 
+void DICarController::setCar(struct Car* car)
+{
+}
+
 void DICarController::acquireControls(CarControlsInput* input, CarControls* controls, float dt)
 {
 	lastSpeed = input->speed;

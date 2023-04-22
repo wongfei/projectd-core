@@ -2,7 +2,7 @@
 
 #include "Core/Common.h"
 #include "Core/Math.h"
-#include <SDL_opengl.h>
+#include <SDL2/SDL_opengl.h>
 
 #define GL_GUARD D::gl_guard(X_FILE, X_LINE)
 

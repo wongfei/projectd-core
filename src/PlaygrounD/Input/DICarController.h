@@ -29,6 +29,7 @@ struct DICarController : public ICarControlsProvider
 	void bind(InputVariable* var, DIDevice* device, EInputType type, int id);
 
 	// ICarControlsProvider
+	void setCar(struct Car* car) override;
 	void acquireControls(CarControlsInput* input, CarControls* controls, float dt) override;
 	void sendFF(float ff, float damper, float userGain) override;
 	void setVibrations(VibrationDef* vib) override;

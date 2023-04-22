@@ -9,10 +9,11 @@ namespace D {
 
 struct KeyboardCarController : public ICarControlsProvider
 {
-	KeyboardCarController(const std::wstring& basePath, Car* car, void* windowHandle = nullptr);
+	KeyboardCarController(const std::wstring& basePath, void* windowHandle = nullptr);
 	~KeyboardCarController();
 
 	// ICarControlsProvider
+	void setCar(struct Car* car) override;
 	void acquireControls(CarControlsInput* input, CarControls* controls, float dt) override;
 	void sendFF(float ff, float damper, float userGain) override {}
 	void setVibrations(VibrationDef* vib) override {}

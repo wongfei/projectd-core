@@ -69,6 +69,7 @@
     <ClCompile Include="PG_Debug.cpp">
       <Filter>PlaygrounD</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\GLSimulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\FmodAudioRenderer.h">
@@ -131,5 +132,6 @@
     <ClInclude Include="PlaygrounD.h">
       <Filter>PlaygrounD</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\GLSimulator.h" />
   </ItemGroup>
 </Project>

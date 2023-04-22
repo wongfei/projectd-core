@@ -12,15 +12,13 @@ inline FMOD::Studio::EventInstance* castEvent(void* ptr) { return (FMOD::Studio:
 inline void stopEvent(void* ptr) { auto ev = castEvent(ptr); if (ev) { ev->stop(FMOD_STUDIO_STOP_IMMEDIATE); } }
 inline void releaseEvent(void*& ptr) { auto ev = castEvent(ptr); if (ev) { ev->release(); ptr = nullptr; } }
 
-FmodAudioRenderer::FmodAudioRenderer(const std::string& basePath, Car* _car)
+FmodAudioRenderer::FmodAudioRenderer(std::shared_ptr<FmodContext> _context, const std::string& basePath, Car* _car)
 {
 	TRACE_CTOR(FmodAudioRenderer);
 
+	context = _context;
 	car = _car;
 	auto carModel = stra(car->unixName);
-
-	context.reset(new FmodContext());
-	context->init(basePath);
 
 	const std::string basePathA(basePath);
 	context->loadGUIDs(basePathA + "content/sfx/GUIDs.txt");
@@ -29,8 +27,6 @@ FmodAudioRenderer::FmodAudioRenderer(const std::string& basePath, Car* _car)
 
 	context->loadGUIDs(basePathA + "content/cars/" + carModel + "/sfx/" + "GUIDs.txt");
 	context->loadBank(basePathA + "content/cars/" + carModel + "/sfx/" + carModel + ".bank");
-
-	context->enumerate(false);
 
 	// CarAudioFMOD::renderAudio
 	// Car::getPhysicsState
@@ -248,10 +244,10 @@ void FmodAudioRenderer::update(float dt)
 		ev->setPitch(fPitchMax);
 	}
 
-	if (context)
+	/*if (context)
 	{
 		context->update();
-	}
+	}*/
 }
 
 }

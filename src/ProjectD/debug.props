@@ -33,12 +33,13 @@
       <FloatingPointExceptions>true</FloatingPointExceptions>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\thirdparty\ode\include;$(SolutionDir)..\thirdparty\fmod\include;$(SolutionDir)..\thirdparty\sdl2\include;$(SolutionDir)..\thirdparty\glm\include;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\thirdparty\ode\include;$(SolutionDir)..\thirdparty\fmod\include;$(SolutionDir)..\thirdparty\sdl2s\include;$(SolutionDir)..\thirdparty\glm\include;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\thirdparty\ode\lib\;$(SolutionDir)..\thirdparty\fmod\lib\;$(SolutionDir)..\thirdparty\sdl2\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

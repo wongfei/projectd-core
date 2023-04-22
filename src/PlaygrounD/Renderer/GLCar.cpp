@@ -6,7 +6,7 @@
 
 namespace D {
 
-void GLCar::init(Car* _car)
+GLCar::GLCar(Car* _car)
 {
 	car = _car;
 
@@ -19,7 +19,11 @@ void GLCar::init(Car* _car)
 	wheelMesh.wireframe = true;
 }
 
-void GLCar::draw(bool drawBody, bool drawProbes)
+GLCar::~GLCar()
+{
+}
+
+void GLCar::draw()
 {
 	// body
 	if (drawBody)
@@ -181,14 +185,6 @@ void GLCar::draw(bool drawBody, bool drawProbes)
 		}
 		glEnd();
 	}
-}
-
-void GLCar::drawInstance(Car* instance, bool drawBody, bool drawProbes) // TODO: lame hack
-{
-	auto tmp = car;
-	car = instance;
-	draw(drawBody, drawProbes);
-	car = tmp;
 }
 
 }

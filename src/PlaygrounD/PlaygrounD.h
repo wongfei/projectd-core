@@ -1,10 +1,10 @@
 #pragma once
 
 #define SDL_MAIN_HANDLED
-#include <SDL.h>
-#include <SDL_syswm.h>
-#include <SDL_opengl.h>
-#include <SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
+#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_image.h>
 #include <gl/GLU.h>
 
 #include <glm/glm.hpp>
@@ -20,6 +20,7 @@
 #include "Renderer/GLFont.h"
 #include "Renderer/GLChart.h"
 #include "Renderer/GLSkyBox.h"
+#include "Renderer/GLSimulator.h"
 #include "Renderer/GLTrack.h"
 #include "Renderer/GLCar.h"
 
@@ -39,12 +40,17 @@ struct PlaygrounD
 	PlaygrounD();
 	~PlaygrounD();
 
-	void init(int argc, char** argv);
-	void initEngine(int argc, char** argv);
-	void initGame();
-	void initInput();
+	void runDemo();
+	void loadDemo();
 
-	void mainLoop();
+	void init(const std::string& basePath, bool loadedByPython);
+	void initEngine(const std::string& basePath, bool loadedByPython);
+	void initCarController();
+
+	void setSimulator(SimulatorPtr newSim);
+	void setActiveCar(int carId, bool takeControls = false, bool enableSound = false);
+
+	void tick();
 	void processInput(float dt);
 	void updateCamera(float dt);
 	void freeFlyCamera(float dt);
@@ -63,6 +69,7 @@ struct PlaygrounD
 	void initCharts();
 	void renderCharts();
 	void renderStats();
+	void renderCarStats(float x, float y, float dy);
 
 	inline bool getkey(SDL_Scancode scan) { return keys_[scan]; }
 	inline bool getkeyf(SDL_Scancode scan) { return keys_[scan] ? 1.0f : 0.0f; }
@@ -86,29 +93,29 @@ struct PlaygrounD
 	int height_ = 720;
 	int swapInterval_ = -1;
 	bool fullscreen_ = false;
-	bool enableInput_ = true;
-	bool enableSound_ = true;
+	bool enableCarController_ = true;
+	bool enableCarSound_ = true;
 
 	std::wstring appDir_;
 	SDL_Window* appWindow_ = nullptr;
 	SDL_GLContext glContext_ = nullptr;
 	HWND sysWindow_ = nullptr;
+	GLFont font_;
+
 	bool exitFlag_ = false;
 	bool keys_[SDL_NUM_SCANCODES] = {};
 	bool asynckeys_[SDL_NUM_SCANCODES] = {};
 
+	std::shared_ptr<FmodContext> fmodContext_;
+	std::shared_ptr<ICarControlsProvider> controlsProvider_;
+
 	SimulatorPtr sim_;
 	Track* track_ = nullptr;
 	Car* car_ = nullptr;
-	mat44f pitPos_;
-
-	GLFont font_;
-	GLSkyBox sky_;
-	GLTrack trackAvatar_;
-	GLCar carAvatar_;
-
 	Surface* lookatSurf_ = nullptr;
 	vec3f lookatHit_;
+	mat44f pitPos_;
+	int activeCarId_ = 0;
 
 	glm::vec3 camPos_ = {};
 	glm::vec3 camYpr_ = {90, 0, 0};
@@ -145,6 +152,7 @@ struct PlaygrounD
 	bool drawCarProbes_ = false;
 	bool drawUI_ = true;
 
+	clock::time_point tick0_;
 	double dt_ = 0;
 	double gameTime_ = 0;
 	double prevTime = 0;

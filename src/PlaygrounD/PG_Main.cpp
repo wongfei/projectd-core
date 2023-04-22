@@ -1,27 +1,43 @@
 #include "PlaygrounD.h"
+#include "Audio/FmodContext.h"
 
 namespace D {
 
 //=======================================================================================
 
-PlaygrounD::PlaygrounD() {}
-PlaygrounD::~PlaygrounD() { closeWindow(); }
+PlaygrounD::PlaygrounD() { TRACE_CTOR(PlaygrounD); }
+PlaygrounD::~PlaygrounD() { TRACE_DTOR(PlaygrounD); closeWindow(); }
 
-void PlaygrounD::init(int argc, char** argv)
+void PlaygrounD::runDemo()
 {
-	initEngine(argc, argv);
-	initGame();
-	initCharts();
-}
-
-void PlaygrounD::mainLoop()
-{
-	const auto tick0 = clock::now();
+	init("", false);
+	loadDemo();
 
 	while (!exitFlag_)
 	{
+		tick();
+	}
+
+	log_printf(L"SHUTDOWN..");
+
+	sim_.reset();
+	controlsProvider_.reset();
+
+	closeWindow();
+}
+
+void PlaygrounD::init(const std::string& basePath, bool loadedByPython)
+{
+	initEngine(basePath, loadedByPython);
+	initCharts();
+	tick0_ = clock::now();
+}
+
+void PlaygrounD::tick()
+{
+	{
 		const auto tick1 = clock::now();
-		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tick1 - tick0).count() * 1e-6;
+		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tick1 - tick0_).count() * 1e-6;
 		const float gameTime = (float)gameTime_;
 
 		const double dt = gameTime_ - prevTime;
@@ -30,7 +46,8 @@ void PlaygrounD::mainLoop()
 		maxDt = tmax(maxDt, (float)dt * 1e3f);
 		bool hitchFlag = false;
 
-		car_->lockControls = (inpCamMode_ == (int)ECamMode::Free);
+		if (car_)
+			car_->lockControls = (inpCamMode_ == (int)ECamMode::Free);
 
 		//===========================================================================
 		// SIMULATE
@@ -49,23 +66,26 @@ void PlaygrounD::mainLoop()
 		{
 			simTime_ += simTickRate_;
 
-			if (simStepOnce_ || simEnabled_)
+			if (sim_ && (simStepOnce_ || simEnabled_))
 			{
 				simStepOnce_ = false;
 
 				sim_->step((float)simTickRate_, physicsTime_, gameTime_);
 
-				timeSinceShift_ += (float)simTickRate_;
-				if (lastGear_ != car_->drivetrain->currentGear && car_->drivetrain->currentGear > 1)
+				if (car_)
 				{
-					lastGear_ = car_->drivetrain->currentGear;
-					timeSinceShift_ = 0;
+					timeSinceShift_ += (float)simTickRate_;
+					if (lastGear_ != car_->drivetrain->currentGear && car_->drivetrain->currentGear > 1)
+					{
+						lastGear_ = car_->drivetrain->currentGear;
+						timeSinceShift_ = 0;
+					}
+
+					for (int i = 0; i < 4; ++i)
+						serSA_[i].add_value(gameTime, car_->tyres[i]->status.slipAngleRAD * 57.295779513082320876798154814105f);
+
+					serFF_.add_value(gameTime, car_->lastFF);
 				}
-
-				for (int i = 0; i < 4; ++i)
-					serSA_[i].add_value(gameTime, car_->tyres[i]->status.slipAngleRAD * 57.295779513082320876798154814105f);
-
-				serFF_.add_value(gameTime, car_->lastFF);
 
 				physicsTime_ += simTickRate_;
 				simId_++;
@@ -113,8 +133,7 @@ void PlaygrounD::mainLoop()
 		{
 			processEvents();
 
-			if (enableInput_)
-				processInput(drawDt);
+			processInput(drawDt);
 
 			updateCamera(drawDt);
 
@@ -135,12 +154,17 @@ void PlaygrounD::mainLoop()
 
 			serDraw_.add_value(gameTime, drawMillis);
 			serSwap_.add_value(gameTime, swapMillis);
-			serSteer_.add_value(gameTime, car_->controls.steer);
-			serClutch_.add_value(gameTime, car_->controls.clutch);
-			serBrake_.add_value(gameTime, car_->controls.brake);
-			serGas_.add_value(gameTime, car_->controls.gas);
 
-			sim_->dbgCollisions.clear();
+			if (car_)
+			{
+				serSteer_.add_value(gameTime, car_->controls.steer);
+				serClutch_.add_value(gameTime, car_->controls.clutch);
+				serBrake_.add_value(gameTime, car_->controls.brake);
+				serGas_.add_value(gameTime, car_->controls.gas);
+			}
+
+			if (sim_)
+				sim_->dbgCollisions.clear();
 
 			if (!isFirstFrameDone && skipFrames == 0)
 			{
@@ -151,13 +175,16 @@ void PlaygrounD::mainLoop()
 					SDL_ShowWindow(appWindow_);
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
-
-				if (enableInput_)
-					initInput();
 			}
 
 			if (skipFrames > 0) --skipFrames;
 		}
+
+		//===========================================================================
+		// FMOD
+
+		if (fmodContext_)
+			fmodContext_->update();
 
 		//===========================================================================
 		// STATS
@@ -187,7 +214,7 @@ void PlaygrounD::mainLoop()
 			#else
 				// estimate time to next frame
 				const auto tick2 = clock::now();
-				const double curTime = std::chrono::duration_cast<std::chrono::microseconds>(tick2 - tick0).count() * 1e-6;
+				const double curTime = std::chrono::duration_cast<std::chrono::microseconds>(tick2 - tick0_).count() * 1e-6;
 				const double simIdle = tmax(0.0, ((simTime_ + simTickRate_) - curTime));
 				const double drawIdle = tmax(0.0, ((drawTime_ + drawTickRate_) - curTime));
 				const int idleMs = floorToInt((float)(tmin(simIdle, drawIdle) * 1000.0));
@@ -196,46 +223,44 @@ void PlaygrounD::mainLoop()
 			#endif
 		}
 	}
-
-	log_printf(L"SHUTDOWN..");
-
-	sim_.reset();
-
-	closeWindow();
 }
 
 //=======================================================================================
 // INIT
 //=======================================================================================
 
-void PlaygrounD::initEngine(int argc, char** argv)
+void PlaygrounD::initEngine(const std::string& basePath, bool loadedByPython)
 {
-	srand(666);
+	if (!loadedByPython)
+		srand(666);
 
 	auto exePath = osGetModuleFullPath();
 	auto exeDir = osGetDirPath(exePath);
-	appDir_ = osCombinePath(exeDir, L"..\\");
+
+	if (loadedByPython)
+		appDir_ = strw(basePath);
+	else
+		appDir_ = osCombinePath(exeDir, L"..\\");
+
 	replace(appDir_, L'\\', L'/');
+	if (!ends_with(appDir_, L'/'))
+		appDir_.append(L"/");
 
-	const std::wstring logPath = appDir_ + L"demo.log";
-	log_init(logPath.c_str());
-
-	log_printf(L"START");
-	log_printf(L"exePath: %s", exePath.c_str());
-	log_printf(L"appDir: %s", appDir_.c_str());
-
-	for (int i = 1; i < argc; ++i)
+	if (loadedByPython)
 	{
-		std::string arg(argv[i]);
-		auto parts = split(arg, "=");
-		if (parts.size() == 2)
-			options_.insert({parts[0], parts[1]});
-		else
-			options_.insert({arg, ""});
+		SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+		AddDllDirectory(osCombinePath(appDir_, L"bin").c_str());
 	}
 
-	if (options_.find("-noinput") != options_.end()) enableInput_ = false;
-	if (options_.find("-nosound") != options_.end()) enableSound_ = false;
+	if (!loadedByPython)
+	{
+		const std::wstring logPath = appDir_ + L"projectd.log";
+		log_init(logPath.c_str());
+	}
+
+	log_printf(L"Start PlaygrounD");
+	log_printf(L"exePath: %s", exePath.c_str());
+	log_printf(L"appDir: %s", appDir_.c_str());
 
 	#if defined(DEBUG)
 	INIReader::_debug = true;
@@ -257,12 +282,23 @@ void PlaygrounD::initEngine(int argc, char** argv)
 	}
 
 	initWindow();
+
+	auto rc = IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
+	log_printf(L"IMG_Init: %d", rc);
+
+	font_.initDefault(appDir_);
+
+	fmodContext_.reset(new FmodContext());
+	fmodContext_->init(stra(appDir_));
+
 	clearViewport();
 	swap();
 }
 
-void PlaygrounD::initGame()
+void PlaygrounD::loadDemo()
 {
+	log_printf(L"loadDemo");
+
 	std::wstring trackName = L"ek_akina";
 	std::wstring carModel = L"ks_toyota_ae86_drift";
 
@@ -273,34 +309,28 @@ void PlaygrounD::initGame()
 		carModel = ini->getString(L"CAR", L"MODEL");
 	}
 
-	font_.initDefault(appDir_);
-	sky_.load(10000, appDir_ + L"content/demo/sky%d.jpg");
+	auto sim = std::make_shared<Simulator>();
+	sim->init(appDir_);
+	setSimulator(sim);
 
-	sim_ = std::make_shared<Simulator>();
-	sim_->init(appDir_);
+	auto track = sim->loadTrack(trackName);
 
-	track_ = sim_->loadTrack(trackName);
-	GUARD_FATAL(track_->pits.size() > 0);
+	const int maxCars = tmin(sim->maxCars, (int)track->pits.size());
+	if (maxCars <= 0)
+		return;
 
-	trackAvatar_.init(track_);
-
-	const int maxCars = tmin(sim_->maxCars, (int)track_->pits.size());
 	for (int i = 0; i < maxCars; ++i)
 	{
-		auto* car = sim_->addCar(carModel);
-		car->teleport(track_->pits[i]);
+		auto* car = sim->addCar(carModel);
+		car->teleport(track->pits[i]);
 	}
 
-	car_ = sim_->cars[0];
-	pitPos_ = track_->pits[0];
+	pitPos_ = track->pits[0];
 	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
 
-	carAvatar_.init(car_);
+	setActiveCar(0, true, true);
 
-	if (enableSound_)
-		car_->audioRenderer = std::make_shared<FmodAudioRenderer>(stra(appDir_), car_);
-
-	// CAR TUNE
+	// CAR_TUNE
 
 	int tyreCompound = 1;
 	auto tyresIni(std::make_unique<INIReader>(car_->carDataPath + L"tyres.ini"));
@@ -352,8 +382,10 @@ void PlaygrounD::initGame()
 	#endif
 }
 
-void PlaygrounD::initInput()
+void PlaygrounD::initCarController()
 {
+	log_printf(L"initCarController");
+
 	bool forceKeyboard = false;
 	auto dinputIni(std::make_unique<INIReader>(appDir_ + L"cfg/dinput.ini"));
 	if (dinputIni->ready)
@@ -364,18 +396,18 @@ void PlaygrounD::initInput()
 
 	if (forceKeyboard)
 	{
-		car_->controlsProvider = std::make_shared<KeyboardCarController>(appDir_, car_, sysWindow_);
+		controlsProvider_ = std::make_shared<KeyboardCarController>(appDir_, sysWindow_);
 	}
 	else
 	{
 		auto controlsProvider = std::make_shared<DICarController>(appDir_, sysWindow_);
 		if (controlsProvider->diWheel)
 		{
-			car_->controlsProvider = controlsProvider;
+			controlsProvider_ = controlsProvider;
 		}
 		else
 		{
-			car_->controlsProvider = std::make_shared<KeyboardCarController>(appDir_, car_, sysWindow_);
+			controlsProvider_ = std::make_shared<KeyboardCarController>(appDir_, sysWindow_);
 		}
 	}
 
@@ -383,7 +415,69 @@ void PlaygrounD::initInput()
 	CarControls controls;
 
 	for (int i = 0; i < 3; ++i)
-		car_->controlsProvider->acquireControls(&input, &controls, (float)simTickRate_);
+		controlsProvider_->acquireControls(&input, &controls, (float)simTickRate_);
+}
+
+void PlaygrounD::setSimulator(SimulatorPtr newSim)
+{
+	log_printf(L"setSimulator %p -> %p", sim_.get(), newSim.get());
+
+	if (sim_ == newSim)
+		return;
+
+	sim_ = newSim;
+	if (!sim_)
+		return;
+
+	if (!sim_->avatar)
+		sim_->avatar.reset(new GLSimulator(sim_.get()));
+
+	track_ = sim_->track.get();
+
+	if (track_ && !track_->pits.empty())
+	{
+		pitPos_ = track_->pits[0];
+		camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
+	}
+}
+
+void PlaygrounD::setActiveCar(int carId, bool takeControls, bool enableSound)
+{
+	log_printf(L"setActiveCar id=%d takeControls=%d enableSound=%d", carId, (int)takeControls, (int)enableSound);
+
+	if (sim_ && carId >= 0 && carId < (int)sim_->cars.size())
+	{
+		auto* old = car_;
+		car_ = sim_->cars[carId];
+		inpCamMode_ = (int)ECamMode::Eye;
+
+		if (old)
+		{
+			old->lockControls = true;
+			old->controlsProvider.reset();
+
+			if (old->avatar)
+				((GLCar*)old->avatar.get())->drawBody = true;
+
+			old->audioRenderer.reset();
+		}
+
+		if (takeControls && enableCarController_)
+		{
+			if (!controlsProvider_)
+				initCarController();
+
+			controlsProvider_->setCar(car_);
+			car_->controlsProvider = controlsProvider_;
+			car_->lockControls = false;
+		}
+
+		if (enableSound && enableCarSound_)
+		{
+			if (!car_->audioRenderer)
+				car_->audioRenderer = std::make_shared<FmodAudioRenderer>(fmodContext_, stra(appDir_), car_);
+		}
+	}
 }
 
 //=======================================================================================
@@ -396,7 +490,7 @@ void PlaygrounD::processInput(float dt)
 
 	if (asyncKeydown(SDL_SCANCODE_C)) { simEnabled_ = !simEnabled_; }
 	if (asyncKeydown(SDL_SCANCODE_X)) { simStepOnce_ = true; }
-	if (asyncKeydown(SDL_SCANCODE_T)) { car_->teleport(pitPos_); }
+	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleport(pitPos_); }
 
 	if (asyncKeydown(SDL_SCANCODE_M)) { drawWorld_ = !drawWorld_; }
 	if (asyncKeydown(SDL_SCANCODE_N)) { drawSky_ = !drawSky_; }
@@ -404,6 +498,13 @@ void PlaygrounD::processInput(float dt)
 	if (asyncKeydown(SDL_SCANCODE_P)) { drawTrackPoints_ = !drawTrackPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_O)) { drawNearbyPoints_ = !drawNearbyPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_I)) { drawCarProbes_ = !drawCarProbes_; }
+
+	if (sim_)
+	{
+		const int n = (int)sim_->cars.size();
+		if (asyncKeydown(SDL_SCANCODE_PAGEUP)) { ++activeCarId_; if (activeCarId_ >= n) { activeCarId_ = 0; }; setActiveCar(activeCarId_, true, true); }
+		if (asyncKeydown(SDL_SCANCODE_PAGEDOWN)) { --activeCarId_; if (activeCarId_ < 0) { activeCarId_ = (n ? n - 1 : 0); }; setActiveCar(activeCarId_, true, true); }
+	}
 
 	if (asyncKeydown(SDL_SCANCODE_V))
 	{
@@ -430,29 +531,33 @@ void PlaygrounD::processInput(float dt)
 
 void PlaygrounD::updateCamera(float dt)
 {
-	if (inpCamMode_ == (int)ECamMode::Free)
+	if (inpCamMode_ == (int)ECamMode::Free || !car_)
 	{
 		freeFlyCamera(dt);
 	}
-	else if (inpCamMode_ == (int)ECamMode::Rear)
-	{
-		const auto eyePos = car_->body->localToWorld(vec3f(0, 2, -5));
-		const auto targPos = car_->body->localToWorld(vec3f(0, 0, 0));
 
-		camPos_ = v(eyePos);
-		camView_ = glm::lookAt(camPos_, v(targPos), glm::vec3(0, 1, 0));
-	}
-	else if (inpCamMode_ == (int)ECamMode::Eye)
+	if (car_)
 	{
-		const auto bodyR = car_->body->getWorldMatrix(0).getRotator();
-		const auto bodyFront = (vec3f(0, 0, 1) * bodyR).get_norm();
-		const auto bodyUp = (vec3f(0, 1, 0) * bodyR).get_norm();
-		const auto eyePos = car_->body->localToWorld(eyeOff_);
+		if (inpCamMode_ == (int)ECamMode::Rear)
+		{
+			const auto eyePos = car_->body->localToWorld(vec3f(0, 2, -5));
+			const auto targPos = car_->body->localToWorld(vec3f(0, 0, 0));
 
-		camFront_ = v(bodyFront);
-		camUp_ = v(bodyUp);
-		camPos_ = v(eyePos);
-		camView_ = glm::lookAt(camPos_, camPos_ + camFront_, camUp_);
+			camPos_ = v(eyePos);
+			camView_ = glm::lookAt(camPos_, v(targPos), glm::vec3(0, 1, 0));
+		}
+		else if (inpCamMode_ == (int)ECamMode::Eye)
+		{
+			const auto bodyR = car_->body->getWorldMatrix(0).getRotator();
+			const auto bodyFront = (vec3f(0, 0, 1) * bodyR).get_norm();
+			const auto bodyUp = (vec3f(0, 1, 0) * bodyR).get_norm();
+			const auto eyePos = car_->body->localToWorld(eyeOff_);
+
+			camFront_ = v(bodyFront);
+			camUp_ = v(bodyUp);
+			camPos_ = v(eyePos);
+			camView_ = glm::lookAt(camPos_, camPos_ + camFront_, camUp_);
+		}
 	}
 }
 
@@ -487,10 +592,13 @@ void PlaygrounD::freeFlyCamera(float dt)
 void PlaygrounD::render()
 {
 	#if 1
-		TrackRayCastHit hit;
-		track_->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
-		lookatSurf_ = hit.surface;
-		lookatHit_ = hit.pos;
+		if (track_)
+		{
+			TrackRayCastHit hit;
+			track_->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
+			lookatSurf_ = hit.surface;
+			lookatHit_ = hit.pos;
+		}
 	#endif
 
 	clearViewport();
@@ -506,66 +614,39 @@ void PlaygrounD::renderWorld()
 {
 	projPerspective();
 
-	if (drawSky_)
-		sky_.draw();
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-
-	trackAvatar_.setLight(v(camPos_), v(camFront_));
-	trackAvatar_.drawOrigin();
-	trackAvatar_.drawTrack(wireframeMode_);
-
-	if (drawTrackPoints_)
-		trackAvatar_.drawTrackPoints();
-
-	if (drawNearbyPoints_)
+	if (sim_ && sim_->avatar)
 	{
-		trackAvatar_.drawNearbyPoints(v(camPos_));
+		auto simAvatar = (GLSimulator*)sim_->avatar.get();
+		simAvatar->drawSkybox = drawSky_;
 
-		const float obstacleDist = track_->rayCastTrackBounds(v(camPos_), v(camFront_));
-		if (obstacleDist > 0.0f)
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+
+		if (sim_->track)
 		{
-			const auto interPos = camPos_ + camFront_ * obstacleDist;
-
-			glPointSize(6);
-			glBegin(GL_POINTS);
-			glColor3f(1.0f, 0.0f, 0.0f);
-			glVertex3fv(&interPos.x);
-			glEnd();
-
-			TrackRayCastHit hit;
-			if (track_->rayCast(v(interPos) + vec3f(0, 50, 0), vec3f(0, -1, 0), 100, hit))
+			auto trackAvatar = (GLTrack*)sim_->track->avatar.get();
+			if (trackAvatar)
 			{
-				glBegin(GL_LINES);
-				glColor3f(1.0f, 0.0f, 0.0f);
-				glVertex3fv(&interPos.x);
-				glVertex3fv(&hit.pos.x);
-				glEnd();
-
-				glPointSize(6);
-				glBegin(GL_POINTS);
-				glColor3f(1.0f, 0.0f, 0.0f);
-				glVertex3fv(&hit.pos.x);
-				glEnd();
+				trackAvatar->setCamera(v(camPos_), v(camFront_));
+				trackAvatar->wireframe = wireframeMode_;
+				trackAvatar->drawFatPoints = drawTrackPoints_;
+				trackAvatar->drawNearbyPoints = drawNearbyPoints_;
 			}
 		}
+
+		if (car_ && car_->avatar)
+		{
+			auto carAvatar = (GLCar*)car_->avatar.get();
+			carAvatar->drawBody = (inpCamMode_ != (int)ECamMode::Eye);
+			carAvatar->drawProbes = drawCarProbes_;
+		}
+
+		sim_->avatar->draw();
+
+		glDisable(GL_DEPTH_TEST);
 	}
 
-	const bool drawBody = (inpCamMode_ != (int)ECamMode::Eye);
-
-	// player car
-	carAvatar_.draw(drawBody, drawCarProbes_);
-
-	// other cars
-	for (size_t i = 1; i < sim_->cars.size(); ++i)
-	{
-		carAvatar_.drawInstance(sim_->cars[i], true, drawCarProbes_);
-	}
-
-	glDisable(GL_DEPTH_TEST);
-
-	if (!sim_->dbgCollisions.empty())
+	if (sim_ && !sim_->dbgCollisions.empty())
 	{
 		glPointSize(3);
 		glBegin(GL_POINTS);

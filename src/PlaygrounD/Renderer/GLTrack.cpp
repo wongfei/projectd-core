@@ -5,7 +5,7 @@
 
 namespace D {
 
-void GLTrack::init(Track* _track)
+GLTrack::GLTrack(Track* _track)
 {
 	track = _track;
 
@@ -89,7 +89,11 @@ void GLTrack::init(Track* _track)
 	}
 }
 
-void GLTrack::drawOrigin()
+GLTrack::~GLTrack()
+{
+}
+
+void GLTrack::draw()
 {
 	// world origin
 	glBegin(GL_LINES);
@@ -139,60 +143,64 @@ void GLTrack::drawOrigin()
 			glVertex3fv(&p.x);
 		glEnd();
 	}
-}
 
-void GLTrack::drawTrack(bool wireframe)
-{
 	beginSurface(wireframe);
-
 	trackBatch.draw();
 	wallsBatch.draw();
-
 	endSurface(wireframe);
-}
 
-void GLTrack::drawTrackPoints()
-{
-	if (!track->fatPoints.empty())
+	if (drawFatPoints && !track->fatPoints.empty())
 		fatPointsBatch.draw();
-}
 
-void GLTrack::drawNearbyPoints(const vec3f& cameraPos)
-{
-	#if 1
-	nearbyPoints.clear();
-	track->fatPointsHash.queryNeighbours(cameraPos, nearbyPoints);
-
-	glPointSize(10);
-	glBegin(GL_POINTS);
-	glColor3f(1.0f, 1.0f, 1.0f);
-	for (const auto& id : nearbyPoints)
+	if (drawNearbyPoints)
 	{
-		glVertex3fv(&track->fatPoints[id].left.x);
-		glVertex3fv(&track->fatPoints[id].right.x);
+		nearbyPoints.clear();
+		track->fatPointsHash.queryNeighbours(camPos, nearbyPoints);
+
+		glPointSize(10);
+		glBegin(GL_POINTS);
+		glColor3f(1.0f, 1.0f, 1.0f);
+		for (const auto& id : nearbyPoints)
+		{
+			glVertex3fv(&track->fatPoints[id].left.x);
+			glVertex3fv(&track->fatPoints[id].right.x);
+		}
+		glEnd();
+
+		const float obstacleDist = track->rayCastTrackBounds(camPos, camDir);
+		if (obstacleDist > 0.0f)
+		{
+			const auto interPos = camPos + camDir * obstacleDist;
+
+			glPointSize(6);
+			glBegin(GL_POINTS);
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glVertex3fv(&interPos.x);
+			glEnd();
+
+			TrackRayCastHit hit;
+			if (track->rayCast(interPos + vec3f(0, 50, 0), vec3f(0, -1, 0), 100, hit))
+			{
+				glBegin(GL_LINES);
+				glColor3f(1.0f, 0.0f, 0.0f);
+				glVertex3fv(&interPos.x);
+				glVertex3fv(&hit.pos.x);
+				glEnd();
+
+				glPointSize(6);
+				glBegin(GL_POINTS);
+				glColor3f(1.0f, 0.0f, 0.0f);
+				glVertex3fv(&hit.pos.x);
+				glEnd();
+			}
+		}
 	}
-	glEnd();
-	#endif
 }
-
-void GLTrack::setLight(const vec3f& pos, const vec3f& dir)
-{
-	lightPos = pos;
-	lightDir = dir;
-}
-
-#define ENABLE_LINE_AA 0
 
 void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 {
 	if (wireframe)
 	{
-		#if (ENABLE_LINE_AA)
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-		#endif
 		glLineWidth(2);
 		glPolygonMode(GL_FRONT, GL_LINE);
 		glPolygonMode(GL_BACK, GL_LINE);
@@ -208,8 +216,8 @@ void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 		GLfloat ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 		GLfloat diffuseLight[] = { 0.95f, 0.95f, 0.95f, 1.0f };
 		GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-		GLfloat position[] = { lightPos.x, lightPos.y, lightPos.z, 1.0f };
-		GLfloat direction[] = { lightDir.x, lightDir.y, lightDir.z, 1.0f };
+		GLfloat position[] = { camPos.x, camPos.y, camPos.z, 1.0f };
+		GLfloat direction[] = { camDir.x, camDir.y, camDir.z, 1.0f };
 		glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
 		glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
@@ -224,11 +232,6 @@ void GLTrack::endSurface(bool wireframe)
 	{
 		glPolygonMode(GL_FRONT, GL_FILL);
 		glPolygonMode(GL_BACK, GL_FILL);
-
-		#if (ENABLE_LINE_AA)
-		glDisable(GL_LINE_SMOOTH);
-		glDisable(GL_BLEND);
-		#endif
 	}
 	else
 	{

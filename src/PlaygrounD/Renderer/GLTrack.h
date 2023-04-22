@@ -6,26 +6,27 @@ namespace D {
 
 struct Track;
 
-struct GLTrack
+struct GLTrack : public IAvatar
 {
-	void init(Track* track);
+	GLTrack(Track* track);
+	virtual ~GLTrack();
 	
-	void drawOrigin();
-	void drawTrack(bool wireframe);
-	void drawTrackPoints();
-	void drawNearbyPoints(const vec3f& cameraPos);
+	virtual void draw() override;
 
-	void setLight(const vec3f& pos, const vec3f& dir);
+	void setCamera(const vec3f& pos, const vec3f& dir) { camPos = pos, camDir = dir; }
 	void beginSurface(bool wireframe);
 	void endSurface(bool wireframe);
 
 	Track* track = nullptr;
-	vec3f lightPos;
-	vec3f lightDir;
+	vec3f camPos;
+	vec3f camDir;
 	GLDisplayList trackBatch;
 	GLDisplayList wallsBatch;
 	GLDisplayList fatPointsBatch;
 	std::vector<size_t> nearbyPoints;
+	bool wireframe = false;
+	bool drawFatPoints = false;
+	bool drawNearbyPoints = false;
 };
 
 }

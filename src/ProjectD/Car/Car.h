@@ -196,6 +196,8 @@ struct Car : public virtual IObject
 	std::vector<ray3f> probes;
 	std::vector<float> probeHits;
 	int nearestTrackPointId = 0;
+
+	std::unique_ptr<IAvatar> avatar;
 };
 
 }

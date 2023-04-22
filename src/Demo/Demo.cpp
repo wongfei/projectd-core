@@ -11,8 +11,7 @@ int main(int argc, char** argv)
 	#endif
 
 	auto app = std::make_unique<PlaygrounD>();
-	app->init(argc, argv);
-	app->mainLoop();
+	app->runDemo();
 
 	#ifndef DEBUG
 	} catch (const std::exception& ex) {

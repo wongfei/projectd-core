@@ -21,6 +21,7 @@ struct VibrationDef
 
 struct ICarControlsProvider : public virtual IObject
 {
+	virtual void setCar(struct Car* car) = 0;
 	virtual void acquireControls(CarControlsInput* input, CarControls* controls, float dt) = 0;
 	virtual void sendFF(float ff, float damper, float userGain) = 0;
 	virtual void setVibrations(VibrationDef* vib) = 0;

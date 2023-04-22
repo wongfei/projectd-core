@@ -62,6 +62,12 @@ void FmodContext::init(const std::string& basePath)
 
 void FmodContext::loadGUIDs(const std::string& fileName)
 {
+	if (loadedFiles.find(fileName) != loadedFiles.end())
+	{
+		// already loaded
+		return;
+	}
+
 	log_printf(L"loadGUIDs \"%S\"", fileName.c_str());
 
 	if (!osFileExists(strw(fileName)))
@@ -84,16 +90,19 @@ void FmodContext::loadGUIDs(const std::string& fileName)
 			}
 		}
 	}
-}
 
-void FmodContext::clearGUIDs()
-{
-	guidToEventMap.clear();
+	loadedFiles.insert(fileName);
 }
 
 void FmodContext::loadBank(const std::string& fileName)
 {
 	GUARD_FATAL(system);
+
+	if (loadedFiles.find(fileName) != loadedFiles.end())
+	{
+		// already loaded
+		return;
+	}
 
 	log_printf(L"loadBank \"%S\"", fileName.c_str());
 
@@ -107,19 +116,22 @@ void FmodContext::loadBank(const std::string& fileName)
 	auto rc = system->loadBankFile(fileName.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
 	GUARD_FATAL(rc == FMOD_OK);
 
+	loadedFiles.insert(fileName);
+
 	banks.emplace_back(bank);
+	enumerateBankEvents(bank, printEventDebugInfo);
 }
 
-void FmodContext::enumerate(bool debug)
+void FmodContext::enumerateBankEvents(FMOD::Studio::Bank* bank, bool debug)
 {
 	FMOD_RESULT rc;
 	const size_t PathLen = 1024;
 	char path[PathLen] = {0};
 
-	eventDescMap.clear();
+	//eventDescMap.clear();
 
 	int bankId = 0;
-	for (auto* bank : banks)
+	//for (auto* bank : banks)
 	{
 		if (debug)
 			log_printf(L"BANK: %d", bankId);
@@ -174,7 +186,14 @@ void FmodContext::enumerate(bool debug)
 						if (debug)
 							log_printf(L"    EventPath: %S", iter->second.c_str());
 
-						eventDescMap.insert({iter->second, e});
+						if (eventDescMap.find(iter->second) == eventDescMap.end())
+						{
+							eventDescMap.insert({iter->second, e});
+						}
+						else
+						{
+							eventDescMap[iter->second] = e;
+						}
 					}
 				}
 

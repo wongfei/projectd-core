@@ -6,15 +6,18 @@ namespace D {
 
 struct Car;
 
-struct GLCar
+struct GLCar : public IAvatar
 {
-	void init(Car* car);
-	void draw(bool drawBody = true, bool drawProbes = false);
-	void drawInstance(Car* instance, bool drawBody = true, bool drawProbes = false);
+	GLCar(Car* car);
+	virtual ~GLCar();
+
+	virtual void draw() override;
 
 	Car* car = nullptr;
 	GLPrimitive bodyMesh;
 	GLPrimitive wheelMesh;
+	bool drawBody = true;
+	bool drawProbes = false;
 };
 
 }

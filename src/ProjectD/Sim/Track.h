@@ -70,6 +70,8 @@ struct Track : public ITrackRayCastProvider
 	float traceDiffGripMax = 0.1f;
 	float traceStep = 0.01f;
 	std::unordered_set<int> traceBadSectors;
+
+	std::unique_ptr<IAvatar> avatar;
 };
 	
 }

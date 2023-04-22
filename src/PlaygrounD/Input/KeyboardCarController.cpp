@@ -9,12 +9,11 @@
 
 namespace D {
 
-KeyboardCarController::KeyboardCarController(const std::wstring& _basePath, Car* _car, void* _windowHandle)
+KeyboardCarController::KeyboardCarController(const std::wstring& _basePath, void* _windowHandle)
 {
 	TRACE_CTOR(KeyboardCarController);
 
 	basePath = _basePath;
-	car = _car;
 	windowHandle = _windowHandle;
 
 	auto ini(std::make_unique<INIReader>(basePath + L"cfg/keyboard.ini"));
@@ -55,8 +54,16 @@ KeyboardCarController::~KeyboardCarController()
 	TRACE_DTOR(KeyboardCarController);
 }
 
+void KeyboardCarController::setCar(struct Car* _car)
+{
+	car = _car;
+}
+
 void KeyboardCarController::acquireControls(CarControlsInput* input, CarControls* controls, float dt)
 {
+	if (!car)
+		return;
+
 	// TODO: no one cares about peasants playing simulator on keyboard :D
 
 	float fSteer;
@@ -109,8 +116,9 @@ float KeyboardCarController::getKeyboardSteering(CarControlsInput* input, float 
 		fSteerDir = 1.0f;
 	}
 
-	float fSteerSpeed = kbSteerSpeedCurve.getCount() > 0 ? kbSteerSpeedCurve.getValue(car->speed.kmh()) : 1;
-	float fCenterSpeed =  kbSteerCenterCurve.getCount() > 0 ? kbSteerCenterCurve.getValue(car->speed.kmh()) : 1;
+	float fCarSpeed = car->speed.kmh();
+	float fSteerSpeed = kbSteerSpeedCurve.getCount() > 0 ? kbSteerSpeedCurve.getValue(fCarSpeed) : 1;
+	float fCenterSpeed =  kbSteerCenterCurve.getCount() > 0 ? kbSteerCenterCurve.getValue(fCarSpeed) : 1;
 
 	kbSteer += fSteerDir * dt * fSteerSpeed;
 
@@ -128,7 +136,8 @@ float KeyboardCarController::getMouseSteering(CarControlsInput* input, float dt)
 	GetWindowRect((HWND)windowHandle, &rect);
 	GetCursorPos(&mousePos);
 
-	float fMouseSpeed = mouseSpeedCurve.getCount() > 0 ? mouseSpeedCurve.getValue(car->speed.kmh()) : mouseSpeed;
+	float fCarSpeed = car->speed.kmh();
+	float fMouseSpeed = mouseSpeedCurve.getCount() > 0 ? mouseSpeedCurve.getValue(fCarSpeed) : mouseSpeed;
 
 	LONG v5 = (rect.left + (rect.right - rect.left) / 2);
 	float v6 = ((mousePos.x - v5) / fMouseSpeed) + oldMouseValue;

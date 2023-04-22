@@ -59,7 +59,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -73,7 +73,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;$(SolutionDir)ProjectD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)PlaygrounD;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4100;4458;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -101,6 +101,7 @@
     <ClCompile Include="Renderer\GLCore.cpp" />
     <ClCompile Include="Renderer\GLFont.cpp" />
     <ClCompile Include="Renderer\GLPrimitive.cpp" />
+    <ClCompile Include="Renderer\GLSimulator.cpp" />
     <ClCompile Include="Renderer\GLSkyBox.cpp" />
     <ClCompile Include="Renderer\GLTexture.cpp" />
     <ClCompile Include="Renderer\GLTrack.cpp" />
@@ -123,6 +124,7 @@
     <ClInclude Include="Renderer\GLCore.h" />
     <ClInclude Include="Renderer\GLFont.h" />
     <ClInclude Include="Renderer\GLPrimitive.h" />
+    <ClInclude Include="Renderer\GLSimulator.h" />
     <ClInclude Include="Renderer\GLSkyBox.h" />
     <ClInclude Include="Renderer\GLTexture.h" />
     <ClInclude Include="Renderer\GLTrack.h" />
