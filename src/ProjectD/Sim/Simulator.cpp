@@ -35,7 +35,7 @@ bool Simulator::init(const std::wstring& _basePath)
 
 	fuelConsumptionRate = 0.0f;
 	tyreConsumptionRate = 0.0f;
-	mechanicalDamageRate = 0.0f;
+	mechanicalDamageRate = 1.0f;
 	allowTyreBlankets = false;
 	isEngineStallEnabled = true;
 

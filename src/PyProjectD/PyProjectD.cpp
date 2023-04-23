@@ -198,19 +198,21 @@ void teleportCarToPits(int simId, int carId, int pitId)
 	}
 }
 
-void teleportCarToTrackPoint(int simId, int carId, int pointId, float offsetY)
+void teleportCarToTrackLocation(int simId, int carId, float distanceNorm, float offsetY)
 {
 	auto* car = getCar(simId, carId);
 	if (car)
 	{
-		const auto& points = car->sim->track->fatPoints;
+		car->teleportToTrackLocation(distanceNorm, offsetY);
+
+		/*const auto& points = car->sim->track->fatPoints;
 		if (pointId >= 0 && pointId < (int)points.size())
 		{
 			auto& pt = points[pointId];
 
 			car->forceRotation(pt.forwardDir);
 			car->forcePosition(D::vec3f(&pt.center.x), offsetY);
-		}
+		}*/
 	}
 }
 
@@ -355,7 +357,8 @@ PYBIND11_MODULE(PyProjectD, m)
 		.def_readonly("tyreAngularSpeed", &D::CarState::tyreAngularSpeed)
 
 		.def_readonly("probes", &D::CarState::probes)
-		.def_readonly("nearestTrackPointId", &D::CarState::nearestTrackPointId)
+		.def_readonly("trackLocation", &D::CarState::trackLocation)
+		.def_readonly("agentScore", &D::CarState::agentScore)
 		;
 
 	m.def("setSeed", &setSeed, "");
@@ -375,7 +378,7 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("removeCar", &removeCar, "");
 	m.def("teleportCarToLocation", &teleportCarToLocation, "");
 	m.def("teleportCarToPits", &teleportCarToPits, "");
-	m.def("teleportCarToTrackPoint", &teleportCarToTrackPoint, "");
+	m.def("teleportCarToTrackLocation", &teleportCarToTrackLocation, "");
 	m.def("setCarControls", &setCarControls, "");
 	m.def("getCarState", &getCarState, "");
 

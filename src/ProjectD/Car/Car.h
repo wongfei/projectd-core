@@ -76,6 +76,7 @@ struct Car : public virtual IObject
 	void forcePosition(const vec3f& pos, float offsetY = 0);
 	void forceRotation(const vec3f& heading);
 	void teleportToPits(const mat44f& m);
+	void teleportToTrackLocation(float distanceNorm, float offsetY = 0);
 	float getBaseCarHeight() const;
 	vec3f getGroundWindVector() const;
 	float getPointGroundHeight(const vec3f& pt) const;
@@ -85,7 +86,9 @@ struct Car : public virtual IObject
 	float getOptimalBrake() const;
 	float getDrivingTyresSlip() const;
 
-	void stepDrift(float dt);
+	// score
+	void computeDriftScore(float dt);
+	void computeAgentScore(float dt);
 	void resetDrift();
 	void validateDrift();
 	bool checkExtremeDrift(float triggerSlipLevel = 0.8f) const;
@@ -169,6 +172,7 @@ struct Car : public virtual IObject
 	std::unique_ptr<AutoBlip> autoBlip;
 	std::unique_ptr<AutoShifter> autoShift;
 	std::unique_ptr<CarState> state;
+	std::unique_ptr<IAvatar> avatar;
 
 	CarControls controls;
 	float finalSteerAngleSignal = 0;
@@ -209,6 +213,7 @@ struct Car : public virtual IObject
 	float currentSpeedMultiplier = 0;
 	float lastDriftDirection = 0;
 	float driftStraightTimer = 0;
+	float instantDriftDelta = 0;
 	float instantDrift = 0;
 	float driftPoints = 0;
 	int driftComboCounter = 0;
@@ -216,9 +221,18 @@ struct Car : public virtual IObject
 	// obstacle probes
 	std::vector<ray3f> probes;
 	std::vector<float> probeHits;
-	int nearestTrackPointId = 0;
 
-	std::unique_ptr<IAvatar> avatar;
+	int nearestTrackPointId = 0;
+	float trackLocation = 0;
+	float oldTrackLocation = 0;
+
+	float agentScore = 0;
+	float scoreGearW = 1;
+	float scoreGearGrindW = 1;
+	float scoreRpmW = 1;
+	float scoreSpeedW = 1;
+	float scoreProbeW = 1;
+	float scoreDriftW = 1;
 };
 
 }

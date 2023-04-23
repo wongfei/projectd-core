@@ -139,7 +139,8 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 
 	font_.draw(x, y, "gearReq %d", car_->controls.requestedGearIndex); y += dy;
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
-	font_.draw(x, y, "trackPoint %d", (int)car_->nearestTrackPointId); y += dy;
+	font_.draw(x, y, "trackPoint %d", car_->nearestTrackPointId); y += dy;
+	font_.draw(x, y, "trackLocation %.2f", car_->trackLocation); y += dy;
 
 	#if 1
 	y += dy;
@@ -148,6 +149,19 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	//font_.draw(x, y, "instantDrift %.2f", car_->instantDrift); y += dy;
 	font_.draw(x, y, "driftPoints %.2f", car_->driftPoints); y += dy;
 	font_.draw(x, y, "driftCombo %d", car_->driftComboCounter); y += dy;
+	font_.draw(x, y, "agentScore %.2f", car_->agentScore); y += dy;
+	#endif
+
+	#if 1
+	font_.draw(x, y, "engineLife %d", car_->drivetrain->engineModel->lifeLeft); y += dy;
+	for (int i = 0; i < 5; ++i)
+	{
+		font_.draw(x, y, "dmg %d %.3f", i, car_->damageZoneLevel[i]); y += dy;
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		font_.draw(x, y, "flatSpot %d %.3f", i, car_->tyres[i]->status.flatSpot); y += dy;
+	}
 	#endif
 
 	#if 0
@@ -274,7 +288,9 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 
 		font_.draw(w * 0.35f, h * 0.65f, "DA %d", (int)(car_->currentDriftAngle * M_RAD2DEG));
 		//font_.draw(w * 0.45f, h * 0.65f, "%d", (int)car_->driftComboCounter);
-		font_.draw(w * 0.55f, h * 0.65f, "DP %d", (int)car_->instantDrift);
+		//font_.draw(w * 0.55f, h * 0.65f, "DP %d", (int)car_->instantDrift);
+		font_.draw(w * 0.55f, h * 0.65f, "DD %.3f", car_->instantDriftDelta);
+		font_.draw(w * 0.65f, h * 0.65f, "S %.3f", car_->agentScore);
 	}
 }
 

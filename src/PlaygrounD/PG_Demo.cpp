@@ -51,6 +51,8 @@ void PlaygrounD::loadDemo()
 
 	setActiveCar(0, true, true);
 
+	car_->teleportToTrackLocation(0.0f, 0.1f);
+
 	// CAR_TUNE
 
 	int tyreCompound = 1;

@@ -426,10 +426,10 @@ inline bool getLineIntersection(const vec2f& p0, const vec2f& p1, const vec2f& p
 // many tracks don't have guardrails/walls, fake them by tracing against track side splines
 float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDistance)
 {
-	float result = -1.0f;
-
 	if (maxDistance <= 0.0f)
 		maxDistance = fatPointsHash.cellSize;
+
+	float result = maxDistance;
 
 	// allow points to be cached by query position
 	const float cacheDistanceTolerance = 1.0f;

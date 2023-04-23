@@ -608,11 +608,6 @@ void Car::stepComponents(float dt)
 	//colliderManager.step(dt);
 	//stabilityControl.step(dt);
 	//fuelLapEvaluator.step(dt);
-
-	stepDrift(dt);
-
-	for (int i = 0; i < 5; ++i)
-		oldDamageZoneLevel[i] = damageZoneLevel[i];
 }
 
 //=============================================================================
@@ -629,7 +624,14 @@ void Car::postStep(float dt)
 	slipStream->setPosition(vBodyPos, vBodyVel);
 
 	updateTrackLocator();
+
+	computeDriftScore(dt);
+	computeAgentScore(dt);
+
 	updateCarState();
+
+	for (int i = 0; i < 5; ++i)
+		oldDamageZoneLevel[i] = damageZoneLevel[i];
 
 	if (audioRenderer)
 		audioRenderer->update(dt);
@@ -670,6 +672,13 @@ void Car::updateTrackLocator()
 	}
 
 	nearestTrackPointId = bestPoint;
+
+	oldTrackLocation = trackLocation;
+
+	if (bestPoint >= 0)
+		trackLocation = tclamp((float)bestPoint / (float)(track->fatPoints.size() - 1), 0.0f, 1.0f);
+	else
+		trackLocation = 0;
 }
 
 //=============================================================================
@@ -710,7 +719,8 @@ void Car::updateCarState()
 		state->probes[i] = probeHits[i];
 	}
 
-	state->nearestTrackPointId = nearestTrackPointId;
+	state->trackLocation = trackLocation;
+	state->agentScore = agentScore;
 
 	#if 0
 	auto bodyGM = getGraphicsOffsetMatrix();
@@ -1122,6 +1132,22 @@ void Car::teleportToPits(const mat44f& m)
 	forcePosition(D::vec3f(&m.M41));
 }
 
+void Car::teleportToTrackLocation(float distanceNorm, float offsetY)
+{
+	const auto& points = sim->track->fatPoints;
+	size_t n = points.size();
+	if (n)
+	{
+		int pointId = (int)(tclamp(distanceNorm, 0.0f, 1.0f) * (n - 1));
+		if (pointId >= 0 && pointId < (int)n)
+		{
+			auto& pt = points[pointId];
+			forceRotation(pt.forwardDir);
+			forcePosition(D::vec3f(&pt.center.x), offsetY);
+		}
+	}
+}
+
 float Car::getBaseCarHeight() const
 {
 	float t0 = fabsf(suspensions[0]->getBasePosition().y - tyres[0]->data.rimRadius);
@@ -1234,7 +1260,11 @@ float Car::getDrivingTyresSlip() const
 	}
 }
 
-void Car::stepDrift(float dt)
+//=============================================================================
+// SCORE
+//=============================================================================
+
+void Car::computeDriftScore(float dt)
 {
 	validateDrift();
 	float fBeta = fabsf(getBetaRad());
@@ -1264,6 +1294,7 @@ void Car::stepDrift(float dt)
 		if (driftExtreme)
 			fDelta *= 2.0f;
 
+		instantDriftDelta = fDelta;
 		instantDrift += fDelta;
 
 		if (fabsf(v.x) > 4.0f)
@@ -1311,6 +1342,42 @@ void Car::stepDrift(float dt)
 	{
 		resetDrift();
 	}
+}
+
+void Car::computeAgentScore(float dt)
+{
+	agentScore = 0.0f;
+
+	agentScore += scoreRpmW * linscalef(getEngineRpm(), 0.0f, (float)drivetrain->engineModel->getLimiterRPM(), -0.25f, 0.1f);
+
+	agentScore += scoreSpeedW * linscalef(speed.kmh(), 0.0f, 100.0f, -0.1f, 0.25f);
+
+	if (drivetrain->currentGear <= 1)
+	{
+		agentScore += scoreGearW * -0.1f;
+	}
+
+	if (drivetrain->isGearGrinding)
+	{
+		agentScore += scoreGearGrindW * -0.5f;
+	}
+
+	if (probeHits.size())
+	{
+		float minProbe = FLT_MAX;
+		for (size_t i = 0; i < probeHits.size(); ++i)
+		{
+			float dist = probeHits[i];
+			if (minProbe > dist && dist > 0.0f)
+				minProbe = dist;
+		}
+
+		float dangerDistance = 1.5f;
+		minProbe = tmin(minProbe, dangerDistance);
+		agentScore += scoreProbeW * linscalef(minProbe, 0.0f, dangerDistance, -1.0f, 0.0f);
+	}
+
+	agentScore += scoreDriftW * instantDriftDelta;
 }
 
 void Car::resetDrift()

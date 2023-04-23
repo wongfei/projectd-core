@@ -32,7 +32,9 @@ struct CarState
 
 	enum { MaxProbes = 10 };
 	std::array<float, MaxProbes> probes;
-	int32_t nearestTrackPointId = 0;
+	
+	float trackLocation = 0;
+	float agentScore = 0;
 
 	#if 0
 	mat44f graphicsMatrix;

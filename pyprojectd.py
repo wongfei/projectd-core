@@ -17,7 +17,7 @@ car = pd.addCar(sim, 'gravygarage_street_ae86_readie')
 
 #pd.teleportCarToLocation(sim, car, 70.57, 66.34, 14.29)
 #pd.teleportCarToPits(sim, car, 0) # simId, carId, pitId
-pd.teleportCarToTrackPoint(sim, car, 1, 0.1) # simId, carId, pointId, offsetY
+pd.teleportCarToTrackLocation(sim, car, 1, 0.1) # simId, carId, distanceNorm, offsetY
 
 pd.initPlayground(baseDir)
 pd.setActiveSimulator(sim, True) # simId, simEnabled
