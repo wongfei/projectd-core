@@ -95,6 +95,8 @@ GLTrack::~GLTrack()
 
 void GLTrack::draw()
 {
+	drawSurfaces();
+
 	// world origin
 	glBegin(GL_LINES);
 		glColor3f(1.0f, 0.0f, 0.0f);
@@ -144,13 +146,10 @@ void GLTrack::draw()
 		glEnd();
 	}
 
-	beginSurface(wireframe);
-	trackBatch.draw();
-	wallsBatch.draw();
-	endSurface(wireframe);
-
 	if (drawFatPoints && !track->fatPoints.empty())
+	{
 		fatPointsBatch.draw();
+	}
 
 	if (drawNearbyPoints)
 	{
@@ -197,8 +196,11 @@ void GLTrack::draw()
 	}
 }
 
-void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
+void GLTrack::drawSurfaces() // LOL LEGACY OPENGL IS CRAZY :D
 {
+	GLint oldShadeModel = 0;
+	glGetIntegerv(GL_SHADE_MODEL, &oldShadeModel);
+
 	if (wireframe)
 	{
 		glLineWidth(2);
@@ -210,8 +212,9 @@ void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
 		glShadeModel(GL_FLAT);
-		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+		
 		glEnable(GL_COLOR_MATERIAL);
+		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
 		GLfloat ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 		GLfloat diffuseLight[] = { 0.95f, 0.95f, 0.95f, 1.0f };
@@ -224,20 +227,22 @@ void GLTrack::beginSurface(bool wireframe) // LOL LEGACY OPENGL IS CRAZY :D
 		glLightfv(GL_LIGHT0, GL_POSITION, position);
 		glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, direction);
 	}
-}
 
-void GLTrack::endSurface(bool wireframe)
-{
+	trackBatch.draw();
+	wallsBatch.draw();
+
 	if (wireframe)
 	{
+		glLineWidth(1);
 		glPolygonMode(GL_FRONT, GL_FILL);
 		glPolygonMode(GL_BACK, GL_FILL);
 	}
 	else
 	{
-		glDisable(GL_COLOR_MATERIAL);
-		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
+		glDisable(GL_LIGHT0);
+		glDisable(GL_COLOR_MATERIAL);
+		glShadeModel(oldShadeModel);
 	}
 }
 

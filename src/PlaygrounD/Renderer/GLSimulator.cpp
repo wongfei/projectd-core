@@ -11,26 +11,24 @@ namespace D {
 
 GLSimulator::GLSimulator(Simulator* _sim)
 {
+	TRACE_CTOR(GLSimulator);
+
 	sim = _sim;
+
+	skybox.reset(new GLSkyBox());
+	skybox->load(10000, sim->basePath + L"content/demo/sky%d.jpg");
 }
 
 GLSimulator::~GLSimulator()
 {
+	TRACE_DTOR(GLSimulator);
 }
 
 void GLSimulator::draw()
 {
 	if (drawSkybox)
 	{
-		if (skybox)
-		{
-			skybox->draw();
-		}
-		else
-		{
-			skybox.reset(new GLSkyBox());
-			skybox->load(10000, sim->basePath + L"content/demo/sky%d.jpg");
-		}
+		skybox->draw();
 	}
 
 	if (sim->track)

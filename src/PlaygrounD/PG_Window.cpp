@@ -4,6 +4,7 @@ namespace D {
 
 void PlaygrounD::initWindow()
 {
+	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 	int rc = SDL_Init(SDL_INIT_VIDEO);
 	GUARD_FATAL(rc == 0);
 
@@ -17,7 +18,7 @@ void PlaygrounD::initWindow()
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-	unsigned int winFlags = SDL_WINDOW_OPENGL;
+	unsigned int winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 
 	if (fullscreen_)
 		winFlags |= (SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_HIDDEN); // hidden to prevent flicker
@@ -72,44 +73,10 @@ void PlaygrounD::closeWindow()
 	}
 }
 
-void PlaygrounD::clearViewport()
-{
-	SDL_GetWindowSize(appWindow_, &width_, &height_);
-	glViewport(0, 0, width_, height_);
-	glClearColor(0, 0, 0, 1);
-	glClearDepth(1);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void PlaygrounD::projPerspective()
-{
-	glMatrixMode(GL_PROJECTION);
-	glm::mat4 persp = glm::perspectiveFov(glm::radians(fov_), (float)width_, (float)height_, 0.2f, 20000.0f);
-	glLoadMatrixf(&persp[0][0]);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixf(&camView_[0][0]);
-}
-
-void PlaygrounD::projOrtho()
-{
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, width_, height_, 0, -1, 1);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(0.0f, 0.0f, -1.0f);
-}
-
-void PlaygrounD::swap()
-{
-	glFlush();
-	SDL_GL_SwapWindow(appWindow_);
-}
-
 void PlaygrounD::processEvents()
 {
+	beginInputNuk();
+
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
@@ -167,7 +134,47 @@ void PlaygrounD::processEvents()
 				break;
 			}
 		}
+
+		processEventNuk(&event);
 	}
+
+	endInputNuk();
+}
+
+void PlaygrounD::clearViewport()
+{
+	SDL_GetWindowSize(appWindow_, &width_, &height_);
+	glViewport(0, 0, width_, height_);
+	glClearColor(0, 0, 0, 1);
+	glClearDepth(1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void PlaygrounD::projPerspective()
+{
+	glMatrixMode(GL_PROJECTION);
+	glm::mat4 persp = glm::perspectiveFov(glm::radians(fov_), (float)width_, (float)height_, 0.2f, 20000.0f);
+	glLoadMatrixf(&persp[0][0]);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(&camView_[0][0]);
+}
+
+void PlaygrounD::projOrtho()
+{
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, width_, height_, 0, -1, 1);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0.0f, 0.0f, -1.0f);
+}
+
+void PlaygrounD::swap()
+{
+	glFlush();
+	SDL_GL_SwapWindow(appWindow_);
 }
 
 }

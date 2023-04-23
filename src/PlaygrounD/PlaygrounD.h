@@ -30,6 +30,8 @@
 
 #include <chrono>
 
+struct nk_context;
+
 namespace D {
 
 inline D::vec3f v(const glm::vec3& in) { return D::vec3f(in.x, in.y, in.z); }
@@ -40,24 +42,27 @@ struct PlaygrounD
 	PlaygrounD();
 	~PlaygrounD();
 
-	void runDemo();
-	void loadDemo();
-
+	// Init
 	void init(const std::string& basePath, bool loadedByPython);
+	void shut();
 	void initEngine(const std::string& basePath, bool loadedByPython);
 	void initCarController();
-
 	void setSimulator(SimulatorPtr newSim);
 	void setActiveCar(int carId, bool takeControls = false, bool enableSound = false);
 
+	// Tick
 	void tick();
+	void updateSimStats(float dt, float gameTime);
 	void processInput(float dt);
 	void updateCamera(float dt);
 	void freeFlyCamera(float dt);
+
+	// Render
 	void render();
 	void renderWorld();
-	void renderUI();
+	void render2D();
 
+	// Window
 	void initWindow();
 	void closeWindow();
 	void clearViewport();
@@ -66,10 +71,23 @@ struct PlaygrounD
 	void swap();
 	void processEvents();
 
+	// Debug
 	void initCharts();
 	void renderCharts();
 	void renderStats();
 	void renderCarStats(float x, float y, float dy);
+
+	// Nuklear
+	void initNuk();
+	void shutNuk();
+	void beginInputNuk();
+	void processEventNuk(SDL_Event* ev);
+	void endInputNuk();
+	void renderNuk();
+
+	// Demo
+	void runDemo();
+	void loadDemo();
 
 	inline bool getkey(SDL_Scancode scan) { return keys_[scan]; }
 	inline bool getkeyf(SDL_Scancode scan) { return keys_[scan] ? 1.0f : 0.0f; }
@@ -83,8 +101,10 @@ struct PlaygrounD
 
 	std::unordered_map<std::string, std::string> options_;
 
-	double simTickRate_ = 1.0 / 333.0;
-	double drawTickRate_ = 1.0 / 111.0;
+	int simHz_ = 333;
+	int drawHz_ = 111;
+	double simTickRate_ = 0;
+	double drawTickRate_ = 0;
 	double hitchRate = 5.0;
 
 	int posx_ = 0;
@@ -100,6 +120,7 @@ struct PlaygrounD
 	SDL_Window* appWindow_ = nullptr;
 	SDL_GLContext glContext_ = nullptr;
 	HWND sysWindow_ = nullptr;
+	nk_context* nukContext_ = nullptr;
 	GLFont font_;
 
 	bool exitFlag_ = false;
@@ -140,17 +161,17 @@ struct PlaygrounD
 	bool mouseBtn_[2] = {0, 0};
 	float moveSpeed_ = 10.0f;
 	float moveSpeedScale_ = 1.0f;
-	float mouseSens_ = 0.35f;
+	float mouseSens_ = 0.2f;
 
-	bool simEnabled_ = true;
-	bool simStepOnce_ = false;
-	bool wireframeMode_ = false;
-	bool drawWorld_ = true;
-	bool drawSky_ = true;
-	bool drawTrackPoints_ = false;
-	bool drawNearbyPoints_ = false;
-	bool drawCarProbes_ = false;
-	bool drawUI_ = true;
+	int simEnabled_ = true;
+	int simStepOnce_ = false;
+	int wireframeMode_ = false;
+	int drawWorld_ = true;
+	int drawSky_ = true;
+	int drawTrackPoints_ = false;
+	int drawNearbyPoints_ = false;
+	int drawCarProbes_ = false;
+	int draw2D_ = true;
 
 	clock::time_point tick0_;
 	double dt_ = 0;

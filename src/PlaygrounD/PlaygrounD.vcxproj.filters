@@ -60,7 +60,7 @@
     <ClCompile Include="Renderer\GLTrack.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="PG_Main.cpp">
+    <ClCompile Include="PG_Init.cpp">
       <Filter>PlaygrounD</Filter>
     </ClCompile>
     <ClCompile Include="PG_Window.cpp">
@@ -70,6 +70,10 @@
       <Filter>PlaygrounD</Filter>
     </ClCompile>
     <ClCompile Include="Renderer\GLSimulator.cpp" />
+    <ClCompile Include="PG_Nuk.cpp" />
+    <ClCompile Include="PG_Tick.cpp" />
+    <ClCompile Include="PG_Demo.cpp" />
+    <ClCompile Include="PG_Render.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\FmodAudioRenderer.h">
@@ -133,5 +137,8 @@
       <Filter>PlaygrounD</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\GLSimulator.h" />
+    <ClInclude Include="Nuklear\nuklear.h" />
+    <ClInclude Include="Nuklear\nuklear_sdl_gl2.h" />
+    <ClInclude Include="Nuklear\style.h" />
   </ItemGroup>
 </Project>

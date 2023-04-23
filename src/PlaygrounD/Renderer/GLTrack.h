@@ -14,8 +14,7 @@ struct GLTrack : public IAvatar
 	virtual void draw() override;
 
 	void setCamera(const vec3f& pos, const vec3f& dir) { camPos = pos, camDir = dir; }
-	void beginSurface(bool wireframe);
-	void endSurface(bool wireframe);
+	void drawSurfaces();
 
 	Track* track = nullptr;
 	vec3f camPos;

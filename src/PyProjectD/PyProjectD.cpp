@@ -4,16 +4,6 @@
 namespace py = pybind11;
 
 #include "PlaygrounD.h"
-
-#if 0
-#include "Core/OS.h"
-#include "Core/Diag.h"
-#include "Sim/Simulator.h"
-#include "Sim/Track.h"
-#include "Car/Car.h"
-#include "Car/CarState.h"
-#endif
-
 #include <unordered_map>
 
 static int g_uniqSimId = 0;
@@ -36,6 +26,11 @@ void initLogFile(const std::string& path)
 void closeLogFile()
 {
 	D::log_close();
+}
+
+void writeLog(const std::string& msg)
+{
+	D::log_printf(L"%S", msg.c_str());
 }
 
 //
@@ -366,6 +361,7 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("setSeed", &setSeed, "");
 	m.def("initLogFile", &initLogFile, "");
 	m.def("closeLogFile", &closeLogFile, "");
+	m.def("writeLog", &writeLog, "");
 
 	m.def("createSimulator", &createSimulator, "");
 	m.def("destroySimulator", &destroySimulator, "");

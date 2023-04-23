@@ -94,7 +94,11 @@
     <ClCompile Include="Input\DIDevice.cpp" />
     <ClCompile Include="Input\InputVariable.cpp" />
     <ClCompile Include="Input\KeyboardCarController.cpp" />
-    <ClCompile Include="PG_Main.cpp" />
+    <ClCompile Include="PG_Demo.cpp" />
+    <ClCompile Include="PG_Init.cpp" />
+    <ClCompile Include="PG_Nuk.cpp" />
+    <ClCompile Include="PG_Render.cpp" />
+    <ClCompile Include="PG_Tick.cpp" />
     <ClCompile Include="PG_Window.cpp" />
     <ClCompile Include="Renderer\GLCar.cpp" />
     <ClCompile Include="Renderer\GLChart.cpp" />
@@ -105,6 +109,7 @@
     <ClCompile Include="Renderer\GLSkyBox.cpp" />
     <ClCompile Include="Renderer\GLTexture.cpp" />
     <ClCompile Include="Renderer\GLTrack.cpp" />
+    <ClInclude Include="Nuklear\style.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\FmodAudioRenderer.h" />
@@ -128,6 +133,8 @@
     <ClInclude Include="Renderer\GLSkyBox.h" />
     <ClInclude Include="Renderer\GLTexture.h" />
     <ClInclude Include="Renderer\GLTrack.h" />
+    <ClInclude Include="Nuklear\nuklear.h" />
+    <ClInclude Include="Nuklear\nuklear_sdl_gl2.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

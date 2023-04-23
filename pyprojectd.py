@@ -29,6 +29,7 @@ controls.gas = 1
 controls.clutch = 1
 controls.requestedGearIndex = 1 # 0=R, 1=N, 2=H1, 3=H2, 4=H3, 5=H4, 6=H5, 7=H6
 
+pd.writeLog('MAIN LOOP')
 #for i in range(0, 1000):
 while not pd.isPlaygroundExited():
     #pd.setCarControls(sim, car, controls)
