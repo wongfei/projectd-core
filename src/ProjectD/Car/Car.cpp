@@ -608,6 +608,11 @@ void Car::stepComponents(float dt)
 	//colliderManager.step(dt);
 	//stabilityControl.step(dt);
 	//fuelLapEvaluator.step(dt);
+
+	stepDrift(dt);
+
+	for (int i = 0; i < 5; ++i)
+		oldDamageZoneLevel[i] = damageZoneLevel[i];
 }
 
 //=============================================================================
@@ -1227,6 +1232,167 @@ float Car::getDrivingTyresSlip() const
 	{
 		return tmax(tyres[2]->status.ndSlip, tyres[3]->status.ndSlip);
 	}
+}
+
+void Car::stepDrift(float dt)
+{
+	validateDrift();
+	float fBeta = fabsf(getBetaRad());
+
+	if (speed.kmh() > 20.0f && fBeta > 0.13089749f)
+	{
+		auto v = body->getLocalVelocity();
+
+		if (!drifting)
+		{
+			lastDriftDirection = signf(v.x);
+			driftComboCounter = 1;
+			driftInvalid = false;
+			instantDrift = 0.0f;
+		}
+
+		currentDriftAngle = fBeta - 0.13089749f;
+
+		float fSpeedMult = (speed.kmh() - 20.0f) * 0.015384615f;
+		fSpeedMult = tclamp(fSpeedMult, 0.0f, 2.0f);
+
+		currentSpeedMultiplier = fSpeedMult;
+
+		driftExtreme = checkExtremeDrift();
+
+		float fDelta = fSpeedMult * currentDriftAngle;
+		if (driftExtreme)
+			fDelta *= 2.0f;
+
+		instantDrift += fDelta;
+
+		if (fabsf(v.x) > 4.0f)
+		{
+			float fDir = signf(v.x);
+			if (lastDriftDirection != fDir && fBeta > 0.26179498f)
+			{
+				instantDrift += 50.0f;
+				driftComboCounter++;
+				lastDriftDirection = fDir;
+			}
+		}
+
+		drifting = true;
+		driftStraightTimer = 0.0f;
+	}
+
+	if (drifting)
+	{
+		if (speed.kmh() > 20.0f && fBeta < 0.065448746f)
+		{
+			driftStraightTimer += dt;
+		}
+		else
+		{
+			driftStraightTimer = 0.0f;
+		}
+
+		if (driftInvalid)
+		{
+			resetDrift();
+			return;
+		}
+
+		if (driftStraightTimer > 1.0f)
+		{
+			driftComboCounter = 0;
+			driftPoints += instantDrift;
+			drifting = false;
+			instantDrift = 0.0f;
+		}
+	}
+
+	if (driftInvalid)
+	{
+		resetDrift();
+	}
+}
+
+void Car::resetDrift()
+{
+	currentDriftAngle = 0.0;
+	currentSpeedMultiplier = 0.0;
+	driftExtreme = false;
+	drifting = false;
+	instantDrift = 0.0;
+	driftComboCounter = 0;
+}
+
+inline bool isDirty(Tyre* tyre)
+{
+	auto* surf = tyre->surfaceDef;
+	return (surf && surf->dirtAdditiveK > 0.001f);
+}
+
+void Car::validateDrift()
+{
+	bool bInvalid = true;
+
+	int nDirtyTyres = 0;
+	for (int i = 0; i < 4; ++i)
+		nDirtyTyres += (int)isDirty(tyres[i].get());
+
+	if (nDirtyTyres <= 2)
+	{
+		if (speed.kmh() >= 20.0f)
+		{
+			bool bDamage = false;
+			for (int i = 0; i < 5; ++i)
+			{
+				if (fabsf(damageZoneLevel[i] - oldDamageZoneLevel[i]) > 0.001f)
+				{
+					bDamage = true;
+					break;
+				}
+			}
+
+			if (!bDamage && drivetrain->currentGear)
+			{
+				bInvalid = false;
+			}
+		}
+	}
+
+	if (bInvalid)
+		driftInvalid = true;
+}
+
+inline bool isExtremeDrift(Tyre* tyre, float triggerSlipLevel)
+{
+	auto* surf = tyre->surfaceDef;
+	return (surf 
+		&& fabsf(tyre->status.angularVelocity) > 4.0
+		&& fabsf(tyre->status.slipRatio) > triggerSlipLevel
+		&& tyre->status.load > 10.0
+		&& surf->gripMod >= 0.9f);
+}
+
+bool Car::checkExtremeDrift(float triggerSlipLevel) const
+{
+	int nDriftyTyres = 0;
+	for (int i = 0; i < 4; ++i)
+		nDriftyTyres += (int)isExtremeDrift(tyres[i].get(), triggerSlipLevel);
+
+	return nDriftyTyres > 1;
+}
+
+float Car::getBetaRad() const // TODO: check
+{
+	auto vel = body->getLocalVelocity();
+
+	float fLen = vel.len();
+	if (fLen != 0.0f)
+		vel.x /= fLen;
+
+	if (vel.x <= -1.0f || vel.x >= 1.0f)
+		return 1.5707964f;
+
+	return asinf(vel.x);
 }
 
 }

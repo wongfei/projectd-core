@@ -85,6 +85,12 @@ struct Car : public virtual IObject
 	float getOptimalBrake() const;
 	float getDrivingTyresSlip() const;
 
+	void stepDrift(float dt);
+	void resetDrift();
+	void validateDrift();
+	bool checkExtremeDrift(float triggerSlipLevel = 0.8f) const;
+	float getBetaRad() const;
+
 	Event<OnStepCompleteEvent> evOnStepComplete;
 	Event<OnCollisionEvent> evOnCollisionEvent;
 	
@@ -179,10 +185,11 @@ struct Car : public virtual IObject
 	double lastCollisionTime = 0;
 	double lastCollisionWithCarTime = 0;
 	float damageZoneLevel[5] = {};
+	float oldDamageZoneLevel[5] = {};
 
 	int framesToSleep = 50;
 	int sleepingFrames = 0;
-
+	
 	// force feedback
 	float vibrationPhase = 0;
 	float slipVibrationPhase = 0;
@@ -194,6 +201,17 @@ struct Car : public virtual IObject
 	float lastFF = 0;
 	float lastDamp = 0;
 	VibrationDef lastVibr;
+
+	bool drifting = false;
+	bool driftExtreme = false;
+	bool driftInvalid = false;
+	float currentDriftAngle = 0;
+	float currentSpeedMultiplier = 0;
+	float lastDriftDirection = 0;
+	float driftStraightTimer = 0;
+	float instantDrift = 0;
+	float driftPoints = 0;
+	int driftComboCounter = 0;
 
 	// obstacle probes
 	std::vector<ray3f> probes;

@@ -141,6 +141,15 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
 	font_.draw(x, y, "trackPoint %d", (int)car_->nearestTrackPointId); y += dy;
 
+	#if 1
+	y += dy;
+	//font_.draw(x, y, "drifting %d", car_->drifting); y += dy;
+	//font_.draw(x, y, "currentDriftAngle %.2f", car_->currentDriftAngle); y += dy;
+	//font_.draw(x, y, "instantDrift %.2f", car_->instantDrift); y += dy;
+	font_.draw(x, y, "driftPoints %.2f", car_->driftPoints); y += dy;
+	font_.draw(x, y, "driftCombo %d", car_->driftComboCounter); y += dy;
+	#endif
+
 	#if 0
 	for (int i = 0; i < 4; ++i)
 	{
@@ -238,16 +247,34 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 
 		font_.setHeight(25);
 		font_.draw(w * 0.35f, h * 0.7f, "%d", (int)rpm);
-		font_.draw(w * 0.45f, h * 0.7f, "%d", gear);
+		font_.draw(w * 0.45f, h * 0.7f, "G%d", gear);
 
 		glColor3ub(255, 255, 255);
-		font_.draw(w * 0.55f, h * 0.7f, "%.1f", car_->speed.kmh());
+		font_.draw(w * 0.55f, h * 0.7f, "%.1f kmh", car_->speed.kmh());
 
 		if (car_->drivetrain->isGearGrinding)
 		{
 			glColor3ub(255, 0, 0);
-			font_.draw(width_ * 0.4f, height_ * 0.6f, "MONEY SHIFT!");
+			font_.draw(width_ * 0.4f, height_ * 0.4f, "MONEY SHIFT!");
 		}
+	}
+
+	// DRIFT BAR
+
+	if (inpCamMode_ == (int)ECamMode::Eye || inpCamMode_ == (int)ECamMode::Rear)
+	{
+		float w = (float)width_;
+		float h = (float)height_;
+
+		font_.setHeight(25);
+
+		glColor3ub(255, 255, 255);
+		if (car_->driftExtreme) glColor3ub(0, 255, 0);
+		if (car_->driftInvalid) glColor3ub(255, 0, 0);
+
+		font_.draw(w * 0.35f, h * 0.65f, "DA %d", (int)(car_->currentDriftAngle * M_RAD2DEG));
+		//font_.draw(w * 0.45f, h * 0.65f, "%d", (int)car_->driftComboCounter);
+		font_.draw(w * 0.55f, h * 0.65f, "DP %d", (int)car_->instantDrift);
 	}
 }
 
