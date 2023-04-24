@@ -214,6 +214,8 @@ void Track::initTrackPoints()
 		saveFatPoints();
 	}
 
+	computedTrackWidth = 0;
+
 	if (!fatPoints.empty())
 	{
 		float cellSize = 50;
@@ -229,10 +231,13 @@ void Track::initTrackPoints()
 		fatPointsHash.init(cellSize, (size_t)tableSize); // allows to query points around specific location
 		pointCachePos = vec3f(0, -10000, 0);
 
-		// skip first point
-		for (size_t id = 1; id < fatPoints.size(); ++id)
+		for (size_t id = 0; id < fatPoints.size(); ++id)
 		{
 			fatPointsHash.add(fatPoints[id].center, id);
+
+			const float dist = (fatPoints[id].left - fatPoints[id].right).len();
+			if (computedTrackWidth < dist)
+				computedTrackWidth = dist;
 		}
 	}
 }
@@ -451,10 +456,14 @@ float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDis
 		float bestDist = FLT_MAX;
 		bool interFlag = false;
 
-		for (auto id : nearbyPoints)
+		const size_t maxPoints = fatPoints.size();
+
+		for (size_t id : nearbyPoints)
 		{
-			auto sideA = fatPoints[id - 1].left;
-			auto sideB = fatPoints[id].left;
+			const size_t other = id + 1 < maxPoints ? id + 1 : 0;
+
+			auto sideA = fatPoints[id].left;
+			auto sideB = fatPoints[other].left;
 
 			if (getLineIntersection(rayA, rayB, vec2f(sideA.x, sideA.z), vec2f(sideB.x, sideB.z), inter))
 			{
@@ -470,8 +479,8 @@ float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDis
 				#endif
 			}
 
-			sideA = fatPoints[id - 1].right;
-			sideB = fatPoints[id].right;
+			sideA = fatPoints[id].right;
+			sideB = fatPoints[other].right;
 
 			if (getLineIntersection(rayA, rayB, vec2f(sideA.x, sideA.z), vec2f(sideB.x, sideB.z), inter))
 			{

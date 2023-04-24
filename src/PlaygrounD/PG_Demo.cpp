@@ -43,7 +43,7 @@ void PlaygrounD::loadDemo()
 	for (int i = 0; i < maxCars; ++i)
 	{
 		auto* car = sim->addCar(carModel);
-		car->teleportToPits(track->pits[i]);
+		car->teleport(track->pits[i]);
 	}
 
 	pitPos_ = track->pits[0];

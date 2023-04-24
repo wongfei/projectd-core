@@ -215,7 +215,7 @@ void PlaygrounD::processInput(float dt)
 
 	if (asyncKeydown(SDL_SCANCODE_C)) { simEnabled_ = !simEnabled_; }
 	if (asyncKeydown(SDL_SCANCODE_X)) { simStepOnce_ = true; }
-	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleportToPits(pitPos_); }
+	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleport(pitPos_); }
 
 	if (asyncKeydown(SDL_SCANCODE_COMMA)) { drawWorld_ = !drawWorld_; }
 	if (asyncKeydown(SDL_SCANCODE_PERIOD)) { drawSky_ = !drawSky_; }

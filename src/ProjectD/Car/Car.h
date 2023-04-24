@@ -75,7 +75,8 @@ struct Car : public virtual IObject
 	// utils
 	void forcePosition(const vec3f& pos, float offsetY = 0);
 	void forceRotation(const vec3f& heading);
-	void teleportToPits(const mat44f& m);
+	void teleport(const mat44f& m);
+	void teleportToPits(int pitId);
 	void teleportToTrackLocation(float distanceNorm, float offsetY = 0);
 	float getBaseCarHeight() const;
 	vec3f getGroundWindVector() const;
@@ -190,6 +191,7 @@ struct Car : public virtual IObject
 	double lastCollisionWithCarTime = 0;
 	float damageZoneLevel[5] = {};
 	float oldDamageZoneLevel[5] = {};
+	bool collisionFlag = false;
 
 	int framesToSleep = 50;
 	int sleepingFrames = 0;
@@ -227,12 +229,17 @@ struct Car : public virtual IObject
 	float oldTrackLocation = 0;
 
 	float agentScore = 0;
-	float scoreGearW = 1;
-	float scoreGearGrindW = 1;
+	int teleportOnCollision = false;
+	int teleportOnBadLocation = false;
+
+	float scoreDriftW = 1;
 	float scoreRpmW = 1;
 	float scoreSpeedW = 1;
+	float scoreGearW = 1;
+	float scoreGearGrindW = 1;
+	float scoreWrongDirW = 1;
 	float scoreProbeW = 1;
-	float scoreDriftW = 1;
+	float scoreCollisionW = 1;
 };
 
 }

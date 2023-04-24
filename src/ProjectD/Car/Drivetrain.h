@@ -75,6 +75,7 @@ struct Drivetrain : public NonCopyable
 	Drivetrain();
 	~Drivetrain();
 	void init(Car* pCar);
+	void reset();
 	void addGear(const std::wstring& name, double gearRatio);
 	void setCurrentGear(int index, bool force);
 	bool gearUp();

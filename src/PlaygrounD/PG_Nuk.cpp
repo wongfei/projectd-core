@@ -72,24 +72,19 @@ void PlaygrounD::renderNuk()
 	struct nk_colorf bg;
 	bg.r = 0.10f, bg.g = 0.18f, bg.b = 0.24f, bg.a = 1.0f;
 
-	float w = 250;
-	float h = 300;
+	float w = 300;
+	float h = 550;
 
-	if (nk_begin(ctx, "Debug", nk_rect((float)width_ - w - 5, 100.0f, w, h),
+	if (nk_begin(ctx, "Debug", nk_rect((float)width_ - w - 10, 100.0f, w, h),
 		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
 		NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
 	{
-		//if (nk_tree_push(ctx, NK_TREE_TAB, "Settings", NK_MINIMIZED)) {
-
 		float rowh = 20;
 		nk_layout_row_dynamic(ctx, rowh, 1);
 		nk_checkbox_label(ctx, "wireframe", &wireframeMode_);
 
 		nk_layout_row_dynamic(ctx, rowh, 1);
 		nk_checkbox_label(ctx, "draw world", &drawWorld_);
-
-		//nk_layout_row_dynamic(ctx, rowh, 1);
-		//nk_checkbox_label(ctx, "draw UI", &draw2D_);
 
 		nk_layout_row_dynamic(ctx, rowh, 1);
 		nk_checkbox_label(ctx, "draw sky", &drawSky_);
@@ -104,10 +99,10 @@ void PlaygrounD::renderNuk()
 		nk_checkbox_label(ctx, "draw car probes", &drawCarProbes_);
 
 		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_int(ctx, "sim HZ", 30, &simHz_, 333, 1, 1);
+		nk_property_int(ctx, "sim HZ", 30, &simHz_, 1000, 1, 2);
 
 		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_int(ctx, "draw HZ", 30, &drawHz_, 333, 1, 1);
+		nk_property_int(ctx, "draw HZ", 30, &drawHz_, 1000, 1, 2);
 
 		nk_layout_row_dynamic(ctx, rowh, 1);
 		nk_property_float(ctx, "mouse sens", 0.01f, &mouseSens_, 3.0f, 0.01f, 0.01f);
@@ -115,7 +110,46 @@ void PlaygrounD::renderNuk()
 		nk_layout_row_dynamic(ctx, rowh, 1);
 		nk_property_float(ctx, "camera speed", 0.01f, &moveSpeed_, 1000.0f, 5.0f, 5.0f);
 
-		//nk_tree_pop(ctx); }
+		if (car_)
+		{
+			if (nk_tree_push(ctx, NK_TREE_TAB, "Agent", NK_MAXIMIZED)) {
+
+			const float maxw = 5.0f;
+			const float stepw = 0.01f;
+			const float pixelw = 0.02f;
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "hit teleport", &car_->teleportOnCollision);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "badloc teleport", &car_->teleportOnBadLocation);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "drift W", 0.0f, &car_->scoreDriftW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "rpm W", 0.0f, &car_->scoreRpmW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "speed W", 0.0f, &car_->scoreSpeedW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "gear W", 0.0f, &car_->scoreGearW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "grind W", 0.0f, &car_->scoreGearGrindW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "dir W", 0.0f, &car_->scoreWrongDirW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "probe W", 0.0f, &car_->scoreProbeW, maxw, stepw, pixelw);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "hit W", 0.0f, &car_->scoreCollisionW, maxw, stepw, pixelw);
+
+			nk_tree_pop(ctx); }
+		}
 	}
 	nk_end(ctx);
 

@@ -190,11 +190,7 @@ void teleportCarToPits(int simId, int carId, int pitId)
 	auto* car = getCar(simId, carId);
 	if (car)
 	{
-		const auto& pits = car->sim->track->pits;
-		if (pitId >= 0 && pitId < (int)pits.size())
-		{
-			car->teleportToPits(pits[pitId]);
-		}
+		car->teleportToPits(pitId);
 	}
 }
 
@@ -204,15 +200,16 @@ void teleportCarToTrackLocation(int simId, int carId, float distanceNorm, float 
 	if (car)
 	{
 		car->teleportToTrackLocation(distanceNorm, offsetY);
+	}
+}
 
-		/*const auto& points = car->sim->track->fatPoints;
-		if (pointId >= 0 && pointId < (int)points.size())
-		{
-			auto& pt = points[pointId];
-
-			car->forceRotation(pt.forwardDir);
-			car->forcePosition(D::vec3f(&pt.center.x), offsetY);
-		}*/
+void setCarAutoTeleport(int simId, int carId, bool collision, bool badLoc)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->teleportOnCollision = collision;
+		car->teleportOnBadLocation = badLoc;
 	}
 }
 
@@ -379,6 +376,7 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("teleportCarToLocation", &teleportCarToLocation, "");
 	m.def("teleportCarToPits", &teleportCarToPits, "");
 	m.def("teleportCarToTrackLocation", &teleportCarToTrackLocation, "");
+	m.def("setCarAutoTeleport", &setCarAutoTeleport, "");
 	m.def("setCarControls", &setCarControls, "");
 	m.def("getCarState", &getCarState, "");
 

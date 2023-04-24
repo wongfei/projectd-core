@@ -166,14 +166,14 @@ void Simulator::removeCar(int carId)
 	}
 }
 
-void Simulator::step(float dt, double physicsTime, double gameTime)
+void Simulator::step(float dt, double _physicsTime, double _gameTime)
 {
 	if (!track)
 		return;
 
 	deltaTime = dt;
-	physicsTime = physicsTime;
-	gameTime = gameTime;
+	physicsTime = _physicsTime;
+	gameTime = _gameTime;
 	stepCounter++;
 
 	readInteropInputs();

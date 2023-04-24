@@ -74,8 +74,8 @@ void PlaygrounD::renderStats()
 	font_.setHeight(14);
 	glColor3ub(255, 255, 255);
 
-	float x = 1, y = 1, dy = 25;
-	font_.draw(x, y, "gameTime %.2f", gameTime_); y += dy;
+	float x = 1, y = 1, dy = 20;
+	font_.draw(x, y, "gameTime %.2f s", gameTime_); y += dy;
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
 	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
 	font_.draw(x, y, "maxDraw %.3f ms", statMaxDraw_); y += dy;
@@ -84,7 +84,6 @@ void PlaygrounD::renderStats()
 	font_.draw(x, y, "simHitches %d", (int)statSimHitches_); y += dy;
 	font_.draw(x, y, "drawHitches %d", (int)statDrawHitches_); y += dy;
 	font_.draw(x, y, "lastHitch %.2f", lastHitchTime_); y += dy;
-	y += dy;
 
 	font_.draw(x, y, "camera %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
 
@@ -118,7 +117,7 @@ void PlaygrounD::renderStats()
 	}
 
 	if (car_)
-		renderCarStats(x, y + dy, dy);
+		renderCarStats(x, y, dy);
 
 	glDisable(GL_BLEND);
 }
@@ -141,19 +140,19 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
 	font_.draw(x, y, "trackPoint %d", car_->nearestTrackPointId); y += dy;
 	font_.draw(x, y, "trackLocation %.2f", car_->trackLocation); y += dy;
+	font_.draw(x, y, "trackWidth %.2f", car_->track->computedTrackWidth); y += dy;
 
 	#if 1
-	y += dy;
 	//font_.draw(x, y, "drifting %d", car_->drifting); y += dy;
 	//font_.draw(x, y, "currentDriftAngle %.2f", car_->currentDriftAngle); y += dy;
 	//font_.draw(x, y, "instantDrift %.2f", car_->instantDrift); y += dy;
 	font_.draw(x, y, "driftPoints %.2f", car_->driftPoints); y += dy;
 	font_.draw(x, y, "driftCombo %d", car_->driftComboCounter); y += dy;
-	font_.draw(x, y, "agentScore %.2f", car_->agentScore); y += dy;
 	#endif
 
 	#if 1
-	font_.draw(x, y, "engineLife %d", car_->drivetrain->engineModel->lifeLeft); y += dy;
+	font_.draw(x, y, "fuel %.2f", car_->fuel); y += dy;
+	font_.draw(x, y, "engineLife %.2f", car_->drivetrain->engineModel->lifeLeft); y += dy;
 	for (int i = 0; i < 5; ++i)
 	{
 		font_.draw(x, y, "dmg %d %.3f", i, car_->damageZoneLevel[i]); y += dy;

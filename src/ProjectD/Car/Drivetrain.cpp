@@ -151,6 +151,21 @@ void Drivetrain::init(Car* _car)
 	}
 }
 
+void Drivetrain::reset()
+{
+	clutchOpenState = true;
+	rootVelocity = 0;
+	engine.velocity = 0;
+	outShaftL.velocity = 0;
+	outShaftR.velocity = 0;
+	outShaftLF.velocity = 0;
+	outShaftRF.velocity = 0;
+	drive.velocity = 0;
+	gearRequest.request = GearChangeRequest::eNoGearRequest;
+	validShiftRPMWindow = orgRpmWindow;
+	engineModel->reset();
+}
+
 void Drivetrain::addGear(const std::wstring& name, double gearRatio)
 {
 	gears.emplace_back(GearRatio{gearRatio});

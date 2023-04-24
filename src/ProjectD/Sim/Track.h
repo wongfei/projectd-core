@@ -58,9 +58,10 @@ struct Track : public ITrackRayCastProvider
 
 	std::vector<SlimTrackPoint> slimPoints;
 	std::vector<FatTrackPoint> fatPoints;
-	VertexHash fatPointsHash;
 	std::vector<size_t> nearbyPoints;
+	VertexHash fatPointsHash;
 	vec3f pointCachePos;
+	float computedTrackWidth = 0;
 
 	bool traceSides = false;
 	float traceRayOffsetY = 20.0f;

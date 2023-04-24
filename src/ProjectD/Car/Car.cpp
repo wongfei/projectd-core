@@ -372,6 +372,8 @@ void Car::stepPreCacheValues(float dt)
 
 void Car::step(float dt)
 {
+	collisionFlag = false;
+
 	if (!physicsGUID)
 	{
 		vec3f vBodyVelocity = body->getVelocity();
@@ -672,11 +674,12 @@ void Car::updateTrackLocator()
 	}
 
 	nearestTrackPointId = bestPoint;
-
 	oldTrackLocation = trackLocation;
 
-	if (bestPoint >= 0)
-		trackLocation = tclamp((float)bestPoint / (float)(track->fatPoints.size() - 1), 0.0f, 1.0f);
+	const int numPoints = (int)track->fatPoints.size();
+
+	if (bestPoint >= 0 && bestPoint < numPoints)
+		trackLocation = tclamp((float)bestPoint / (float)numPoints, 0.0f, 1.0f);
 	else
 		trackLocation = 0;
 }
@@ -779,6 +782,7 @@ void Car::onCollisionCallback(
 	}
 
 	lastCollisionTime = sim->physicsTime;
+	collisionFlag = true;
 
 	vec3f vPosLocal = body->worldToLocal(pos);
 	vec3f vVelocity = body->getPointVelocity(pos);
@@ -1066,8 +1070,10 @@ void Car::forcePosition(const vec3f& pos, float offsetY)
 	}
 	bodyPos.y += (getBaseCarHeight() + offsetY + 0.01f);
 
-	// reset
+	// Car::reset()
 	framesToSleep = 50;
+	water->t = 60;
+	fuel = requestedFuel;
 
 	body->stop();
 	body->setPosition(bodyPos);
@@ -1080,15 +1086,23 @@ void Car::forcePosition(const vec3f& pos, float offsetY)
 		susp->attach();
 	}
 
-	// Drivetrain::reset
-	drivetrain->clutchOpenState = true;
-	// Engine::reset
-	// BrakeSystem::reset
-	// Tyre::reset
+	drivetrain->reset();
+	brakeSystem->reset();
+
+	for (int i = 0; i < 4; ++i)
+		tyres[i]->reset();
+
 	drivetrain->setCurrentGear(1, true);
 
 	body->stop();
 	fuelTankBody->stop();
+
+	// custom
+	for (int i = 0; i < 5; ++i)
+	{
+		damageZoneLevel[i] = 0;
+		oldDamageZoneLevel[i] = 0;
+	}
 }
 
 void Car::forceRotation(const vec3f& heading) // TODO: WTF?
@@ -1126,20 +1140,29 @@ void Car::forceRotation(const vec3f& heading) // TODO: WTF?
 	fuelTankBody->stop();
 }
 
-void Car::teleportToPits(const mat44f& m)
+void Car::teleport(const mat44f& m)
 {
 	forceRotation(D::vec3f(&m.M31));
 	forcePosition(D::vec3f(&m.M41));
 }
 
+void Car::teleportToPits(int pitId)
+{
+	const auto& pits = track->pits;
+	if (pitId >= 0 && pitId < (int)pits.size())
+	{
+		teleport(pits[pitId]);
+	}
+}
+
 void Car::teleportToTrackLocation(float distanceNorm, float offsetY)
 {
-	const auto& points = sim->track->fatPoints;
-	size_t n = points.size();
+	const auto& points = track->fatPoints;
+	const int n = (int)points.size();
 	if (n)
 	{
 		int pointId = (int)(tclamp(distanceNorm, 0.0f, 1.0f) * (n - 1));
-		if (pointId >= 0 && pointId < (int)n)
+		if (pointId >= 0 && pointId < n)
 		{
 			auto& pt = points[pointId];
 			forceRotation(pt.forwardDir);
@@ -1348,20 +1371,55 @@ void Car::computeAgentScore(float dt)
 {
 	agentScore = 0.0f;
 
+	agentScore += scoreDriftW * instantDriftDelta;
+
 	agentScore += scoreRpmW * linscalef(getEngineRpm(), 0.0f, (float)drivetrain->engineModel->getLimiterRPM(), -0.25f, 0.1f);
 
 	agentScore += scoreSpeedW * linscalef(speed.kmh(), 0.0f, 100.0f, -0.1f, 0.25f);
 
+	// gear penalty R=0 N=1
+	#if 1
 	if (drivetrain->currentGear <= 1)
 	{
 		agentScore += scoreGearW * -0.1f;
 	}
+	#endif
 
+	// gearbox damage penalty
+	#if 1
 	if (drivetrain->isGearGrinding)
 	{
 		agentScore += scoreGearGrindW * -0.5f;
 	}
+	#endif
 
+	// wrong direction penalty
+	#if 1
+	if (nearestTrackPointId >= 0 && nearestTrackPointId < (int)track->fatPoints.size())
+	{
+		const auto& pt = track->fatPoints[nearestTrackPointId];
+
+		if (speed.kmh() > 5.0f)
+		{
+			const auto vel = body->getVelocity().get_norm();
+			const float dot = pt.forwardDir * vel;
+			const float cutoff = 0.16f; // 80 degrees
+
+			if (dot < cutoff)
+			{
+				agentScore += scoreWrongDirW * linscalef(dot, -1.0f, cutoff, -1.0f, 0.0f);
+			}
+		}
+
+		if (teleportOnBadLocation && (body->getPosition(0) - pt.center).len() > track->computedTrackWidth * 0.55f) // EPIC FAIL!!!
+		{
+			teleportToTrackLocation(trackLocation, 0.1f);
+		}
+	}
+	#endif
+
+	// track side proximity penalty
+	#if 1
 	if (probeHits.size())
 	{
 		float minProbe = FLT_MAX;
@@ -1372,12 +1430,27 @@ void Car::computeAgentScore(float dt)
 				minProbe = dist;
 		}
 
-		float dangerDistance = 1.5f;
-		minProbe = tmin(minProbe, dangerDistance);
-		agentScore += scoreProbeW * linscalef(minProbe, 0.0f, dangerDistance, -1.0f, 0.0f);
-	}
+		const float dangerDistance = 1.6f;
 
-	agentScore += scoreDriftW * instantDriftDelta;
+		if (minProbe < dangerDistance)
+		{
+			agentScore += scoreProbeW * linscalef(minProbe, 0.0f, dangerDistance, -1.0f, 0.0f);
+		}
+	}
+	#endif
+
+	// collision penalty
+	#if 1
+	if (collisionFlag)
+	{
+		agentScore += scoreCollisionW * -2.0f;
+
+		if (teleportOnCollision)
+		{
+			teleportToTrackLocation(trackLocation, 0.1f);
+		}
+	}
+	#endif
 }
 
 void Car::resetDrift()
