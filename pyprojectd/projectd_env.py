@@ -4,14 +4,9 @@ import site
 import time
 import math
 import random
-
 import numpy as np
-from typing import Optional
 
-import gymnasium as gym
-from gymnasium import spaces
-
-base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
+base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 bin_dir = os.path.join(base_dir, 'bin')
 site.addsitedir(bin_dir)
 os.add_dll_directory(bin_dir)
@@ -19,7 +14,7 @@ os.add_dll_directory(bin_dir)
 import PyProjectD as pd
 import utils_d as u
 
-class ProjectDEnv(gym.Env):
+class ProjectDEnv():
 
     sim_dt = 1.0 / 333.0
     viewer_enabled = False
@@ -33,35 +28,16 @@ class ProjectDEnv(gym.Env):
     track_name = 'driftplayground'
     car_model = 'ks_toyota_ae86_drift'
 
-    def init_cvars(self):
-        u.init_cvar(self, 'sim_dt')
-        u.init_cvar(self, 'viewer_enabled')
-        u.init_cvar(self, 'smooth_controls')
-        u.init_cvar(self, 'terminate_enabled')
-        u.init_cvar(self, 'teleport_on_reset')
-        u.init_cvar(self, 'teleport_on_hit')
-        u.init_cvar(self, 'teleport_off_track')
-        u.init_cvar(self, 'teleport_mode')
-        u.init_cvar(self, 'track_name')
-        u.init_cvar(self, 'car_model')
-
     #==============================================================================================
 
     def __init__(self):
-        pd.writeLog('[PY] __init__ ProjectDEnv ' + hex(id(self)))
-        super().__init__()
-        self.init_cvars()
-
-        self.observation_space = self._get_obs_space()
-        self.action_space = self._get_action_space()
-        self.continuous = True
 
         global base_dir
         self.base_dir = base_dir
         self.sim_initialized = False
         self.viewer_initialized = False
         self.step_id = 0
-        
+
         self.init_sim()
 
     def close(self):
@@ -103,9 +79,9 @@ class ProjectDEnv(gym.Env):
 
     def step(self, action):
         
-        self.dcontrols.steer = action[0]
-        self.dcontrols.gas = action[1]
-        self.dcontrols.brake = action[2]
+        self.dcontrols.steer = action[0] # steer [-1, 1]
+        self.dcontrols.gas = u.linscalef(action[1], -1.0, 1.0, 0.0, 1.0) # gas [0, 1]
+        self.dcontrols.brake = u.linscalef(action[2], -1.0, 1.0, 0.0, 1.0) # brake [0, 1]
         self.dcontrols.handBrake = 0.0
         self.dcontrols.clutch = 1.0
         self.dcontrols.requestedGearIndex = 2 # 0=R, 1=N, 2=G1, 3=G2, 4=G3, 5=G4, 6=G5, 7=G6
@@ -123,45 +99,35 @@ class ProjectDEnv(gym.Env):
 
         state = self._get_obs_state()
         reward = self.dstate.agentDriftReward
-        terminated = self.terminate_enabled and ((self.dstate.collisionFlag != 0) or (self.dstate.outOfTrackFlag != 0))
-        truncated = False
+        terminate = self.terminate_enabled and ((self.dstate.collisionFlag != 0) or (self.dstate.outOfTrackFlag != 0))
+        truncate = False
 
-        if terminated:
+        if terminate:
             if self.dstate.collisionFlag:
                 pd.writeLog('[PY] collision')
             if self.dstate.outOfTrackFlag:
                 pd.writeLog('[PY] out of track')
             reward += self.terminate_reward
 
-        return state, reward, terminated, truncated, {}
+        return state, reward, terminate, truncate, {}
 
     #==============================================================================================
 
-    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        pd.writeLog('[PY] reset')
-        super().reset(seed=seed)
-        
+    def reset(self):
+        pd.writeLog('[ENV] reset')
+
         if self.teleport_on_reset:
             pd.teleportCarByMode(self.sim, self.car, self.teleport_mode)
             
-        state, reward, terminated, truncated, info = self.step(np.array([0, 0, 0]))
+        state, reward, terminate, truncate, info = self.step(np.array([0, 0, 0]))
         
-        return state, {}
-
-    #==============================================================================================
-
-    def render(self):
-        pass
-
-    def seed(self, s):
-        pass
+        return state
 
     #==============================================================================================
     
     def _get_obs_state(self):
         
-        state = np.array(
-        [
+        state = np.array([
             self.dstate.controls.steer,
             self.dstate.controls.gas,
             self.dstate.controls.brake,
@@ -190,8 +156,8 @@ class ProjectDEnv(gym.Env):
             self.dstate.probes[4],
             self.dstate.probes[5],
             self.dstate.probes[6],
-        ]
-        ).astype(np.float32)
+            
+        ], dtype=np.float32)
         
         return state
 
@@ -199,14 +165,12 @@ class ProjectDEnv(gym.Env):
 
     def _get_obs_space(self):
     
-        range_rpm = 20000
         range_velocity = 100
         range_angularVelocity = 100
         range_tyreSlip = 10
         range_probe = 100
         
-        obs_low = np.array(
-        [
+        obs_low = np.array([
             -1.0, # steer
             0.0, # gas
             0.0, # brake
@@ -235,11 +199,10 @@ class ProjectDEnv(gym.Env):
             0.0, # probe4
             0.0, # probe5
             0.0, # probe6
-        ]
-        ).astype(np.float32)
+            
+        ], dtype=np.float32)
         
-        obs_high = np.array(
-        [
+        obs_high = np.array([
             1.0, # steer
             1.0, # gas
             1.0, # brake
@@ -268,19 +231,17 @@ class ProjectDEnv(gym.Env):
             range_probe, # probe4
             range_probe, # probe5
             range_probe, # probe6
-        ]
-        ).astype(np.float32)
+            
+        ], dtype=np.float32)
         
-        return spaces.Box(obs_low, obs_high)
+        return obs_low, obs_high
 
     #==============================================================================================
 
     def _get_action_space(self):
 
         # steer, gas, brake
-        return spaces.Box(
-            np.array([-1, 0, 0]).astype(np.float32),
-            np.array([+1, 1, 1]).astype(np.float32),
-        )
+        a_low  = np.array([-1, -1, -1], dtype=np.float32)
+        a_high = np.array([+1, +1, +1], dtype=np.float32)
 
-# END: class ProjectDEnv
+        return a_low, a_high
