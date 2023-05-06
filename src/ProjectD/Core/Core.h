@@ -37,4 +37,7 @@ struct IAvatar : public virtual IObject
 template<typename T>
 inline void memzero(T& obj) { memset(&obj, 0, sizeof(T)); }
 
+template<typename C, typename V>
+inline void eraseRemove(C& container, const V& value) { container.erase(std::remove(container.begin(), container.end(), value), container.end()); }
+
 }

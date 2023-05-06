@@ -4,6 +4,8 @@
 
 namespace D {
 
+#pragma pack(push, 4)
+
 struct CarControls
 {
 	float steer = 0;
@@ -16,5 +18,7 @@ struct CarControls
 	int8_t gearUp = 0;
 	int8_t gearDn = 0;
 };
+
+#pragma pack(pop)
 
 }

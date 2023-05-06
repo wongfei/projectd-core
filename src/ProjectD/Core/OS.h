@@ -7,6 +7,10 @@ namespace D {
 
 void osTraceDebug(const wchar_t* msg);
 
+unsigned int osGetCurrentProcessId();
+unsigned int osGetCurrentThreadId();
+unsigned int osGetCurrentTicks();
+
 void* osLoadLibraryA(const char* path);
 void* osLoadLibraryW(const wchar_t* path);
 void* osGetProcAddress(void* lib, const char* name);

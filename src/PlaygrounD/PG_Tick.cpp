@@ -16,8 +16,33 @@ void PlaygrounD::tick()
 		maxDt = tmax(maxDt, (float)dt * 1e3f);
 		bool hitchFlag = false;
 
-		if (car_)
+		const auto tickThreadId = osGetCurrentThreadId();
+
+		//===========================================================================
+		// CHANGE SIM/CAR
+
+		if (newSimId_ != -1 && simManager_)
+		{
+			newSim_ = simManager_->getSim(newSimId_);
+			newSimId_ = -1;
+		}
+
+		if (newSim_)
+		{
+			setSimulator(newSim_);
+			newSim_.reset();
+		}
+
+		if (newCarId_ != -1)
+		{
+			setActiveCar(newCarId_);
+			newCarId_ = -1;
+		}
+
+		if (car_ && car_->controlsProvider)
+		{
 			car_->lockControls = (inpCamMode_ == (int)ECamMode::Free);
+		}
 
 		//===========================================================================
 		// SIMULATE
@@ -39,7 +64,7 @@ void PlaygrounD::tick()
 		{
 			simTime_ += simDt;
 
-			if (sim_ && (simStepOnce_ || simEnabled_))
+			if (sim_ && (simEnabled_ || simStepOnce_) && (sim_->physicsThreadId == tickThreadId))
 			{
 				simStepOnce_ = false;
 
@@ -126,7 +151,7 @@ void PlaygrounD::tick()
 
 				if (fullscreen_)
 				{
-					SDL_ShowWindow(appWindow_);
+					//SDL_ShowWindow(appWindow_);
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
 			}
@@ -164,7 +189,7 @@ void PlaygrounD::tick()
 		//===========================================================================
 		// SLEEP
 
-		if (!hitchFlag)
+		if (enableSleep_)
 		{
 			#if 0
 				::Sleep(0);
@@ -226,11 +251,24 @@ void PlaygrounD::processInput(float dt)
 	if (asyncKeydown(SDL_SCANCODE_O)) { drawNearbyPoints_ = !drawNearbyPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_I)) { drawCarProbes_ = !drawCarProbes_; }
 
+	if (simManager_)
+	{
+		const int n = simManager_->getSimCount();
+		if (asyncKeydown(SDL_SCANCODE_MINUS)) { if (activeSimId_ > 0) { newSimId_ = activeSimId_ - 1; } }
+		if (asyncKeydown(SDL_SCANCODE_EQUALS)) { if (activeSimId_ + 1 < n) { newSimId_ = activeSimId_ + 1; } }
+	}
+
 	if (sim_)
 	{
 		const int n = (int)sim_->cars.size();
-		if (asyncKeydown(SDL_SCANCODE_PAGEUP)) { ++activeCarId_; if (activeCarId_ >= n) { activeCarId_ = 0; }; setActiveCar(activeCarId_, true, true); }
-		if (asyncKeydown(SDL_SCANCODE_PAGEDOWN)) { --activeCarId_; if (activeCarId_ < 0) { activeCarId_ = (n ? n - 1 : 0); }; setActiveCar(activeCarId_, true, true); }
+		if (asyncKeydown(SDL_SCANCODE_LEFTBRACKET)) { if (activeCarId_ > 0) { newCarId_ = activeCarId_ - 1; } }
+		if (asyncKeydown(SDL_SCANCODE_RIGHTBRACKET)) { if (activeCarId_ + 1 < n) { newCarId_ = activeCarId_ + 1; } }
+	}
+
+	if (activeCarId_ != -1 && asyncKeydown(SDL_SCANCODE_RETURN))
+	{
+		enableCarControls(true);
+		enableCarSound(true);
 	}
 
 	if (asyncKeydown(SDL_SCANCODE_V))

@@ -37,18 +37,29 @@ namespace D {
 inline D::vec3f v(const glm::vec3& in) { return D::vec3f(in.x, in.y, in.z); }
 inline glm::vec3 v(const D::vec3f& in) { return glm::vec3(in.x, in.y, in.z); }
 
+struct ISimulatorManager
+{
+	virtual int getSimCount() const = 0;
+	virtual SimulatorPtr getSim(int simId) = 0;
+};
+
 struct PlaygrounD
 {
 	PlaygrounD();
 	~PlaygrounD();
 
+	void run(const std::wstring& basePath, bool loadedByPython = false, bool bLoadDemo = false);
+
 	// Init
-	void init(const std::string& basePath, bool loadedByPython);
+	void init(const std::wstring& basePath, bool loadedByPython);
+	void loadDemo();
 	void shut();
-	void initEngine(const std::string& basePath, bool loadedByPython);
+	void initEngine(const std::wstring& basePath, bool loadedByPython);
 	void initCarController();
 	void setSimulator(SimulatorPtr newSim);
-	void setActiveCar(int carId, bool takeControls = false, bool enableSound = false);
+	void setActiveCar(int carId);
+	void enableCarControls(bool enable);
+	void enableCarSound(bool enable);
 
 	// Tick
 	void tick();
@@ -65,6 +76,8 @@ struct PlaygrounD
 	// Window
 	void initWindow();
 	void closeWindow();
+	void moveWindow(int x, int y);
+	void resizeWindow(int w, int h);
 	void clearViewport();
 	void projPerspective();
 	void projOrtho();
@@ -84,10 +97,6 @@ struct PlaygrounD
 	void processEventNuk(SDL_Event* ev);
 	void endInputNuk();
 	void renderNuk();
-
-	// Demo
-	void runDemo();
-	void loadDemo();
 
 	inline bool getkey(SDL_Scancode scan) { return keys_[scan]; }
 	inline bool getkeyf(SDL_Scancode scan) { return keys_[scan] ? 1.0f : 0.0f; }
@@ -113,8 +122,7 @@ struct PlaygrounD
 	int height_ = 720;
 	int swapInterval_ = -1;
 	bool fullscreen_ = false;
-	bool enableCarController_ = true;
-	bool enableCarSound_ = true;
+	bool enableSleep_ = true;
 
 	std::wstring appDir_;
 	SDL_Window* appWindow_ = nullptr;
@@ -122,6 +130,7 @@ struct PlaygrounD
 	HWND sysWindow_ = nullptr;
 	nk_context* nukContext_ = nullptr;
 	GLFont font_;
+	bool initializedFlag_ = false;
 
 	bool exitFlag_ = false;
 	bool keys_[SDL_NUM_SCANCODES] = {};
@@ -130,13 +139,20 @@ struct PlaygrounD
 	std::shared_ptr<FmodContext> fmodContext_;
 	std::shared_ptr<ICarControlsProvider> controlsProvider_;
 
+	ISimulatorManager* simManager_ = nullptr; // managed by PyProjectD.cpp
 	SimulatorPtr sim_;
-	Track* track_ = nullptr;
 	Car* car_ = nullptr;
 	Surface* lookatSurf_ = nullptr;
 	vec3f lookatHit_;
 	mat44f pitPos_;
-	int activeCarId_ = 0;
+	int activeSimId_ = -1;
+	int activeCarId_ = -1;
+
+	SimulatorPtr newSim_;
+	int newSimId_ = -1;
+	int newCarId_ = -1;
+	bool newCarControls_ = false;
+	bool newCarSound_ = false;
 
 	glm::vec3 camPos_ = {};
 	glm::vec3 camYpr_ = {90, 0, 0};
@@ -184,6 +200,7 @@ struct PlaygrounD
 	double lastHitchTime_ = 0;
 	uint64_t simId_ = 0;
 	uint64_t drawId_ = 0;
+	double trainId_ = 0;
 
 	int skipFrames = 3;
 	bool isFirstFrameDone = false;

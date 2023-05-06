@@ -278,6 +278,7 @@
     <ClInclude Include="Car\AutoClutch.h" />
     <ClInclude Include="Core\VertexHash.h" />
     <ClInclude Include="Core\SharedMemory.h" />
+    <ClInclude Include="Car\ScoringSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Car\Car.cpp">
@@ -419,5 +420,6 @@
     <ClCompile Include="Car\AutoShifter.cpp" />
     <ClCompile Include="Car\AutoClutch.cpp" />
     <ClCompile Include="Core\SharedMemory.cpp" />
+    <ClCompile Include="Car\ScoringSystem.cpp" />
   </ItemGroup>
 </Project>

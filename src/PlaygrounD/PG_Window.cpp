@@ -4,6 +4,8 @@ namespace D {
 
 void PlaygrounD::initWindow()
 {
+	log_printf(L"initWindow");
+
 	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 	int rc = SDL_Init(SDL_INIT_VIDEO);
 	GUARD_FATAL(rc == 0);
@@ -21,7 +23,7 @@ void PlaygrounD::initWindow()
 	unsigned int winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 
 	if (fullscreen_)
-		winFlags |= (SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_HIDDEN); // hidden to prevent flicker
+		winFlags |= (SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_SHOWN); // SDL_WINDOW_HIDDEN
 	else
 		winFlags |= (SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
 
@@ -70,6 +72,22 @@ void PlaygrounD::closeWindow()
 	{
 		SDL_DestroyWindow(appWindow_);
 		appWindow_ = nullptr;
+	}
+}
+
+void PlaygrounD::moveWindow(int x, int y)
+{
+	if (appWindow_)
+	{
+		SDL_SetWindowPosition(appWindow_, x, y);
+	}
+}
+
+void PlaygrounD::resizeWindow(int w, int h)
+{
+	if (appWindow_)
+	{
+		SDL_SetWindowSize(appWindow_, w, h);
 	}
 }
 

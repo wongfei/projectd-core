@@ -56,4 +56,6 @@ struct AutoClutch;
 struct AutoBlip;
 struct AutoShifter;
 
+struct ScoringSystem;
+
 }

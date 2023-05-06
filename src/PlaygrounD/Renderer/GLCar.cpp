@@ -8,6 +8,8 @@ namespace D {
 
 GLCar::GLCar(Car* _car)
 {
+	TRACE_CTOR(GLCar);
+
 	car = _car;
 
 	bodyMesh.initTriMesh(car->collider.get());
@@ -21,6 +23,7 @@ GLCar::GLCar(Car* _car)
 
 GLCar::~GLCar()
 {
+	TRACE_DTOR(GLCar);
 }
 
 void GLCar::draw()

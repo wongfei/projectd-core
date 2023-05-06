@@ -21,7 +21,9 @@ Simulator::~Simulator()
 
 bool Simulator::init(const std::wstring& _basePath)
 {
-	log_printf(L"Simulator: init: basePath=\"%s\"", _basePath.c_str());
+	physicsThreadId = osGetCurrentThreadId();
+
+	log_printf(L"Simulator: init: threadId=%u basePath=\"%s\"", physicsThreadId, _basePath.c_str());
 	GUARD_FATAL(osDirExists(_basePath));
 
 	basePath = _basePath;
@@ -150,9 +152,6 @@ Car* Simulator::getCar(int carId)
 	return nullptr;
 }
 
-template<typename T>
-inline void removeItem(std::vector<T>& container, const T& value) { container.erase(std::remove(container.begin(), container.end(), value), container.end()); }
-
 void Simulator::removeCar(int carId)
 {
 	log_printf(L"Simulator: removeCar: carId=%d", carId);
@@ -160,7 +159,7 @@ void Simulator::removeCar(int carId)
 	auto iter = carMap.find(carId);
 	if (iter != carMap.end())
 	{
-		removeItem(cars, iter->second.get());
+		eraseRemove(cars, iter->second.get());
 		carMap.erase(iter);
 		freeCarIds.push_back(carId);
 	}
@@ -168,6 +167,13 @@ void Simulator::removeCar(int carId)
 
 void Simulator::step(float dt, double _physicsTime, double _gameTime)
 {
+	const auto curThreadId = osGetCurrentThreadId();
+	if (curThreadId != physicsThreadId) // simulator init/step should be called by same thread
+	{
+		log_printf(L"INVALID THREAD: curThreadId=%u physicsThreadId=%u", curThreadId, physicsThreadId);
+		SHOULD_NOT_REACH_FATAL;
+	}
+
 	if (!track)
 		return;
 

@@ -15,6 +15,13 @@ enum class TorqueModeEX
 	driveTorques = 0x2,
 };
 
+enum class TeleportMode
+{
+	Start = 0, 
+	Nearest = 1, 
+	Random = 2
+};
+
 struct CarCollisionBounds
 {
 	vec3f min;
@@ -77,7 +84,8 @@ struct Car : public virtual IObject
 	void forceRotation(const vec3f& heading);
 	void teleport(const mat44f& m);
 	void teleportToPits(int pitId);
-	void teleportToTrackLocation(float distanceNorm, float offsetY = 0);
+	void teleportToSpline(float distanceNorm);
+	void teleportByMode(TeleportMode mode);
 	float getBaseCarHeight() const;
 	vec3f getGroundWindVector() const;
 	float getPointGroundHeight(const vec3f& pt) const;
@@ -86,13 +94,6 @@ struct Car : public virtual IObject
 	float getEngineRpm() const;
 	float getOptimalBrake() const;
 	float getDrivingTyresSlip() const;
-
-	// score
-	void computeDriftScore(float dt);
-	void computeAgentScore(float dt);
-	void resetDrift();
-	void validateDrift();
-	bool checkExtremeDrift(float triggerSlipLevel = 0.8f) const;
 	float getBetaRad() const;
 
 	Event<OnStepCompleteEvent> evOnStepComplete;
@@ -172,6 +173,7 @@ struct Car : public virtual IObject
 	std::unique_ptr<AutoClutch> autoClutch;
 	std::unique_ptr<AutoBlip> autoBlip;
 	std::unique_ptr<AutoShifter> autoShift;
+	std::unique_ptr<ScoringSystem> scoring;
 	std::unique_ptr<CarState> state;
 	std::unique_ptr<IAvatar> avatar;
 
@@ -179,6 +181,10 @@ struct Car : public virtual IObject
 	float finalSteerAngleSignal = 0;
 	bool lockControls = false;
 	bool externalControls = false;
+	int smoothSteer = false;
+	float smoothSteerTarget = 0;
+	float smoothSteerValue = 0;
+	float smoothSteerSpeed = 30;
 
 	mat44f pitPosition;
 	Speed speed;
@@ -192,6 +198,8 @@ struct Car : public virtual IObject
 	float damageZoneLevel[5] = {};
 	float oldDamageZoneLevel[5] = {};
 	bool collisionFlag = false;
+	bool oldCollisionFlag = false;
+	bool outOfTrackFlag = false;
 
 	int framesToSleep = 50;
 	int sleepingFrames = 0;
@@ -208,18 +216,6 @@ struct Car : public virtual IObject
 	float lastDamp = 0;
 	VibrationDef lastVibr;
 
-	bool drifting = false;
-	bool driftExtreme = false;
-	bool driftInvalid = false;
-	float currentDriftAngle = 0;
-	float currentSpeedMultiplier = 0;
-	float lastDriftDirection = 0;
-	float driftStraightTimer = 0;
-	float instantDriftDelta = 0;
-	float instantDrift = 0;
-	float driftPoints = 0;
-	int driftComboCounter = 0;
-
 	// obstacle probes
 	std::vector<ray3f> probes;
 	std::vector<float> probeHits;
@@ -227,19 +223,12 @@ struct Car : public virtual IObject
 	int nearestTrackPointId = 0;
 	float trackLocation = 0;
 	float oldTrackLocation = 0;
+	float bodyVsTrack = 0;
+	float velocityVsTrack = 0;
 
-	float agentScore = 0;
 	int teleportOnCollision = false;
 	int teleportOnBadLocation = false;
-
-	float scoreDriftW = 1;
-	float scoreRpmW = 1;
-	float scoreSpeedW = 1;
-	float scoreGearW = 1;
-	float scoreGearGrindW = 1;
-	float scoreWrongDirW = 1;
-	float scoreProbeW = 1;
-	float scoreCollisionW = 1;
+	int teleportMode = (int)TeleportMode::Start;
 };
 
 }

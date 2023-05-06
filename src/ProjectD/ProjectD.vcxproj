@@ -19,6 +19,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Car\ScoringSystem.h" />
     <ClInclude Include="Core\ABIValidator.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Core.h" />
@@ -231,6 +232,7 @@
     <ClCompile Include="Car\AutoBlip.cpp" />
     <ClCompile Include="Car\AutoClutch.cpp" />
     <ClCompile Include="Car\AutoShifter.cpp" />
+    <ClCompile Include="Car\ScoringSystem.cpp" />
     <ClCompile Include="Core\ABIValidator.cpp" />
     <ClCompile Include="Core\CubicSpline.cpp" />
     <ClCompile Include="Core\Diag.cpp" />

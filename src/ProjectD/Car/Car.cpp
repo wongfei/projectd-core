@@ -1,4 +1,5 @@
 #include "Car/CarImpl.h"
+#include "Car/ScoringSystem.h"
 #include "Sim/Simulator.h"
 #include "Sim/Track.h"
 
@@ -203,6 +204,9 @@ bool Car::init(const std::wstring& modelName)
 	autoShift.reset(new AutoShifter());
 	autoShift->init(this);
 
+	scoring.reset(new ScoringSystem());
+	scoring->init(this);
+
 	state.reset(new CarState());
 
 	updateBodyMass();
@@ -373,6 +377,7 @@ void Car::stepPreCacheValues(float dt)
 void Car::step(float dt)
 {
 	collisionFlag = false;
+	outOfTrackFlag = false;
 
 	if (!physicsGUID)
 	{
@@ -402,6 +407,25 @@ void Car::step(float dt)
 	}
 
 	pollControls(dt);
+
+	controls.steer = tclamp(controls.steer, -1.0f, 1.0f);
+	controls.clutch = tclamp(controls.clutch, 0.0f, 1.0f);
+	controls.brake = tclamp(controls.brake, 0.0f, 1.0f);
+	controls.handBrake = tclamp(controls.handBrake, 0.0f, 1.0f);
+	controls.gas = tclamp(controls.gas, 0.0f, 1.0f);
+
+	smoothSteerTarget = controls.steer;
+
+	if (smoothSteer)
+	{
+		float diff = smoothSteerTarget - smoothSteerValue;
+		smoothSteerValue += diff * smoothSteerSpeed * dt;
+		controls.steer = smoothSteerValue;
+	}
+	else
+	{
+		smoothSteerValue = smoothSteerTarget;
+	}
 
 	updateAirPressure();
 
@@ -627,13 +651,14 @@ void Car::postStep(float dt)
 
 	updateTrackLocator();
 
-	computeDriftScore(dt);
-	computeAgentScore(dt);
+	scoring->step(dt);
 
 	updateCarState();
 
 	for (int i = 0; i < 5; ++i)
 		oldDamageZoneLevel[i] = damageZoneLevel[i];
+
+	oldCollisionFlag = collisionFlag;
 
 	if (audioRenderer)
 		audioRenderer->update(dt);
@@ -660,7 +685,7 @@ void Car::updateTrackLocator()
 
 	const auto bodyPos = body->getPosition(0);
 	float bestDistSq = FLT_MAX;
-	int bestPoint = -1;
+	int bestPoint = 0;
 
 	for (const auto& pointId : track->nearbyPoints)
 	{
@@ -675,13 +700,26 @@ void Car::updateTrackLocator()
 
 	nearestTrackPointId = bestPoint;
 	oldTrackLocation = trackLocation;
+	trackLocation = 0;
 
 	const int numPoints = (int)track->fatPoints.size();
-
 	if (bestPoint >= 0 && bestPoint < numPoints)
+	{
 		trackLocation = tclamp((float)bestPoint / (float)numPoints, 0.0f, 1.0f);
-	else
-		trackLocation = 0;
+
+		const auto& pt = track->fatPoints[bestPoint];
+
+		const auto bodyR = body->getWorldMatrix(0).getRotator();
+		const auto bodyFrontDir = (vec3f(0, 0, 1) * bodyR).get_norm();
+		const auto bodyVelDir = body->getVelocity().get_norm();
+
+		bodyVsTrack = bodyFrontDir * pt.forwardDir;
+
+		if (speed.kmh() > 3.0f)
+			velocityVsTrack = bodyVelDir * pt.forwardDir;
+		else
+			velocityVsTrack = 0.0f;
+	}
 }
 
 //=============================================================================
@@ -691,6 +729,7 @@ void Car::updateCarState()
 	// see Car::getPhysicsState, SharedMemoryWriter::updatePhysics
 
 	state->carId = (int32_t)physicsGUID;
+	state->simId = (int32_t)sim->simulatorId;
 	
 	state->controls = controls;
 
@@ -699,8 +738,19 @@ void Car::updateCarState()
 	state->gear = drivetrain->currentGear;
 	state->gearGrinding = drivetrain->isGearGrinding ? 1 : 0;
 
+	state->trackLocation = trackLocation;
+	state->trackPointId = nearestTrackPointId;
+	state->collisionFlag = collisionFlag;
+	state->outOfTrackFlag = outOfTrackFlag;
+
+	state->bodyVsTrack = bodyVsTrack;
+	state->velocityVsTrack = velocityVsTrack;
+	state->agentDriftReward = scoring->agentDriftReward;
+
 	auto bodyM = body->getWorldMatrix(0);
 	state->bodyMatrix = (bodyM);
+	state->bodyPos = {bodyM.M41, bodyM.M42, bodyM.M43};
+	state->bodyEuler = (bodyM.getEulerAngles());
 	state->accG = accG;
 	state->velocity = body->getVelocity();
 	state->localVelocity = body->getLocalVelocity();
@@ -722,16 +772,9 @@ void Car::updateCarState()
 		state->probes[i] = probeHits[i];
 	}
 
-	state->trackLocation = trackLocation;
-	state->agentScore = agentScore;
-
 	#if 0
 	auto bodyGM = getGraphicsOffsetMatrix();
 	state->graphicsMatrix = (bodyGM);
-
-	state->bodyPos = {bodyM.M41, bodyM.M42, bodyM.M43};
-	state->bodyEuler = (bodyM.getEulerAngles());
-
 	state->graphicsPos = {bodyGM.M41, bodyGM.M42, bodyGM.M43};
 	state->graphicsEuler = (bodyGM.getEulerAngles());
 	#endif
@@ -1155,7 +1198,7 @@ void Car::teleportToPits(int pitId)
 	}
 }
 
-void Car::teleportToTrackLocation(float distanceNorm, float offsetY)
+void Car::teleportToSpline(float distanceNorm)
 {
 	const auto& points = track->fatPoints;
 	const int n = (int)points.size();
@@ -1166,8 +1209,26 @@ void Car::teleportToTrackLocation(float distanceNorm, float offsetY)
 		{
 			auto& pt = points[pointId];
 			forceRotation(pt.forwardDir);
-			forcePosition(D::vec3f(&pt.center.x), offsetY);
+			forcePosition(D::vec3f(&pt.center.x));
 		}
+	}
+}
+
+void Car::teleportByMode(TeleportMode mode)
+{
+	switch (mode)
+	{
+		case TeleportMode::Start:
+			teleportToSpline(0.0f);
+			break;
+
+		case TeleportMode::Nearest:
+			teleportToSpline(trackLocation);
+			break;
+
+		case TeleportMode::Random:
+			teleportToSpline(randR(0.0f, 1.0f));
+			break;
 	}
 }
 
@@ -1281,244 +1342,6 @@ float Car::getDrivingTyresSlip() const
 	{
 		return tmax(tyres[2]->status.ndSlip, tyres[3]->status.ndSlip);
 	}
-}
-
-//=============================================================================
-// SCORE
-//=============================================================================
-
-void Car::computeDriftScore(float dt)
-{
-	validateDrift();
-	float fBeta = fabsf(getBetaRad());
-
-	if (speed.kmh() > 20.0f && fBeta > 0.13089749f)
-	{
-		auto v = body->getLocalVelocity();
-
-		if (!drifting)
-		{
-			lastDriftDirection = signf(v.x);
-			driftComboCounter = 1;
-			driftInvalid = false;
-			instantDrift = 0.0f;
-		}
-
-		currentDriftAngle = fBeta - 0.13089749f;
-
-		float fSpeedMult = (speed.kmh() - 20.0f) * 0.015384615f;
-		fSpeedMult = tclamp(fSpeedMult, 0.0f, 2.0f);
-
-		currentSpeedMultiplier = fSpeedMult;
-
-		driftExtreme = checkExtremeDrift();
-
-		float fDelta = fSpeedMult * currentDriftAngle;
-		if (driftExtreme)
-			fDelta *= 2.0f;
-
-		instantDriftDelta = fDelta;
-		instantDrift += fDelta;
-
-		if (fabsf(v.x) > 4.0f)
-		{
-			float fDir = signf(v.x);
-			if (lastDriftDirection != fDir && fBeta > 0.26179498f)
-			{
-				instantDrift += 50.0f;
-				driftComboCounter++;
-				lastDriftDirection = fDir;
-			}
-		}
-
-		drifting = true;
-		driftStraightTimer = 0.0f;
-	}
-
-	if (drifting)
-	{
-		if (speed.kmh() > 20.0f && fBeta < 0.065448746f)
-		{
-			driftStraightTimer += dt;
-		}
-		else
-		{
-			driftStraightTimer = 0.0f;
-		}
-
-		if (driftInvalid)
-		{
-			resetDrift();
-			return;
-		}
-
-		if (driftStraightTimer > 1.0f)
-		{
-			driftComboCounter = 0;
-			driftPoints += instantDrift;
-			drifting = false;
-			instantDrift = 0.0f;
-		}
-	}
-
-	if (driftInvalid)
-	{
-		resetDrift();
-	}
-}
-
-void Car::computeAgentScore(float dt)
-{
-	agentScore = 0.0f;
-
-	agentScore += scoreDriftW * instantDriftDelta;
-
-	agentScore += scoreRpmW * linscalef(getEngineRpm(), 0.0f, (float)drivetrain->engineModel->getLimiterRPM(), -0.25f, 0.1f);
-
-	agentScore += scoreSpeedW * linscalef(speed.kmh(), 0.0f, 100.0f, -0.1f, 0.25f);
-
-	// gear penalty R=0 N=1
-	#if 1
-	if (drivetrain->currentGear <= 1)
-	{
-		agentScore += scoreGearW * -0.1f;
-	}
-	#endif
-
-	// gearbox damage penalty
-	#if 1
-	if (drivetrain->isGearGrinding)
-	{
-		agentScore += scoreGearGrindW * -0.5f;
-	}
-	#endif
-
-	// wrong direction penalty
-	#if 1
-	if (nearestTrackPointId >= 0 && nearestTrackPointId < (int)track->fatPoints.size())
-	{
-		const auto& pt = track->fatPoints[nearestTrackPointId];
-
-		if (speed.kmh() > 5.0f)
-		{
-			const auto vel = body->getVelocity().get_norm();
-			const float dot = pt.forwardDir * vel;
-			const float cutoff = 0.16f; // 80 degrees
-
-			if (dot < cutoff)
-			{
-				agentScore += scoreWrongDirW * linscalef(dot, -1.0f, cutoff, -1.0f, 0.0f);
-			}
-		}
-
-		if (teleportOnBadLocation && (body->getPosition(0) - pt.center).len() > track->computedTrackWidth * 0.55f) // EPIC FAIL!!!
-		{
-			teleportToTrackLocation(trackLocation, 0.1f);
-		}
-	}
-	#endif
-
-	// track side proximity penalty
-	#if 1
-	if (probeHits.size())
-	{
-		float minProbe = FLT_MAX;
-		for (size_t i = 0; i < probeHits.size(); ++i)
-		{
-			float dist = probeHits[i];
-			if (minProbe > dist && dist > 0.0f)
-				minProbe = dist;
-		}
-
-		const float dangerDistance = 1.6f;
-
-		if (minProbe < dangerDistance)
-		{
-			agentScore += scoreProbeW * linscalef(minProbe, 0.0f, dangerDistance, -1.0f, 0.0f);
-		}
-	}
-	#endif
-
-	// collision penalty
-	#if 1
-	if (collisionFlag)
-	{
-		agentScore += scoreCollisionW * -2.0f;
-
-		if (teleportOnCollision)
-		{
-			teleportToTrackLocation(trackLocation, 0.1f);
-		}
-	}
-	#endif
-}
-
-void Car::resetDrift()
-{
-	currentDriftAngle = 0.0;
-	currentSpeedMultiplier = 0.0;
-	driftExtreme = false;
-	drifting = false;
-	instantDrift = 0.0;
-	driftComboCounter = 0;
-}
-
-inline bool isDirty(Tyre* tyre)
-{
-	auto* surf = tyre->surfaceDef;
-	return (surf && surf->dirtAdditiveK > 0.001f);
-}
-
-void Car::validateDrift()
-{
-	bool bInvalid = true;
-
-	int nDirtyTyres = 0;
-	for (int i = 0; i < 4; ++i)
-		nDirtyTyres += (int)isDirty(tyres[i].get());
-
-	if (nDirtyTyres <= 2)
-	{
-		if (speed.kmh() >= 20.0f)
-		{
-			bool bDamage = false;
-			for (int i = 0; i < 5; ++i)
-			{
-				if (fabsf(damageZoneLevel[i] - oldDamageZoneLevel[i]) > 0.001f)
-				{
-					bDamage = true;
-					break;
-				}
-			}
-
-			if (!bDamage && drivetrain->currentGear)
-			{
-				bInvalid = false;
-			}
-		}
-	}
-
-	if (bInvalid)
-		driftInvalid = true;
-}
-
-inline bool isExtremeDrift(Tyre* tyre, float triggerSlipLevel)
-{
-	auto* surf = tyre->surfaceDef;
-	return (surf 
-		&& fabsf(tyre->status.angularVelocity) > 4.0
-		&& fabsf(tyre->status.slipRatio) > triggerSlipLevel
-		&& tyre->status.load > 10.0
-		&& surf->gripMod >= 0.9f);
-}
-
-bool Car::checkExtremeDrift(float triggerSlipLevel) const
-{
-	int nDriftyTyres = 0;
-	for (int i = 0; i < 4; ++i)
-		nDriftyTyres += (int)isExtremeDrift(tyres[i].get(), triggerSlipLevel);
-
-	return nDriftyTyres > 1;
 }
 
 float Car::getBetaRad() const // TODO: check

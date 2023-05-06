@@ -1,4 +1,5 @@
 #include "PlaygrounD.h"
+#include "Car/ScoringSystem.h"
 
 namespace D {
 
@@ -74,7 +75,17 @@ void PlaygrounD::renderStats()
 	font_.setHeight(14);
 	glColor3ub(255, 255, 255);
 
+	int simCount = 0;
+	if (simManager_)
+		simCount = simManager_->getSimCount();
+	else
+		simCount = sim_ ? 1 : 0;
+
+	int carCount = sim_ ? (int)sim_->cars.size() : 0;
+
 	float x = 1, y = 1, dy = 20;
+	font_.draw(x, y, "simId %d of %d", activeSimId_, simCount); y += dy;
+	font_.draw(x, y, "carId %d of %d", activeCarId_, carCount); y += dy;
 	font_.draw(x, y, "gameTime %.2f s", gameTime_); y += dy;
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
 	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
@@ -127,15 +138,14 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	int gear = car_->drivetrain->currentGear - 1;
 	float rpm = ((float)car_->drivetrain->engine.velocity * 0.15915507f) * 60.0f;
 
-	//font_.draw(x, y, "physicsTime %.3f", car_->sim->physicsTime); y += dy;
-	//font_.draw(x, y, "blipStartTime %.3f", car_->autoBlip->blipStartTime); y += dy;
-
 	font_.draw(x, y, "steer %.3f", car_->controls.steer); y += dy;
+	font_.draw(x, y, "ssteer %.3f (%.3f)", car_->smoothSteerValue, (car_->smoothSteerTarget - car_->smoothSteerValue)); y += dy;
 	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
 	font_.draw(x, y, "brake %.3f", car_->controls.brake); y += dy;
 	font_.draw(x, y, "handBrake %.3f", car_->controls.handBrake); y += dy;
 	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
 
+	font_.draw(x, y, "gear %d", car_->state->gear); y += dy;
 	font_.draw(x, y, "gearReq %d", car_->controls.requestedGearIndex); y += dy;
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
 	font_.draw(x, y, "trackPoint %d", car_->nearestTrackPointId); y += dy;
@@ -146,8 +156,9 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	//font_.draw(x, y, "drifting %d", car_->drifting); y += dy;
 	//font_.draw(x, y, "currentDriftAngle %.2f", car_->currentDriftAngle); y += dy;
 	//font_.draw(x, y, "instantDrift %.2f", car_->instantDrift); y += dy;
-	font_.draw(x, y, "driftPoints %.2f", car_->driftPoints); y += dy;
-	font_.draw(x, y, "driftCombo %d", car_->driftComboCounter); y += dy;
+	font_.draw(x, y, "driftPoints %.2f", car_->scoring->driftPoints); y += dy;
+	font_.draw(x, y, "driftCombo %d", car_->scoring->driftComboCounter); y += dy;
+	font_.draw(x, y, "agentReward %.2f", car_->scoring->agentDriftReward); y += dy;
 	#endif
 
 	#if 1
@@ -282,14 +293,14 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 		font_.setHeight(25);
 
 		glColor3ub(255, 255, 255);
-		if (car_->driftExtreme) glColor3ub(0, 255, 0);
-		if (car_->driftInvalid) glColor3ub(255, 0, 0);
+		if (car_->scoring->driftExtreme) glColor3ub(0, 255, 0);
+		if (car_->scoring->driftInvalid) glColor3ub(255, 0, 0);
 
-		font_.draw(w * 0.35f, h * 0.65f, "DA %d", (int)(car_->currentDriftAngle * M_RAD2DEG));
+		font_.draw(w * 0.35f, h * 0.65f, "DA %d", (int)(car_->scoring->currentDriftAngle * M_RAD2DEG));
 		//font_.draw(w * 0.45f, h * 0.65f, "%d", (int)car_->driftComboCounter);
 		//font_.draw(w * 0.55f, h * 0.65f, "DP %d", (int)car_->instantDrift);
-		font_.draw(w * 0.55f, h * 0.65f, "DD %.3f", car_->instantDriftDelta);
-		font_.draw(w * 0.65f, h * 0.65f, "S %.3f", car_->agentScore);
+		font_.draw(w * 0.55f, h * 0.65f, "DD %.3f", car_->scoring->instantDriftDelta);
+		font_.draw(w * 0.65f, h * 0.65f, "R %.3f", car_->scoring->agentDriftReward);
 	}
 }
 

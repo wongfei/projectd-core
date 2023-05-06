@@ -1,6 +1,9 @@
 obj/
 src/.vs/
 
+__JUNK__/
+__pycache__/
+
 bin/*.lib
 bin/*.pdb
 bin/*.exp

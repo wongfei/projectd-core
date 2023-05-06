@@ -4,11 +4,13 @@ namespace D {
 
 void PlaygrounD::render()
 {
+	const auto renderThreadId = osGetCurrentThreadId();
+
 	#if 1
-		if (track_)
+		if (sim_ && sim_->track && sim_->physicsThreadId == renderThreadId)
 		{
 			TrackRayCastHit hit;
-			track_->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
+			sim_->track->rayCast(v(camPos_), v(camFront_), 1000.0f, hit);
 			lookatSurf_ = hit.surface;
 			lookatHit_ = hit.pos;
 		}

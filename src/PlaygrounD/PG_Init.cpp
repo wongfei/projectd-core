@@ -1,5 +1,6 @@
 #include "PlaygrounD.h"
 #include "Audio/FmodContext.h"
+#include <thread>
 
 namespace D {
 
@@ -8,7 +9,31 @@ namespace D {
 PlaygrounD::PlaygrounD() { TRACE_CTOR(PlaygrounD); }
 PlaygrounD::~PlaygrounD() { TRACE_DTOR(PlaygrounD); shut(); }
 
-void PlaygrounD::init(const std::string& basePath, bool loadedByPython)
+//=======================================================================================
+
+void PlaygrounD::run(const std::wstring& basePath, bool loadedByPython, bool bLoadDemo)
+{
+	log_printf(L"ENTER PlaygrounD::run");
+
+	init(basePath, loadedByPython);
+
+	if (bLoadDemo)
+		loadDemo();
+
+	log_printf(L"MAIN LOOP");
+	while (!exitFlag_)
+	{
+		tick();
+	}
+
+	shut();
+
+	log_printf(L"LEAVE PlaygrounD::run");
+}
+
+//=======================================================================================
+
+void PlaygrounD::init(const std::wstring& basePath, bool loadedByPython)
 {
 	log_printf(L"PlaygrounD: init");
 
@@ -17,53 +42,62 @@ void PlaygrounD::init(const std::string& basePath, bool loadedByPython)
 	initNuk();
 
 	tick0_ = clock::now();
+
+	initializedFlag_ = true;
 }
 
 //=======================================================================================
 
 void PlaygrounD::shut()
 {
+	if (simManager_)
+	{
+		const int n = simManager_->getSimCount();
+		for (int i = 0; i < n; ++i)
+		{
+			auto sim = simManager_->getSim(i);
+			if (sim)
+			{
+				for (auto* car : sim->cars)
+				{
+					car->controlsProvider.reset();
+					car->audioRenderer.reset();
+				}
+			}
+		}
+	}
+
 	sim_.reset();
 	controlsProvider_.reset();
+	fmodContext_.reset();
 
 	shutNuk();
 	closeWindow();
+
+	initializedFlag_ = false;
 }
 
 //=======================================================================================
 
-void PlaygrounD::initEngine(const std::string& basePath, bool loadedByPython)
+void PlaygrounD::initEngine(const std::wstring& basePath, bool loadedByPython)
 {
-	if (!loadedByPython)
-		srand(666);
+	log_printf(L"PlaygrounD: initEngine");
 
-	auto exePath = osGetModuleFullPath();
-	auto exeDir = osGetDirPath(exePath);
-
-	if (loadedByPython)
-		appDir_ = strw(basePath);
-	else
-		appDir_ = osCombinePath(exeDir, L"..\\");
-
+	appDir_ = basePath;
 	replace(appDir_, L'\\', L'/');
-	if (!ends_with(appDir_, L'/'))
-		appDir_.append(L"/");
+	if (!ends_with(appDir_, L'/')) { appDir_.append(L"/"); }
+
+	log_printf(L"baseDir=%s", appDir_.c_str());
 
 	if (loadedByPython)
 	{
 		SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 		AddDllDirectory(osCombinePath(appDir_, L"bin").c_str());
 	}
-
-	if (!loadedByPython)
+	else
 	{
-		const std::wstring logPath = appDir_ + L"projectd.log";
-		log_init(logPath.c_str());
+		srand(666);
 	}
-
-	log_printf(L"PlaygrounD: initEngine");
-	log_printf(L"exePath: %s", exePath.c_str());
-	log_printf(L"appDir: %s", appDir_.c_str());
 
 	#if defined(DEBUG)
 	INIReader::_debug = true;
@@ -79,6 +113,7 @@ void PlaygrounD::initEngine(const std::string& basePath, bool loadedByPython)
 		fullscreen_ = ini->getInt(L"SYS", L"FULLSCREEN") != 0;
 		drawHz_ = tclamp(ini->getInt(L"SYS", L"FPS_LIMIT"), 0, 1000);
 		swapInterval_ = tclamp(ini->getInt(L"SYS", L"SWAP_INTERVAL"), -1, 1);
+		enableSleep_ = ini->getInt(L"SYS", L"ENABLE_IDLE_SLEEP") != 0;
 		mouseSens_ = ini->getFloat(L"SYS", L"MOUSE_SENS");
 	}
 
@@ -94,6 +129,8 @@ void PlaygrounD::initEngine(const std::string& basePath, bool loadedByPython)
 	log_printf(L"IMG_Init: %d", rc);
 
 	font_.initDefault(appDir_);
+
+	initCarController();
 
 	fmodContext_.reset(new FmodContext());
 	fmodContext_->init(stra(appDir_));
@@ -146,62 +183,92 @@ void PlaygrounD::setSimulator(SimulatorPtr newSim)
 {
 	log_printf(L"setSimulator %p -> %p", sim_.get(), newSim.get());
 
-	if (sim_ == newSim)
-		return;
-
 	sim_ = newSim;
-	if (!sim_)
-		return;
-
-	if (!sim_->avatar)
-		sim_->avatar.reset(new GLSimulator(sim_.get()));
-
-	track_ = sim_->track.get();
-
-	if (track_ && !track_->pits.empty())
+	if (sim_)
 	{
-		pitPos_ = track_->pits[0];
-		camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
+		if (!sim_->avatar)
+			sim_->avatar.reset(new GLSimulator(sim_.get()));
+
+		auto* track = sim_->track.get();
+
+		if (track && !track->pits.empty())
+		{
+			pitPos_ = track->pits[0];
+			camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
+		}
 	}
+
+	activeSimId_ = sim_ ? sim_->simulatorId : -1;
+
+	setActiveCar(0);
 }
 
 //=======================================================================================
 
-void PlaygrounD::setActiveCar(int carId, bool takeControls, bool enableSound)
+void PlaygrounD::setActiveCar(int carId)
 {
-	log_printf(L"setActiveCar id=%d takeControls=%d enableSound=%d", carId, (int)takeControls, (int)enableSound);
+	log_printf(L"setActiveCar id=%d", carId);
 
+	Car* newCar = nullptr;
 	if (sim_ && carId >= 0 && carId < (int)sim_->cars.size())
 	{
-		auto* old = car_;
-		car_ = sim_->cars[carId];
-		inpCamMode_ = (int)ECamMode::Eye;
+		newCar = sim_->cars[carId];
+	}
 
-		if (old)
+	auto* oldCar = car_;
+	car_ = newCar;
+
+	if (oldCar && newCar != oldCar)
+	{
+		if (oldCar->controlsProvider)
 		{
-			old->lockControls = true;
-			old->controlsProvider.reset();
-
-			if (old->avatar)
-				((GLCar*)old->avatar.get())->drawBody = true;
-
-			old->audioRenderer.reset();
+			oldCar->controlsProvider->setCar(nullptr);
+			oldCar->controlsProvider.reset();
 		}
 
-		if (takeControls && enableCarController_)
-		{
-			if (!controlsProvider_)
-				initCarController();
+		oldCar->audioRenderer.reset();
 
+		if (oldCar->avatar)
+			((GLCar*)oldCar->avatar.get())->drawBody = true;
+	}
+
+	activeCarId_ = car_ ? car_->physicsGUID : -1;
+	inpCamMode_ = car_ ? (int)ECamMode::Eye : (int)ECamMode::Free;
+
+	enableCarControls(newCarControls_);
+	enableCarSound(newCarSound_);
+}
+
+void PlaygrounD::enableCarControls(bool enable)
+{
+	if (car_ && controlsProvider_)
+	{
+		if (enable)
+		{
 			controlsProvider_->setCar(car_);
 			car_->controlsProvider = controlsProvider_;
 			car_->lockControls = false;
 		}
+		else
+		{
+			controlsProvider_->setCar(nullptr);
+			car_->controlsProvider.reset();
+		}
+	}
+}
 
-		if (enableSound && enableCarSound_)
+void PlaygrounD::enableCarSound(bool enable)
+{
+	if (car_ && fmodContext_)
+	{
+		if (enable)
 		{
 			if (!car_->audioRenderer)
 				car_->audioRenderer = std::make_shared<FmodAudioRenderer>(fmodContext_, stra(appDir_), car_);
+		}
+		else
+		{
+			car_->audioRenderer.reset();
 		}
 	}
 }

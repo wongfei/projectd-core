@@ -2,23 +2,13 @@
 
 namespace D {
 
-void PlaygrounD::runDemo()
-{
-	init("", false);
-	loadDemo();
-
-	log_printf(L"MAIN LOOP");
-	while (!exitFlag_)
-	{
-		tick();
-	}
-
-	shut();
-}
-
 void PlaygrounD::loadDemo()
 {
 	log_printf(L"PlaygrounD: loadDemo");
+
+	// auto activate controls/sound when switching
+	newCarControls_ = true;
+	newCarSound_ = true;
 
 	std::wstring trackName = L"ek_akina";
 	std::wstring carModel = L"ks_toyota_ae86_drift";
@@ -32,7 +22,6 @@ void PlaygrounD::loadDemo()
 
 	auto sim = std::make_shared<Simulator>();
 	sim->init(appDir_);
-	setSimulator(sim);
 
 	auto track = sim->loadTrack(trackName);
 
@@ -46,12 +35,33 @@ void PlaygrounD::loadDemo()
 		car->teleport(track->pits[i]);
 	}
 
-	pitPos_ = track->pits[0];
-	camPos_ = glm::vec3(pitPos_.M41, pitPos_.M42, pitPos_.M43);
+	setSimulator(sim);
+	GUARD_FATAL(car_);
 
-	setActiveCar(0, true, true);
+	car_->teleportToSpline(0.0f);
 
-	car_->teleportToTrackLocation(0.0f, 0.1f);
+	// SECOND SIM
+
+	#if 0
+	auto sim2 = std::make_shared<Simulator>();
+	sim2->simulatorId = 1;
+	sim2->init(appDir_);
+	auto track2 = sim2->loadTrack(trackName);
+	auto* car2 = sim2->addCar(carModel);
+	car2->teleportToSpline(0.5f);
+
+	struct DbgSimulatorManager : public D::ISimulatorManager
+	{
+		std::vector<SimulatorPtr> sims;
+		virtual int getSimCount() const override { return (int)sims.size(); }
+		virtual D::SimulatorPtr getSim(int simId) override { return sims[simId]; }
+	};
+
+	auto* sm = new DbgSimulatorManager();
+	sm->sims.push_back(sim);
+	sm->sims.push_back(sim2);
+	simManager_ = sm;
+	#endif
 
 	// CAR_TUNE
 

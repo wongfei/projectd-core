@@ -6,8 +6,8 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <timeapi.h>
 
-//#include <shlwapi.h>
 #include <pathcch.h>
 #pragma comment(lib, "pathcch.lib")
 
@@ -19,6 +19,21 @@ void osTraceDebug(const wchar_t* msg)
 {
 	OutputDebugStringW(msg);
 	OutputDebugStringW(L"\n");
+}
+
+unsigned int osGetCurrentProcessId()
+{
+	return GetCurrentProcessId();
+}
+
+unsigned int osGetCurrentThreadId()
+{
+	return GetCurrentThreadId();
+}
+
+unsigned int osGetCurrentTicks()
+{
+	return timeGetTime();
 }
 
 void* osLoadLibraryA(const char* path)

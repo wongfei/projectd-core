@@ -118,6 +118,8 @@ struct Simulator : public virtual ICollisionCallback // std::enable_shared_from_
 	std::unique_ptr<struct SharedMemory> interopState;
 	std::unique_ptr<struct SharedMemory> interopInput;
 
+	int simulatorId = 0;
+	unsigned int physicsThreadId = 0;
 	int carIdGenerator = 0;
 	float deltaTime = 0;
 	double physicsTime = 0;

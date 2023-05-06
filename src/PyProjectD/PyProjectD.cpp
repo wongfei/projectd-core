@@ -4,10 +4,43 @@
 namespace py = pybind11;
 
 #include "PlaygrounD.h"
-#include <unordered_map>
+#include "Core/OS.h"
 
-static int g_uniqSimId = 0;
+#include <unordered_map>
+#include <thread>
+#include <mutex>
+
+// TODO: lame globals
+
+static std::mutex g_simMux;
+#define SIM_LOCK std::lock_guard<std::mutex> lock(g_simMux)
+
+static std::atomic<int> g_uniqSimId;
 static std::unordered_map<int, D::SimulatorPtr> g_simMap;
+
+struct PySimulatorManager : public D::ISimulatorManager
+{
+	PySimulatorManager() { TRACE_CTOR(PySimulatorManager); }
+	~PySimulatorManager() { TRACE_DTOR(PySimulatorManager); }
+
+	int getSimCount() const override
+	{
+		SIM_LOCK;
+		return (int)g_simMap.size();
+	}
+
+	D::SimulatorPtr getSim(int simId) override
+	{
+		SIM_LOCK;
+		auto iter = g_simMap.find(simId);
+		if (iter != g_simMap.end())
+			return iter->second;
+		return nullptr;
+	}
+};
+static PySimulatorManager g_simManager;
+
+static std::unique_ptr<D::PlaygrounD> g_playground;
 
 //
 // CORE
@@ -18,14 +51,14 @@ void setSeed(unsigned int seed)
 	srand(seed);
 }
 
-void initLogFile(const std::string& path)
+void setLogFile(const std::string& path, bool overwrite = true)
 {
-	D::log_init(D::strw(path).c_str());
+	D::log_set_file(D::strw(path).c_str(), overwrite);
 }
 
-void closeLogFile()
+void clearLogFile()
 {
-	D::log_close();
+	D::log_clear_file();
 }
 
 void writeLog(const std::string& msg)
@@ -44,6 +77,9 @@ inline D::Simulator* getSimulator(int simId)
 	{
 		return iter->second.get();
 	}
+
+	//D::log_printf(L"FAILED: getSimulator simId=%d", simId);
+	//SHOULD_NOT_REACH_FATAL;
 	return nullptr;
 }
 
@@ -54,13 +90,21 @@ inline D::SimulatorPtr getSimulatorShared(int simId)
 	{
 		return iter->second;
 	}
+
+	//D::log_printf(L"FAILED: getSimulatorShared simId=%d", simId);
+	//SHOULD_NOT_REACH_FATAL;
 	return nullptr;
 }
 
 inline D::Car* getCar(int simId, int carId)
 {
 	auto* sim = getSimulator(simId);
-	return sim ? sim->getCar(carId) : nullptr;
+	if (sim)
+		return sim->getCar(carId);
+
+	//D::log_printf(L"FAILED: getCar simId=%d carId=%d", simId, carId);
+	//SHOULD_NOT_REACH_FATAL;
+	return nullptr;
 }
 
 int createSimulator(const std::string& basePath)
@@ -69,11 +113,18 @@ int createSimulator(const std::string& basePath)
 	{
 		//D::INIReader::_debug = true;
 
+		const int id = g_uniqSimId++;
+
+		D::log_printf(L"[PY] createSimulator simId=%d", id);
+
 		auto sim = std::make_shared<D::Simulator>();
+		sim->simulatorId = id;
 		sim->init(D::strw(basePath));
 
-		int id = g_uniqSimId++;
-		g_simMap.insert({id, sim});
+		{
+			SIM_LOCK;
+			g_simMap.insert({id, sim});
+		}
 
 		return id;
 	}
@@ -86,6 +137,9 @@ int createSimulator(const std::string& basePath)
 
 void destroySimulator(int simId)
 {
+	D::log_printf(L"[PY] destroySimulator simId=%d", simId);
+
+	SIM_LOCK;
 	auto iter = g_simMap.find(simId);
 	if (iter != g_simMap.end())
 	{
@@ -93,26 +147,29 @@ void destroySimulator(int simId)
 	}
 }
 
-void stepSimulator(int simId)
+void destroyAllSimulators()
+{
+	D::log_printf(L"[PY] destroyAllSimulators");
+
+	SIM_LOCK;
+	g_simMap.clear();
+	g_uniqSimId = 0;
+}
+
+void stepSimulator(int simId, double dt = (1.0 / 333.0))
 {
 	auto* sim = getSimulator(simId);
 	if (sim && sim->physics)
 	{
-		const double dt = 1.0 / 333.0;
-
 		sim->step((float)dt, sim->physicsTime, sim->gameTime);
+
+		if (g_playground && g_playground->sim_.get() == sim)
+		{
+			g_playground->updateSimStats((float)dt, (float)sim->gameTime);
+		}
 
 		sim->physicsTime += dt;
 		sim->gameTime += dt;
-	}
-}
-
-void stepSimulatorEx(int simId, double dt, double physicsTime, double gameTime)
-{
-	auto* sim = getSimulator(simId);
-	if (sim && sim->physics)
-	{
-		sim->step((float)dt, physicsTime, gameTime);
 	}
 }
 
@@ -122,6 +179,8 @@ void stepSimulatorEx(int simId, double dt, double physicsTime, double gameTime)
 
 void loadTrack(int simId, const std::string &trackName)
 {
+	D::log_printf(L"[PY] loadTrack simId=%d trackName=%S", simId, trackName.c_str());
+
 	try
 	{
 		auto* sim = getSimulator(simId);
@@ -138,6 +197,8 @@ void loadTrack(int simId, const std::string &trackName)
 
 void unloadTrack(int simId)
 {
+	D::log_printf(L"[PY] unloadTrack simId=%d", simId);
+
 	auto* sim = getSimulator(simId);
 	if (sim)
 	{
@@ -151,6 +212,8 @@ void unloadTrack(int simId)
 
 int addCar(int simId, const std::string &modelName)
 {
+	D::log_printf(L"[PY] addCar simId=%d modelName=%S", simId, modelName.c_str());
+
 	try
 	{
 		auto* sim = getSimulator(simId);
@@ -169,6 +232,8 @@ int addCar(int simId, const std::string &modelName)
 
 void removeCar(int simId, int carId)
 {
+	D::log_printf(L"[PY] removeCar simId=%d carId=%d", simId, carId);
+
 	auto* sim = getSimulator(simId);
 	if (sim)
 	{
@@ -194,31 +259,42 @@ void teleportCarToPits(int simId, int carId, int pitId)
 	}
 }
 
-void teleportCarToTrackLocation(int simId, int carId, float distanceNorm, float offsetY)
+void teleportCarToSpline(int simId, int carId, float distanceNorm)
 {
 	auto* car = getCar(simId, carId);
 	if (car)
 	{
-		car->teleportToTrackLocation(distanceNorm, offsetY);
+		car->teleportToSpline(distanceNorm);
 	}
 }
 
-void setCarAutoTeleport(int simId, int carId, bool collision, bool badLoc)
+void teleportCarByMode(int simId, int carId, int mode)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->teleportByMode((D::TeleportMode)mode);
+	}
+}
+
+void setCarAutoTeleport(int simId, int carId, bool collision, bool badLoc, int teleportMode = (int)D::TeleportMode::Start)
 {
 	auto* car = getCar(simId, carId);
 	if (car)
 	{
 		car->teleportOnCollision = collision;
 		car->teleportOnBadLocation = badLoc;
+		car->teleportMode = (int)teleportMode;
 	}
 }
 
-void setCarControls(int simId, int carId, const D::CarControls& controls)
+void setCarControls(int simId, int carId, bool smooth, const D::CarControls& controls)
 {
 	auto* car = getCar(simId, carId);
 	if (car)
 	{
 		car->controls = controls;
+		car->smoothSteer = smooth;
 	}
 }
 
@@ -235,28 +311,71 @@ void getCarState(int simId, int carId, D::CarState& state)
 // PLAYGROUND
 //
 
-static std::unique_ptr<D::PlaygrounD> g_playground;
+static std::unique_ptr<std::thread> g_playgroundThread;
+
+void launchPlaygroundInOwnThread(const std::string& basePath)
+{
+	D::log_printf(L"[PY] launchPlaygroundInOwnThread");
+
+	if (g_playgroundThread || g_playground)
+		return;
+
+	auto runner = [basePath]()
+	{
+		g_playground.reset(new D::PlaygrounD());
+		g_playground->simManager_ = &g_simManager;
+		g_playground->simEnabled_ = false;
+		g_playground->run(D::strw(basePath), true, false);
+	};
+
+	g_playgroundThread.reset(new std::thread(runner));
+}
 
 void initPlayground(const std::string& basePath)
 {
+	D::log_printf(L"[PY] initPlayground");
+
 	if (!g_playground)
 	{
 		g_playground.reset(new D::PlaygrounD());
-		g_playground->init(basePath, true);
+		g_playground->simManager_ = &g_simManager;
+		g_playground->init(D::strw(basePath), true);
 	}
 }
 
 void shutPlayground()
 {
+	D::log_printf(L"[PY] shutPlayground");
+
+	if (g_playground)
+		g_playground->exitFlag_ = true;
+
+	if (g_playgroundThread)
+		g_playgroundThread->join();
+
+	g_playgroundThread.reset();
 	g_playground.reset();
+}
+
+void shutAll()
+{
+	D::log_printf(L"[PY] shutAll");
+
+	shutPlayground();
+	destroyAllSimulators();
 }
 
 void tickPlayground()
 {
-	if (g_playground)
+	if (g_playground && !g_playgroundThread)
 	{
 		g_playground->tick();
 	}
+}
+
+bool isPlaygroundInitialized()
+{
+	return g_playground && g_playground->initializedFlag_;
 }
 
 bool isPlaygroundExited()
@@ -264,14 +383,41 @@ bool isPlaygroundExited()
 	return !g_playground || (g_playground && g_playground->exitFlag_);
 }
 
+void moveWindow(int x, int y)
+{
+	if (g_playground)
+	{
+		g_playground->moveWindow(x, y);
+	}
+}
+
+void resizeWindow(int w, int h)
+{
+	if (g_playground)
+	{
+		g_playground->resizeWindow(w, h);
+	}
+}
+
+void setRenderHz(int hz, bool enableSleep)
+{
+	if (g_playground)
+	{
+		g_playground->drawHz_ = hz;
+		g_playground->enableSleep_ = enableSleep;
+	}
+}
+
 void setActiveSimulator(int simId, bool simEnabled)
 {
+	D::log_printf(L"[PY] setActiveSimulator simId=%d simEnabled=%d", simId, (int)simEnabled);
+
 	if (g_playground)
 	{
 		auto sim = getSimulatorShared(simId);
 		if (sim)
 		{
-			g_playground->setSimulator(sim);
+			g_playground->newSimId_ = simId;
 			g_playground->simEnabled_ = simEnabled;
 		}
 	}
@@ -279,10 +425,32 @@ void setActiveSimulator(int simId, bool simEnabled)
 
 void setActiveCar(int carId, bool takeControls, bool enableSound)
 {
+	D::log_printf(L"[PY] setActiveCar carId=%d takeControls=%d enableSound=%d", carId, (int)takeControls, (int)enableSound);
+
 	if (g_playground)
 	{
-		g_playground->setActiveCar(carId, takeControls, enableSound);
+		g_playground->newCarControls_ = takeControls;
+		g_playground->newCarSound_ = enableSound;
+		g_playground->newCarId_ = carId;
 	}
+}
+
+int getActiveSimulator()
+{
+	if (g_playground && g_playground->sim_)
+	{
+		return g_playground->sim_->simulatorId;
+	}
+	return -1;
+}
+
+int getActiveCar()
+{
+	if (g_playground && g_playground->car_)
+	{
+		return g_playground->car_->physicsGUID;
+	}
+	return -1;
 }
 
 //
@@ -333,6 +501,7 @@ PYBIND11_MODULE(PyProjectD, m)
 	py::class_<D::CarState> py_CarState(m, "CarState");
 	py_CarState.def(py::init<>())
 		.def_readonly("carId", &D::CarState::carId)
+		.def_readonly("simId", &D::CarState::simId)
 		.def_readonly("controls", &D::CarState::controls)
 
 		.def_readonly("engineRPM", &D::CarState::engineRPM)
@@ -340,7 +509,18 @@ PYBIND11_MODULE(PyProjectD, m)
 		.def_readonly("gear", &D::CarState::gear)
 		.def_readonly("gearGrinding", &D::CarState::gearGrinding)
 
+		.def_readonly("trackLocation", &D::CarState::trackLocation)
+		.def_readonly("trackPointId", &D::CarState::trackPointId)
+		.def_readonly("collisionFlag", &D::CarState::collisionFlag)
+		.def_readonly("outOfTrackFlag", &D::CarState::outOfTrackFlag)
+
+		.def_readonly("bodyVsTrack", &D::CarState::bodyVsTrack)
+		.def_readonly("velocityVsTrack", &D::CarState::velocityVsTrack)
+		.def_readonly("agentDriftReward", &D::CarState::agentDriftReward)
+
 		.def_readonly("bodyMatrix", &D::CarState::bodyMatrix)
+		.def_readonly("bodyPos", &D::CarState::bodyPos)
+		.def_readonly("bodyEuler", &D::CarState::bodyEuler)
 		.def_readonly("accG", &D::CarState::accG)
 		.def_readonly("velocity", &D::CarState::velocity)
 		.def_readonly("localVelocity", &D::CarState::localVelocity)
@@ -354,19 +534,16 @@ PYBIND11_MODULE(PyProjectD, m)
 		.def_readonly("tyreAngularSpeed", &D::CarState::tyreAngularSpeed)
 
 		.def_readonly("probes", &D::CarState::probes)
-		.def_readonly("trackLocation", &D::CarState::trackLocation)
-		.def_readonly("agentScore", &D::CarState::agentScore)
-		;
+	;
 
 	m.def("setSeed", &setSeed, "");
-	m.def("initLogFile", &initLogFile, "");
-	m.def("closeLogFile", &closeLogFile, "");
+	m.def("setLogFile", &setLogFile, "");
+	m.def("clearLogFile", &clearLogFile, "");
 	m.def("writeLog", &writeLog, "");
 
 	m.def("createSimulator", &createSimulator, "");
 	m.def("destroySimulator", &destroySimulator, "");
 	m.def("stepSimulator", &stepSimulator, "");
-	m.def("stepSimulatorEx", &stepSimulatorEx, "");
 
 	m.def("loadTrack", &loadTrack, "");
 	m.def("unloadTrack", &unloadTrack, "");
@@ -375,15 +552,24 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("removeCar", &removeCar, "");
 	m.def("teleportCarToLocation", &teleportCarToLocation, "");
 	m.def("teleportCarToPits", &teleportCarToPits, "");
-	m.def("teleportCarToTrackLocation", &teleportCarToTrackLocation, "");
+	m.def("teleportCarToSpline", &teleportCarToSpline, "");
+	m.def("teleportCarByMode", &teleportCarByMode, "");
 	m.def("setCarAutoTeleport", &setCarAutoTeleport, "");
 	m.def("setCarControls", &setCarControls, "");
 	m.def("getCarState", &getCarState, "");
 
+	m.def("launchPlaygroundInOwnThread", &launchPlaygroundInOwnThread, "");
 	m.def("initPlayground", &initPlayground, "");
 	m.def("shutPlayground", &shutPlayground, "");
+	m.def("shutAll", &shutAll, "");
 	m.def("tickPlayground", &tickPlayground, "");
+	m.def("isPlaygroundInitialized", &isPlaygroundInitialized, "");
 	m.def("isPlaygroundExited", &isPlaygroundExited, "");
+	m.def("moveWindow", &moveWindow, "");
+	m.def("resizeWindow", &resizeWindow, "");
+	m.def("setRenderHz", &setRenderHz, "");
 	m.def("setActiveSimulator", &setActiveSimulator, "");
 	m.def("setActiveCar", &setActiveCar, "");
+	m.def("getActiveSimulator", &getActiveSimulator, "");
+	m.def("getActiveCar", &getActiveCar, "");
 }

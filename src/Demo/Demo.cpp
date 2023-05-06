@@ -1,4 +1,5 @@
 #include "PlaygrounD.h"
+#include "Core/OS.h"
 
 using namespace D;
 
@@ -10,8 +11,18 @@ int main(int argc, char** argv)
 	try {
 	#endif
 
+	auto exePath = osGetModuleFullPath();
+	auto exeDir = osGetDirPath(exePath);
+	auto baseDir = osCombinePath(exeDir, L"..\\");
+
+	replace(baseDir, L'\\', L'/');
+	if (!ends_with(baseDir, L'/')) { baseDir.append(L"/"); }
+
+	const std::wstring logPath = baseDir + L"projectd.log";
+	log_set_file(logPath.c_str(), true);
+
 	auto app = std::make_unique<PlaygrounD>();
-	app->runDemo();
+	app->run(baseDir, false, true);
 
 	#ifndef DEBUG
 	} catch (const std::exception& ex) {

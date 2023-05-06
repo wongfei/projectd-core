@@ -42,9 +42,8 @@ protected:
     int line;
 };
 
-void log_init(const wchar_t* filename);
-void log_flush();
-void log_close();
+void log_set_file(const wchar_t* filename, bool overwrite = true);
+void log_clear_file();
 void log_printf(const wchar_t* format, ...);
 
 void trace_warn(const wchar_t* msg, const char* file, int line);
