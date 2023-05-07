@@ -45,6 +45,7 @@ bool Car::init(const std::wstring& modelName)
 
 	initCarData();
 	initProbes();
+	initLookAhead();
 
 	fuelTankBody->setMassBox(1.0f, 0.5f, 0.5f, 0.5f); // TODO: check
 	fuelTankBody->setPosition(fuelTankPos);
@@ -296,6 +297,18 @@ void Car::initProbes()
 
 		probes.push_back(ray3f(vec3f(0, 0, 0), vec3f(0, 0, 1).rotateAxisAngle(vec3f(0, 1, 0), yaw * M_DEG2RAD), length));
 	}
+}
+
+void Car::initLookAhead()
+{
+	auto ini(std::make_unique<INIReader>(sim->basePath + L"cfg/sim.ini"));
+	if (ini->ready)
+	{
+		ini->tryGetInt(L"CAR_LOOK_AHEAD", L"COUNT", lookAheadCount);
+		ini->tryGetFloat(L"CAR_LOOK_AHEAD", L"STEP", lookAheadStep);
+	}
+
+	lookAhead.resize(lookAheadCount);
 }
 
 //=============================================================================
@@ -650,6 +663,7 @@ void Car::postStep(float dt)
 	slipStream->setPosition(vBodyPos, vBodyVel);
 
 	updateTrackLocator();
+	updateLookAhead();
 
 	scoring->step(dt);
 
@@ -705,7 +719,7 @@ void Car::updateTrackLocator()
 	const int numPoints = (int)track->fatPoints.size();
 	if (bestPoint >= 0 && bestPoint < numPoints)
 	{
-		trackLocation = tclamp((float)bestPoint / (float)numPoints, 0.0f, 1.0f);
+		trackLocation = tclamp((float)bestPoint / (float)numPoints, 0.0f, 1.0f); // TODO: compute accurate location
 
 		const auto& pt = track->fatPoints[bestPoint];
 
@@ -719,6 +733,33 @@ void Car::updateTrackLocator()
 			velocityVsTrack = bodyVelDir * pt.forwardDir;
 		else
 			velocityVsTrack = 0.0f;
+	}
+}
+
+//=============================================================================
+
+void Car::updateLookAhead()
+{
+	if (lookAhead.size() != (size_t)lookAheadCount)
+		lookAhead.resize((size_t)lookAheadCount);
+
+	const vec3f up(0, 1, 0);
+	const vec3f curTrackDir = track->getTrackDirectionAtDistance(trackLocation);
+
+	const auto bodyR = body->getWorldMatrix(0).getRotator();
+	const auto bodyFrontDir = (vec3f(0, 0, 1) * bodyR).get_norm();
+
+	// is car driving in the right direction?
+	const float driveDir = signf(bodyFrontDir * curTrackDir);
+
+	for (int i = 0; i < lookAheadCount; ++i)
+	{
+		const float distanceNorm = trackLocation + ((lookAheadStep * (float)(i + 1)) / track->computedTrackLength) * driveDir;
+		const vec3f dir = track->getTrackDirectionAtDistance(distanceNorm);
+
+		const float angle = atan2f(dir.cross(curTrackDir) * up, curTrackDir * dir);
+		//lookAhead[i] = angle;
+		lookAhead[i] = linscalef(angle, -M_PI, M_PI, -1.0f, 1.0f);
 	}
 }
 
@@ -762,14 +803,20 @@ void Car::updateCarState()
 		auto* pTyre = tyres[i].get();
 		state->hubMatrix[i] = (suspensions[i]->getHubWorldMatrix());
 		state->tyreContacts[i] = pTyre->contactPoint;
-		state->tyreSlip[i] = pTyre->status.ndSlip;
 		state->tyreLoad[i] = pTyre->status.load;
 		state->tyreAngularSpeed[i] = pTyre->status.angularVelocity;
+		state->tyreSlipRatio[i] = pTyre->status.slipRatio;
+		state->tyreNdSlip[i] = pTyre->status.ndSlip;
 	}
 
-	for (int i = 0; i < (int)probes.size(); ++i)
+	for (size_t i = 0; i < probes.size(); ++i)
 	{
 		state->probes[i] = probeHits[i];
+	}
+
+	for (size_t i = 0; i < lookAhead.size(); ++i)
+	{
+		state->lookAhead[i] = lookAhead[i];
 	}
 
 	#if 0
@@ -1201,11 +1248,12 @@ void Car::teleportToPits(int pitId)
 void Car::teleportToSpline(float distanceNorm)
 {
 	const auto& points = track->fatPoints;
-	const int n = (int)points.size();
+	const size_t n = points.size();
 	if (n)
 	{
-		int pointId = (int)(tclamp(distanceNorm, 0.0f, 1.0f) * (n - 1));
-		if (pointId >= 0 && pointId < n)
+		//int pointId = (int)(tclamp(distanceNorm, 0.0f, 1.0f) * (n - 1));
+		const size_t pointId = track->getPointIdAtDistance(distanceNorm);
+		if (pointId < n)
 		{
 			auto& pt = points[pointId];
 			forceRotation(pt.forwardDir);

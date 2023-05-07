@@ -161,7 +161,7 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	font_.draw(x, y, "agentReward %.2f", car_->scoring->agentDriftReward); y += dy;
 	#endif
 
-	#if 1
+	#if 0
 	font_.draw(x, y, "fuel %.2f", car_->fuel); y += dy;
 	font_.draw(x, y, "engineLife %.2f", car_->drivetrain->engineModel->lifeLeft); y += dy;
 	for (int i = 0; i < 5; ++i)
@@ -171,6 +171,13 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	for (int i = 0; i < 4; ++i)
 	{
 		font_.draw(x, y, "flatSpot %d %.3f", i, car_->tyres[i]->status.flatSpot); y += dy;
+	}
+	#endif
+
+	#if 0
+	for (int i = 0; i < car_->lookAheadCount; ++i)
+	{
+		font_.draw(x, y, "lookAhead %d %.3f", i, car_->lookAhead[i]); y += dy;
 	}
 	#endif
 
@@ -198,7 +205,7 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	}
 	#endif
 
-	#if 0
+	#if 1
 	for (int i = 0; i < 4; ++i)
 	{
 		font_.draw(x, y, "SR%d %+10.5f", i, car_->tyres[i]->status.slipRatio); y += dy;

@@ -46,6 +46,8 @@ struct Track : public ITrackRayCastProvider
 	void computeFatPoints();
 	vec3f computeSideLocation(const SlimTrackPoint& slim, FatTrackPoint& fat, const TrackRayCastHit& origHit, const vec3f& rayStart, const vec3f& traceDir, int numSteps);
 	float rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDistance = 0.0f);
+	size_t getPointIdAtDistance(float distanceNorm) const;
+	vec3f getTrackDirectionAtDistance(float distanceNorm) const;
 
 	std::wstring name;
 	std::wstring dataFolder;
@@ -62,6 +64,7 @@ struct Track : public ITrackRayCastProvider
 	VertexHash fatPointsHash;
 	vec3f pointCachePos;
 	float computedTrackWidth = 0;
+	float computedTrackLength = 0;
 
 	bool traceSides = false;
 	float traceRayOffsetY = 20.0f;

@@ -273,12 +273,24 @@
     <ClInclude Include="Car\CarImpl.h">
       <Filter>Car</Filter>
     </ClInclude>
-    <ClInclude Include="Car\AutoBlip.h" />
-    <ClInclude Include="Car\AutoShifter.h" />
-    <ClInclude Include="Car\AutoClutch.h" />
-    <ClInclude Include="Core\VertexHash.h" />
-    <ClInclude Include="Core\SharedMemory.h" />
-    <ClInclude Include="Car\ScoringSystem.h" />
+    <ClInclude Include="Core\SharedMemory.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\VertexHash.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\AutoBlip.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\AutoClutch.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\AutoShifter.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Car\ScoringSystem.h">
+      <Filter>Car\Systems</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Car\Car.cpp">
@@ -416,10 +428,20 @@
     <ClCompile Include="Car\ThermalObject.cpp">
       <Filter>Car\Systems</Filter>
     </ClCompile>
-    <ClCompile Include="Car\AutoBlip.cpp" />
-    <ClCompile Include="Car\AutoShifter.cpp" />
-    <ClCompile Include="Car\AutoClutch.cpp" />
-    <ClCompile Include="Core\SharedMemory.cpp" />
-    <ClCompile Include="Car\ScoringSystem.cpp" />
+    <ClCompile Include="Core\SharedMemory.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\AutoBlip.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\AutoClutch.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\AutoShifter.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Car\ScoringSystem.cpp">
+      <Filter>Car\Systems</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

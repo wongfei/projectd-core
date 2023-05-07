@@ -40,12 +40,16 @@ struct CarState
 
 	std::array<mat44f, 4> hubMatrix;
 	std::array<vec3f, 4> tyreContacts;
-	std::array<float, 4> tyreSlip;
 	std::array<float, 4> tyreLoad;
 	std::array<float, 4> tyreAngularSpeed;
+	std::array<float, 4> tyreSlipRatio;
+	std::array<float, 4> tyreNdSlip;
 
 	enum { MaxProbes = 10 };
 	std::array<float, MaxProbes> probes;
+
+	enum { MaxLookAhead = 5 };
+	std::array<float, MaxLookAhead> lookAhead;
 };
 
 #pragma pack(pop)

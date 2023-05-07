@@ -214,7 +214,8 @@ void Track::initTrackPoints()
 		saveFatPoints();
 	}
 
-	computedTrackWidth = 0;
+	computedTrackWidth = 0.1f;
+	computedTrackLength = 0.1f;
 
 	if (!fatPoints.empty())
 	{
@@ -231,13 +232,19 @@ void Track::initTrackPoints()
 		fatPointsHash.init(cellSize, (size_t)tableSize); // allows to query points around specific location
 		pointCachePos = vec3f(0, -10000, 0);
 
-		for (size_t id = 0; id < fatPoints.size(); ++id)
+		const size_t numPoints = fatPoints.size();
+		for (size_t id = 0; id < numPoints; ++id)
 		{
 			fatPointsHash.add(fatPoints[id].center, id);
 
 			const float dist = (fatPoints[id].left - fatPoints[id].right).len();
 			if (computedTrackWidth < dist)
 				computedTrackWidth = dist;
+
+			if (id + 1 < numPoints)
+			{
+				computedTrackLength += (fatPoints[id].center - fatPoints[id + 1].center).len();
+			}
 		}
 	}
 }
@@ -502,6 +509,32 @@ float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDis
 	}
 
 	return result;
+}
+
+size_t Track::getPointIdAtDistance(float distanceNorm) const
+{
+	const size_t numPoints = fatPoints.size();
+	if (!numPoints)
+		return 0;
+
+	if (distanceNorm < 0.0f)
+		distanceNorm += 1.0f;
+	else if (distanceNorm > 1.0f)
+		distanceNorm -= 1.0f;
+
+	const size_t pointId = (size_t)(tclamp(distanceNorm, 0.0f, 1.0f) * (float)(numPoints - 1));
+	return pointId;
+}
+
+vec3f Track::getTrackDirectionAtDistance(float distanceNorm) const
+{
+	const size_t pointId = getPointIdAtDistance(distanceNorm);
+	if (pointId < fatPoints.size())
+	{
+		return fatPoints[pointId].forwardDir;
+	}
+
+	return vec3f(0, 0, 0);
 }
 
 }

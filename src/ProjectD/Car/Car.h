@@ -56,6 +56,7 @@ struct Car : public virtual IObject
 	bool init(const std::wstring& modelName);
 	void initCarData();
 	void initProbes();
+	void initLookAhead();
 	void loadColliderBlob();
 	void initColliderMesh(ITriMeshPtr mesh, const mat44f& bodyMatrix);
 
@@ -68,6 +69,7 @@ struct Car : public virtual IObject
 	void stepThermalObjects(float dt);
 	void stepComponents(float dt);
 	void updateTrackLocator();
+	void updateLookAhead();
 	void postStep(float dt);
 	void updateCarState();
 
@@ -219,6 +221,11 @@ struct Car : public virtual IObject
 	// obstacle probes
 	std::vector<ray3f> probes;
 	std::vector<float> probeHits;
+
+	// track curvature
+	std::vector<float> lookAhead;
+	int lookAheadCount = 5;
+	float lookAheadStep = 10.0;
 
 	int nearestTrackPointId = 0;
 	float trackLocation = 0;

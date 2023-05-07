@@ -10,6 +10,8 @@ from projectd_env import ProjectDEnv
 class ProjectDEnvGym(gym.Env):
 
     def __init__(self):
+        super().__init__()
+        
         self.seed()
         self.impl = ProjectDEnv()
         

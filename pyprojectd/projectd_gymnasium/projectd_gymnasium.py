@@ -9,6 +9,8 @@ from projectd_env import ProjectDEnv
 class ProjectDEnvGymnasium(gym.Env):
 
     def __init__(self):
+        super().__init__()
+        
         self.impl = ProjectDEnv()
         
         obs_low, obs_high = self.impl._get_obs_space()

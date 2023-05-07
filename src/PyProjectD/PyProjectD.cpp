@@ -529,11 +529,13 @@ PYBIND11_MODULE(PyProjectD, m)
 
 		.def_readonly("hubMatrix", &D::CarState::hubMatrix)
 		.def_readonly("tyreContacts", &D::CarState::tyreContacts)
-		.def_readonly("tyreSlip", &D::CarState::tyreSlip)
 		.def_readonly("tyreLoad", &D::CarState::tyreLoad)
 		.def_readonly("tyreAngularSpeed", &D::CarState::tyreAngularSpeed)
+		.def_readonly("tyreSlipRatio", &D::CarState::tyreSlipRatio)
+		.def_readonly("tyreNdSlip", &D::CarState::tyreNdSlip)
 
 		.def_readonly("probes", &D::CarState::probes)
+		.def_readonly("lookAhead", &D::CarState::lookAhead)
 	;
 
 	m.def("setSeed", &setSeed, "");

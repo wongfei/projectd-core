@@ -17,16 +17,21 @@ import utils_d as u
 class ProjectDEnv():
 
     sim_dt = 1.0 / 333.0
-    viewer_enabled = False
+    render_hz = 60
+    viewer_enabled = True
     smooth_controls = True
-    terminate_enabled = True
+    
     terminate_reward = -1000.0
+    terminate_on_hit = True
+    terminate_off_track = True
+    
+    teleport_mode = 0 # 0:Start, 1:Nearest, 2:Random
     teleport_on_reset = True
     teleport_on_hit = False
     teleport_off_track = False
-    teleport_mode = 0 # 0:Start, 1:Nearest, 2:Random
+    
     track_name = 'driftplayground'
-    car_model = 'ks_toyota_ae86_drift'
+    car_model = 'gravygarage_street_ae86_readie'
 
     #==============================================================================================
 
@@ -65,7 +70,7 @@ class ProjectDEnv():
 
     def init_viewer(self):
         pd.initPlayground(self.base_dir)
-        pd.setRenderHz(0, False)
+        pd.setRenderHz(int(self.render_hz), False)
         pd.setActiveSimulator(self.sim, False)
         pd.tickPlayground()
         self.viewer_initialized = True
@@ -80,8 +85,17 @@ class ProjectDEnv():
     def step(self, action):
         
         self.dcontrols.steer = action[0] # steer [-1, 1]
+        
         self.dcontrols.gas = u.linscalef(action[1], -1.0, 1.0, 0.0, 1.0) # gas [0, 1]
-        self.dcontrols.brake = u.linscalef(action[2], -1.0, 1.0, 0.0, 1.0) # brake [0, 1]
+        #self.dcontrols.brake = u.linscalef(action[2], -1.0, 1.0, 0.0, 1.0) # brake [0, 1]
+        
+        #throtl = action[1]
+        #if throtl >= 0.0:
+            #self.dcontrols.gas = throtl
+        #else:
+            #self.dcontrols.brake = -throtl
+        
+        self.dcontrols.brake = 0.0
         self.dcontrols.handBrake = 0.0
         self.dcontrols.clutch = 1.0
         self.dcontrols.requestedGearIndex = 2 # 0=R, 1=N, 2=G1, 3=G2, 4=G3, 5=G4, 6=G5, 7=G6
@@ -99,14 +113,14 @@ class ProjectDEnv():
 
         state = self._get_obs_state()
         reward = self.dstate.agentDriftReward
-        terminate = self.terminate_enabled and ((self.dstate.collisionFlag != 0) or (self.dstate.outOfTrackFlag != 0))
+        terminate = ((self.terminate_on_hit and self.dstate.collisionFlag != 0) or (self.terminate_off_track and self.dstate.outOfTrackFlag != 0))
         truncate = False
 
         if terminate:
             if self.dstate.collisionFlag:
-                pd.writeLog('[PY] collision')
+                pd.writeLog('[ENV] collision')
             if self.dstate.outOfTrackFlag:
-                pd.writeLog('[PY] out of track')
+                pd.writeLog('[ENV] out of track')
             reward += self.terminate_reward
 
         return state, reward, terminate, truncate, {}
@@ -115,6 +129,8 @@ class ProjectDEnv():
 
     def reset(self):
         pd.writeLog('[ENV] reset')
+
+        self.step_id = 0
 
         if self.teleport_on_reset:
             pd.teleportCarByMode(self.sim, self.car, self.teleport_mode)
@@ -128,34 +144,38 @@ class ProjectDEnv():
     def _get_obs_state(self):
         
         state = np.array([
-            self.dstate.controls.steer,
-            self.dstate.controls.gas,
-            self.dstate.controls.brake,
 
             u.linscalef(self.dstate.engineRPM, 0.0, 20000.0, 0.0, 1.0),
-            self.dstate.bodyVsTrack,
-            self.dstate.velocityVsTrack,
+            
+            self.dstate.bodyVsTrack, # body_direction dot track_direction
+            self.dstate.velocityVsTrack, # velocity dot track_direction
 
-            self.dstate.velocity.x,
+            self.dstate.velocity.x, # m/s
             self.dstate.velocity.y,
             self.dstate.velocity.z,
             
-            self.dstate.angularVelocity.x,
+            self.dstate.angularVelocity.x, # rad/s
             self.dstate.angularVelocity.y,
             self.dstate.angularVelocity.z,
             
-            self.dstate.tyreSlip[0],
-            self.dstate.tyreSlip[1],
-            self.dstate.tyreSlip[2],
-            self.dstate.tyreSlip[3],
+            self.dstate.tyreNdSlip[0],
+            self.dstate.tyreNdSlip[1],
+            self.dstate.tyreNdSlip[2],
+            self.dstate.tyreNdSlip[3],
             
-            self.dstate.probes[0],
+            self.dstate.probes[0], # distance to obstacle, m
             self.dstate.probes[1],
             self.dstate.probes[2],
             self.dstate.probes[3],
             self.dstate.probes[4],
             self.dstate.probes[5],
             self.dstate.probes[6],
+            
+            self.dstate.lookAhead[0], # track direction change [-PI, PI] normalized to [-1, 1]
+            self.dstate.lookAhead[1],
+            self.dstate.lookAhead[2],
+            self.dstate.lookAhead[3],
+            self.dstate.lookAhead[4],
             
         ], dtype=np.float32)
         
@@ -167,15 +187,13 @@ class ProjectDEnv():
     
         range_velocity = 100
         range_angularVelocity = 100
-        range_tyreSlip = 10
-        range_probe = 100
+        range_tyreNdSlip = 10
+        range_probe = 50
         
         obs_low = np.array([
-            -1.0, # steer
-            0.0, # gas
-            0.0, # brake
-            
+
             0.0, # engineRpmNorm
+            
             -1.0, # bodyVsTrack
             -1.0, # velocityVsTrack
 
@@ -187,10 +205,10 @@ class ProjectDEnv():
             -range_angularVelocity, # angularVelocity.y
             -range_angularVelocity, # angularVelocity.z
             
-            -range_tyreSlip, # tyreSlip0
-            -range_tyreSlip, # tyreSlip1
-            -range_tyreSlip, # tyreSlip2
-            -range_tyreSlip, # tyreSlip3
+            0.0, # tyreNdSlip0
+            0.0, # tyreNdSlip1
+            0.0, # tyreNdSlip2
+            0.0, # tyreNdSlip3
             
             0.0, # probe0
             0.0, # probe1
@@ -200,14 +218,18 @@ class ProjectDEnv():
             0.0, # probe5
             0.0, # probe6
             
+            -1.0, # lookAhead0
+            -1.0, # lookAhead1
+            -1.0, # lookAhead2
+            -1.0, # lookAhead3
+            -1.0, # lookAhead4
+            
         ], dtype=np.float32)
         
         obs_high = np.array([
-            1.0, # steer
-            1.0, # gas
-            1.0, # brake
 
             1.0, # engineRpmNorm
+            
             1.0, # bodyVsTrack
             1.0, # velocityVsTrack
 
@@ -219,10 +241,10 @@ class ProjectDEnv():
             range_angularVelocity, # angularVelocity.y
             range_angularVelocity, # angularVelocity.z
             
-            range_tyreSlip, # tyreSlip0
-            range_tyreSlip, # tyreSlip1
-            range_tyreSlip, # tyreSlip2
-            range_tyreSlip, # tyreSlip3
+            range_tyreNdSlip, # tyreNdSlip0
+            range_tyreNdSlip, # tyreNdSlip1
+            range_tyreNdSlip, # tyreNdSlip2
+            range_tyreNdSlip, # tyreNdSlip3
             
             range_probe, # probe0
             range_probe, # probe1
@@ -232,6 +254,12 @@ class ProjectDEnv():
             range_probe, # probe5
             range_probe, # probe6
             
+            1.0, # lookAhead0
+            1.0, # lookAhead1
+            1.0, # lookAhead2
+            1.0, # lookAhead3
+            1.0, # lookAhead4
+            
         ], dtype=np.float32)
         
         return obs_low, obs_high
@@ -240,8 +268,8 @@ class ProjectDEnv():
 
     def _get_action_space(self):
 
-        # steer, gas, brake
-        a_low  = np.array([-1, -1, -1], dtype=np.float32)
-        a_high = np.array([+1, +1, +1], dtype=np.float32)
+        # steer, gas
+        a_low  = np.array([-1, -1], dtype=np.float32)
+        a_high = np.array([+1, +1], dtype=np.float32)
 
         return a_low, a_high
