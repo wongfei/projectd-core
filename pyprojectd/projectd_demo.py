@@ -9,6 +9,27 @@ smooth_controls = False
 enable_second_sim = False
 async_playground = False
 
+teleport_on_hit = False
+teleport_off_track = False
+
+auto_clutch = True
+auto_shift = True
+auto_blip = True
+
+track_name = 'driftplayground'
+car_model = 'ks_toyota_supra_mkiv_drift'
+
+car_tunes = {
+    "ks_toyota_supra_mkiv_drift" : {
+        "FRONT_BIAS" : 53.0,
+        "DIFF_POWER" : 90.0,
+        "DIFF_COAST" : 90.0,
+        "FINAL_RATIO" : 5.0,
+        "TURBO_0" : 100.0,
+        "TURBO_1" : 100.0,
+    }
+}
+
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 bin_dir = os.path.join(base_dir, 'bin')
 site.addsitedir(bin_dir)
@@ -23,16 +44,22 @@ else:
     pd.initPlayground(base_dir)
 
 sim = pd.createSimulator(base_dir)
-pd.loadTrack(sim, 'driftplayground')
-car = pd.addCar(sim, 'gravygarage_street_ae86_readie')
+pd.loadTrack(sim, track_name)
+car = pd.addCar(sim, car_model)
 
-pd.teleportCarToSpline(sim, car, 0.0)
-pd.setCarAutoTeleport(sim, car, True, True, 1) # 0:Start, 1:Nearest, 2:Random
+pd.teleportCarToSpline(sim, car, 0.01)
+pd.setCarAutoTeleport(sim, car, teleport_on_hit, teleport_off_track, 1) # 0:Start, 1:Nearest, 2:Random
+pd.setCarAssists(sim, car, auto_clutch, auto_shift, auto_blip)
+
+tune = car_tunes[car_model]
+if tune != None:
+    for name, value in tune.items():
+        pd.setCarTune(sim, car, name, value)
 
 if enable_second_sim:
     sim2 = pd.createSimulator(base_dir)
-    pd.loadTrack(sim2, 'driftplayground')
-    car2 = pd.addCar(sim2, 'gravygarage_street_ae86_readie')
+    pd.loadTrack(sim2, track_name)
+    car2 = pd.addCar(sim2, car_model)
 
     pd.teleportCarToSpline(sim2, car2, 0.5)
     pd.setCarAutoTeleport(sim2, car2, True, True, 1)

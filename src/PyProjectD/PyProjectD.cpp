@@ -5,6 +5,7 @@ namespace py = pybind11;
 
 #include "PlaygrounD.h"
 #include "Core/OS.h"
+#include "Core/DebugGL.h"
 
 #include <unordered_map>
 #include <thread>
@@ -171,6 +172,11 @@ void stepSimulator(int simId, double dt = (1.0 / 333.0))
 		sim->physicsTime += dt;
 		sim->gameTime += dt;
 	}
+
+	if (!g_playground)
+	{
+		D::DebugGL::get().clear();
+	}
 }
 
 //
@@ -298,6 +304,18 @@ void setCarControls(int simId, int carId, bool smooth, const D::CarControls& con
 	}
 }
 
+void setCarAssists(int simId, int carId, bool autoClutch, bool autoShift, bool autoBlip)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->autoClutch->useAutoOnStart = autoClutch;
+		car->autoClutch->useAutoOnChange = autoClutch;
+		car->autoShift->isActive = autoShift;
+		car->autoBlip->isActive = autoBlip;
+	}
+}
+
 void getCarState(int simId, int carId, D::CarState& state)
 {
 	auto* car = getCar(simId, carId);
@@ -305,6 +323,43 @@ void getCarState(int simId, int carId, D::CarState& state)
 	{
 		state = *(car->state.get());
 	}
+}
+
+void setCarTune(int simId, int carId, const std::string& name, float value)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->setup->setTune(name, value);
+	}
+}
+
+void setCarRawTune(int simId, int carId, const std::string& name, float value)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->setup->setRawTune(name, value);
+	}
+}
+
+void setScoringVar(int simId, int carId, const std::string& name, float w)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		car->scoring->config->setVar(name, w);
+	}
+}
+
+float getScoringVar(int simId, int carId, const std::string& name)
+{
+	auto* car = getCar(simId, carId);
+	if (car)
+	{
+		return car->scoring->config->getVar(name);
+	}
+	return 0.0f;
 }
 
 //
@@ -502,21 +557,22 @@ PYBIND11_MODULE(PyProjectD, m)
 	py_CarState.def(py::init<>())
 		.def_readonly("carId", &D::CarState::carId)
 		.def_readonly("simId", &D::CarState::simId)
+		.def_readonly("timestamp", &D::CarState::timestamp)
+
 		.def_readonly("controls", &D::CarState::controls)
+
+		.def_readonly("collisionFlag", &D::CarState::collisionFlag)
+		.def_readonly("outOfTrackFlag", &D::CarState::outOfTrackFlag)
+		.def_readonly("trackPointId", &D::CarState::trackPointId)
+		.def_readonly("lastTrackPointTimestamp", &D::CarState::lastTrackPointTimestamp)
+		.def_readonly("trackLocation", &D::CarState::trackLocation)
+		.def_readonly("bodyVsTrack", &D::CarState::bodyVsTrack)
+		.def_readonly("velocityVsTrack", &D::CarState::velocityVsTrack)
 
 		.def_readonly("engineRPM", &D::CarState::engineRPM)
 		.def_readonly("speedMS", &D::CarState::speedMS)
 		.def_readonly("gear", &D::CarState::gear)
 		.def_readonly("gearGrinding", &D::CarState::gearGrinding)
-
-		.def_readonly("trackLocation", &D::CarState::trackLocation)
-		.def_readonly("trackPointId", &D::CarState::trackPointId)
-		.def_readonly("collisionFlag", &D::CarState::collisionFlag)
-		.def_readonly("outOfTrackFlag", &D::CarState::outOfTrackFlag)
-
-		.def_readonly("bodyVsTrack", &D::CarState::bodyVsTrack)
-		.def_readonly("velocityVsTrack", &D::CarState::velocityVsTrack)
-		.def_readonly("agentDriftReward", &D::CarState::agentDriftReward)
 
 		.def_readonly("bodyMatrix", &D::CarState::bodyMatrix)
 		.def_readonly("bodyPos", &D::CarState::bodyPos)
@@ -536,6 +592,9 @@ PYBIND11_MODULE(PyProjectD, m)
 
 		.def_readonly("probes", &D::CarState::probes)
 		.def_readonly("lookAhead", &D::CarState::lookAhead)
+
+		.def_readonly("stepReward", &D::CarState::stepReward)
+		.def_readonly("totalReward", &D::CarState::totalReward)
 	;
 
 	m.def("setSeed", &setSeed, "");
@@ -558,7 +617,12 @@ PYBIND11_MODULE(PyProjectD, m)
 	m.def("teleportCarByMode", &teleportCarByMode, "");
 	m.def("setCarAutoTeleport", &setCarAutoTeleport, "");
 	m.def("setCarControls", &setCarControls, "");
+	m.def("setCarAssists", &setCarAssists, "");
 	m.def("getCarState", &getCarState, "");
+	m.def("setCarRawTune", &setCarRawTune, "");
+	m.def("setCarTune", &setCarTune, "");
+	m.def("setScoringVar", &setScoringVar, "");
+	m.def("getScoringVar", &getScoringVar, "");
 
 	m.def("launchPlaygroundInOwnThread", &launchPlaygroundInOwnThread, "");
 	m.def("initPlayground", &initPlayground, "");

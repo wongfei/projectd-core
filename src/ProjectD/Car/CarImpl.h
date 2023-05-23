@@ -35,3 +35,6 @@
 
 #include "Car/ICarControlsProvider.h"
 #include "Car/ICarAudioRenderer.h"
+
+#include "Car/ScoringSystem.h"
+#include "Car/SetupManager.h"

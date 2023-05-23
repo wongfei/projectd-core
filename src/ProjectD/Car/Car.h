@@ -4,6 +4,7 @@
 #include "Car/CarControls.h"
 #include "Car/ICarControlsProvider.h"
 #include "Car/ISuspension.h"
+#include "Car/CarSenseiData.h"
 #include "Core/Event.h"
 
 namespace D {
@@ -61,6 +62,7 @@ struct Car : public virtual IObject
 	void initColliderMesh(ITriMeshPtr mesh, const mat44f& bodyMatrix);
 
 	// step
+	void reset();
 	void stepPreCacheValues(float dt);
 	void step(float dt);
 	void updateAirPressure();
@@ -68,10 +70,11 @@ struct Car : public virtual IObject
 	float calcBodyMass();
 	void stepThermalObjects(float dt);
 	void stepComponents(float dt);
-	void updateTrackLocator();
+	void updateTrackLocator(float dt);
 	void updateLookAhead();
 	void postStep(float dt);
 	void updateCarState();
+	void updateSensei();
 
 	// collision
 	void onCollisionCallback(void* userData0, void* shape0, void* userData1, void* shape1, const vec3f& normal, const vec3f& pos, float depth);
@@ -144,8 +147,8 @@ struct Car : public virtual IObject
 
 	// RUNTIME
 
-	Track* track = nullptr;
 	Simulator* sim = nullptr;
+	Track* track = nullptr;
 	void* tag = nullptr;
 
 	std::shared_ptr<ICarAudioRenderer> audioRenderer;
@@ -176,6 +179,7 @@ struct Car : public virtual IObject
 	std::unique_ptr<AutoBlip> autoBlip;
 	std::unique_ptr<AutoShifter> autoShift;
 	std::unique_ptr<ScoringSystem> scoring;
+	std::unique_ptr<SetupManager> setup;
 	std::unique_ptr<CarState> state;
 	std::unique_ptr<IAvatar> avatar;
 
@@ -186,7 +190,7 @@ struct Car : public virtual IObject
 	int smoothSteer = false;
 	float smoothSteerTarget = 0;
 	float smoothSteerValue = 0;
-	float smoothSteerSpeed = 30;
+	float smoothSteerSpeed = 10;
 
 	mat44f pitPosition;
 	Speed speed;
@@ -227,15 +231,25 @@ struct Car : public virtual IObject
 	int lookAheadCount = 5;
 	float lookAheadStep = 10.0;
 
+	float lastTrackPointTimestamp = 0;
 	int nearestTrackPointId = 0;
+	int oldTrackPointId = 0;
+	int splinePointId = 0;
+
 	float trackLocation = 0;
 	float oldTrackLocation = 0;
 	float bodyVsTrack = 0;
 	float velocityVsTrack = 0;
+	vec3f worldSplinePosition;
 
 	int teleportOnCollision = false;
 	int teleportOnBadLocation = false;
 	int teleportMode = (int)TeleportMode::Start;
+
+	std::vector<CarSenseiData> senseiPoints;
+	float senseiResolution = 0.1f;
+	bool senseiLapStarted = false;
+	bool senseiEnabled = false;
 };
 
 }

@@ -3,6 +3,7 @@
 #include "Car/Tyre.h"
 #include "Car/CarState.h"
 #include "Car/CarDebug.h"
+#include "Sim/Track.h"
 
 namespace D {
 
@@ -28,6 +29,8 @@ GLCar::~GLCar()
 
 void GLCar::draw()
 {
+	auto carBase = car->body->localToWorld(vec3f(0, 0, 0));
+
 	// body
 	if (drawBody)
 	{
@@ -101,7 +104,6 @@ void GLCar::draw()
 
 		// car origin
 		float fLen = 0.3f;
-		auto carBase = car->body->localToWorld(vec3f(0, 0, 0));
 		auto v = car->body->localToWorld(vec3f(fLen, 0, 0));
 		glColor3f(1.0f, 0.0f, 0.0f);
 		glVertex3fv(&carBase.x);
@@ -114,6 +116,20 @@ void GLCar::draw()
 		glColor3f(0.0f, 0.0f, 1.0f);
 		glVertex3fv(&carBase.x);
 		glVertex3fv(&v.x);
+
+		// velocity vectors
+		#if 0
+		vec3f v1 = carBase;
+		vec3f v2 = carBase + car->state->velocity.get_norm() * 0.5f;
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex3fv(&v1.x);
+		glVertex3fv(&v2.x);
+
+		v2 = car->body->localToWorld(car->state->localVelocity.get_norm() * 0.9f);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3fv(&v1.x);
+		glVertex3fv(&v2.x);
+		#endif
 	}
 	glEnd();
 
@@ -188,6 +204,34 @@ void GLCar::draw()
 		}
 		glEnd();
 	}
+
+	if (drawSenseiPoints)
+	{
+		glBegin(GL_POINTS);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		for (const auto &pt : car->senseiPoints)
+		{
+			glVertex3fv(&pt.bodyMatrix.M41);
+		}
+		glEnd();
+	}
+
+	if (drawSplineLocation)
+	{
+		glBegin(GL_LINES);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex3fv(&carBase.x);
+		glVertex3fv(&car->worldSplinePosition.x);
+		glEnd();
+
+		glPointSize(8);
+		glBegin(GL_POINTS);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex3fv(&car->worldSplinePosition.x);
+		glEnd();
+	}
+
+	//car->track->getDistanceAlongSplineAtLocation(bodyPos, car->nearestTrackPointId);
 }
 
 }

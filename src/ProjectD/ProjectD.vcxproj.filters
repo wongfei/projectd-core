@@ -291,6 +291,10 @@
     <ClInclude Include="Car\ScoringSystem.h">
       <Filter>Car\Systems</Filter>
     </ClInclude>
+    <ClInclude Include="Car\CarSenseiData.h" />
+    <ClInclude Include="Core\Spline3d.h" />
+    <ClInclude Include="Core\DebugGL.h" />
+    <ClInclude Include="Car\SetupManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Car\Car.cpp">
@@ -443,5 +447,7 @@
     <ClCompile Include="Car\ScoringSystem.cpp">
       <Filter>Car\Systems</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Spline3d.cpp" />
+    <ClCompile Include="Car\SetupManager.cpp" />
   </ItemGroup>
 </Project>

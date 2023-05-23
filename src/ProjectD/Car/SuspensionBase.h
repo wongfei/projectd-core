@@ -21,6 +21,7 @@ struct SuspensionBase : public ISuspension
 {
 	SuspensionType getType() const override { return type; }
 	SuspensionStatus getStatus() const override { return status; }
+	Damper* getDamper() override { return &damper; }
 
 	// config
 	SuspensionType type = SuspensionType(0);

@@ -2,8 +2,33 @@
 
 #include "Core/Core.h"
 #include <vector>
+#include <unordered_map>
 
 namespace D {
+
+struct ScoringVar
+{
+	std::string name;
+	float value;
+};
+
+struct ScoringConfig
+{
+	ScoringConfig();
+	~ScoringConfig();
+
+	static ScoringConfig* get();
+
+	void initDefaults();
+	void removeVars();
+
+	void addVar(const std::string& name, float value);
+	void setVar(const std::string& name, float value);
+	float getVar(const std::string& name) const;
+
+	std::vector<ScoringVar*> vvars;
+	std::unordered_map<std::string, ScoringVar*> mvars;
+};
 
 struct ScoringSystem
 {
@@ -12,15 +37,15 @@ struct ScoringSystem
 
 	void init(struct Car* car);
 	void step(float dt);
+	void reset();
 
 	void computeAgentReward(float dt);
 	void computeDriftScore(float dt);
 	void resetDrift();
 	void validateDrift();
 	bool checkExtremeDrift(float triggerSlipLevel = 0.8f) const;
-	void setWeight(int id, float w);
-	float getWeight(int id) const;
-	const char* getWeightName(int id) const;
+
+	inline float getVar(const std::string& name) const { return config->getVar(name); }
 
 	struct Car* car = nullptr;
 
@@ -36,9 +61,12 @@ struct ScoringSystem
 	float driftPoints = 0;
 	int driftComboCounter = 0;
 
-	float agentDriftReward = 0;
-
-	std::vector<float> rewardWeights;
+	ScoringConfig* config = nullptr;
+	float stepReward = 0;
+	float totalReward = 0;
+	float prevEpisodeReward = 0;
+	int oldPointId = 0;
+	int oldSplinePointId = 0;
 };
 
 }

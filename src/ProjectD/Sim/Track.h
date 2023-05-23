@@ -2,7 +2,9 @@
 
 #include "Sim/SimulatorCommon.h"
 #include "Sim/ITrackRayCastProvider.h"
+#include "Car/CarSenseiData.h"
 #include "Core/VertexHash.h"
+#include "Core/Spline3d.h"
 #include <unordered_set>
 
 namespace D {
@@ -43,15 +45,22 @@ struct Track : public ITrackRayCastProvider
 	void loadSlimPoints();
 	void loadFatPoints();
 	void saveFatPoints();
+	void loadSenseiPoints(const std::wstring& modelName);
+	void saveSenseiPoints(const std::wstring& modelName);
 	void computeFatPoints();
 	vec3f computeSideLocation(const SlimTrackPoint& slim, FatTrackPoint& fat, const TrackRayCastHit& origHit, const vec3f& rayStart, const vec3f& traceDir, int numSteps);
 	float rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDistance = 0.0f);
 	size_t getPointIdAtDistance(float distanceNorm) const;
+	size_t getPointIdAtLocation(const vec3f& pos) const;
 	vec3f getTrackDirectionAtDistance(float distanceNorm) const;
+	bool getDistanceAlongSplineAtLocation(const vec3f& pos, int pointId, Spline3dPointInfo& info) const;
 
 	std::wstring name;
 	std::wstring dataFolder;
 	float dynamicGripLevel = 1.0f;
+	float interpolateResolution = 0.1f;
+	int interpolateStep = 0;
+	bool closedLoop = false;
 
 	Simulator* sim = nullptr;
 	std::vector<SurfacePtr> surfaces;
@@ -60,7 +69,12 @@ struct Track : public ITrackRayCastProvider
 
 	std::vector<SlimTrackPoint> slimPoints;
 	std::vector<FatTrackPoint> fatPoints;
+	std::vector<CarSenseiData> senseiPoints;
+
+	std::unique_ptr<struct BSpline3d> interpolatedSpline;
+	std::vector<float> fatPointDistances;
 	std::vector<size_t> nearbyPoints;
+
 	VertexHash fatPointsHash;
 	vec3f pointCachePos;
 	float computedTrackWidth = 0;

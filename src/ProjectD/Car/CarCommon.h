@@ -57,5 +57,6 @@ struct AutoBlip;
 struct AutoShifter;
 
 struct ScoringSystem;
+struct SetupManager;
 
 }

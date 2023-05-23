@@ -186,10 +186,14 @@ struct PlaygrounD
 	int drawSky_ = true;
 	int drawTrackPoints_ = false;
 	int drawNearbyPoints_ = false;
+	int drawTrackSensei_ = false;
+	int drawCarSensei_ = false;
 	int drawCarProbes_ = false;
+	int drawCarSplineLoc_ = false;
 	int draw2D_ = true;
+	int showHiddenTunes_ = false;
 
-	clock::time_point tick0_;
+	clock::time_point gameStartTicks_;
 	double dt_ = 0;
 	double gameTime_ = 0;
 	double prevTime = 0;
@@ -210,12 +214,14 @@ struct PlaygrounD
 	float maxDt = 0;
 	float maxSim = 0;
 	float maxDraw = 0;
+	float maxTick = 0;
 	int simCount = 0;
 	int drawCount = 0;
 
 	float statMaxDt_ = 0;
 	float statMaxSim_ = 0;
 	float statMaxDraw_ = 0;
+	float statMaxTick_ = 0;
 	int statSimRate_ = 0;
 	int statDrawRate_ = 0;
 	int statSimHitches_ = 0;
@@ -241,6 +247,9 @@ struct PlaygrounD
 
 	GLChart chartFF_;
 	ChartSeries serFF_;
+
+	GLChart chartReward_;
+	ChartSeries serReward_;
 };
 
 }

@@ -243,8 +243,9 @@ FMOD::Studio::EventDescription* FmodContext::getEventDesc(const std::string& nam
 	auto iter = eventDescMap.find(name);
 	if (iter != eventDescMap.end())
 		return iter->second;
-
-	SHOULD_NOT_REACH_WARN;
+	
+	log_printf(L"WARNING: FMOD event not found: %S", name.c_str());
+	//SHOULD_NOT_REACH_WARN;
 	return nullptr;
 }
 
@@ -265,7 +266,6 @@ FMOD::Studio::EventInstance* FmodContext::getUniqInstance(const std::string& nam
 		}
 	}
 
-	SHOULD_NOT_REACH_WARN;
 	return nullptr;
 }
 

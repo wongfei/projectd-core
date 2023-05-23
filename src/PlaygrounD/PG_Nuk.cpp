@@ -1,5 +1,4 @@
 #include "PlaygrounD.h"
-#include "Car/ScoringSystem.h"
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -73,48 +72,186 @@ void PlaygrounD::renderNuk()
 	struct nk_colorf bg;
 	bg.r = 0.10f, bg.g = 0.18f, bg.b = 0.24f, bg.a = 1.0f;
 
-	float w = 300;
-	float h = height_ - 200.0f;
+	const float w = 350;
+	const float h = height_ - 200.0f;
 
 	if (nk_begin(ctx, "Debug", nk_rect((float)width_ - w - 10, 100.0f, w, h),
 		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
 	{
 		float rowh = 20;
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "wireframe", &wireframeMode_);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "draw world", &drawWorld_);
+		#if 1
+		if (nk_tree_push(ctx, NK_TREE_TAB, "Core", NK_MINIMIZED))
+		{
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_int(ctx, "sim HZ", 100, &simHz_, 1000, 1, 2);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "draw sky", &drawSky_);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_int(ctx, "draw HZ", 0, &drawHz_, 1000, 1, 2);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "draw track points", &drawTrackPoints_);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "mouse sens", 0.01f, &mouseSens_, 3.0f, 0.01f, 0.01f);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "draw nearby points", &drawNearbyPoints_);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_property_float(ctx, "camera speed", 0.01f, &moveSpeed_, 1000.0f, 5.0f, 5.0f);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_checkbox_label(ctx, "draw car probes", &drawCarProbes_);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "smooth steer", &car_->smoothSteer);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_int(ctx, "sim HZ", 100, &simHz_, 1000, 1, 2);
+			nk_tree_pop(ctx);
+		}
+		#endif
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_int(ctx, "draw HZ", 0, &drawHz_, 1000, 1, 2);
+		#if 1
+		if (nk_tree_push(ctx, NK_TREE_TAB, "Draw", NK_MINIMIZED))
+		{
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "wireframe", &wireframeMode_);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_float(ctx, "mouse sens", 0.01f, &mouseSens_, 3.0f, 0.01f, 0.01f);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "world", &drawWorld_);
 
-		nk_layout_row_dynamic(ctx, rowh, 1);
-		nk_property_float(ctx, "camera speed", 0.01f, &moveSpeed_, 1000.0f, 5.0f, 5.0f);
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "sky", &drawSky_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "track points", &drawTrackPoints_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "nearby points", &drawNearbyPoints_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "track sensei", &drawTrackSensei_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "car sensei", &drawCarSensei_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "car spline loc", &drawCarSplineLoc_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "car probes", &drawCarProbes_);
+
+			nk_tree_pop(ctx);
+		}
+		#endif
 
 		if (car_)
 		{
-			if (nk_tree_push(ctx, NK_TREE_TAB, "Agent", NK_MAXIMIZED))
+			if (nk_tree_push(ctx, NK_TREE_TAB, "Tune", NK_MINIMIZED))
 			{
-				const float maxw = 5.0f;
+				std::string curTab = "DEFAULT";
+				std::string varName;
+				bool tabVisible = false;
+				int tabId = 0;
+				SetupSpinner spinner;
+				float oldValue = 0;
+
+				nk_layout_row_dynamic(ctx, rowh, 1);
+				nk_checkbox_label(ctx, "show hidden tunes", &showHiddenTunes_);
+
+				#if 1
+				auto& vvars = car_->setup->vvars;
+				for (auto* var : vvars)
+				{
+					if (var->tunable || showHiddenTunes_)
+					{
+						if (curTab != var->tab)
+						{
+							curTab = var->tab.empty() ? "DEFAULT" : var->tab;
+
+							if (tabVisible)
+								nk_tree_pop(ctx);
+
+							tabVisible = nk_tree_push_id(ctx, NK_TREE_TAB, var->tab.c_str(), NK_MINIMIZED, tabId++);
+						}
+
+						if (tabVisible)
+						{
+							nk_layout_row_dynamic(ctx, rowh, 1);
+
+							if (var->spinnerType == SpinnerType::RawPredefined)
+							{
+								spinner = var->getSpinner();
+								oldValue = spinner.value;
+
+								auto valStr = straf("%.2f", spinner.value);
+								nk_label(ctx, var->name.c_str(), NK_TEXT_LEFT);
+
+								if (nk_combo_begin_label(ctx, valStr.c_str(), nk_vec2(nk_widget_width(ctx), 300.0f)))
+								{
+									for (auto v : var->spinnerValues)
+									{
+										valStr = straf("%.2f", v);
+										nk_layout_row_dynamic(ctx, rowh, 1);
+										if (nk_combo_item_label(ctx, valStr.c_str(), NK_TEXT_LEFT))
+										{
+											spinner.value = v;
+										}
+									}
+									nk_combo_end(ctx);
+								}
+							}
+							else
+							{
+								spinner = var->getSpinner();
+								oldValue = spinner.value;
+
+								if (var->spinnerType == SpinnerType::Clicks || var->spinnerType == SpinnerType::ClicksAbs)
+								{
+									varName.assign(straf("%s (clicks)", var->name.c_str()));
+								}
+								else
+								{
+									varName.assign(var->name);
+
+									if (var->spinnerType == SpinnerType::Default)
+									{
+										varName.append(" (");
+										varName.append(var->units);
+										varName.append(")");
+									}
+								}
+								
+								spinner.value = nk_propertyf(ctx, varName.c_str(), spinner.minV, spinner.value, spinner.maxV, spinner.step, 0.0f);
+							}
+
+							if (fabsf(spinner.value - oldValue) > 0.001f)
+							{
+								var->setValue(spinner);
+							}
+						}
+					}
+				}
+				#endif
+
+				if (tabVisible)
+					nk_tree_pop(ctx);
+
+				nk_tree_pop(ctx);
+			}
+
+			#if 1
+			if (nk_tree_push(ctx, NK_TREE_TAB, "Scoring", NK_MINIMIZED))
+			{
+				const float maxw = 1000.0f;
+				const float stepw = 0.01f;
+				const float pixelw = 0.02f;
+
+				auto& vvars = ScoringConfig::get()->vvars;
+				for (auto* var : vvars)
+				{
+					nk_layout_row_dynamic(ctx, rowh, 1);
+					nk_property_float(ctx, var->name.c_str(), 0.0f, &var->value, maxw, stepw, pixelw);
+				}
+
+				nk_tree_pop(ctx);
+			}
+			#endif
+
+			if (nk_tree_push(ctx, NK_TREE_TAB, "Teleport", NK_MINIMIZED))
+			{
+				const float maxw = 1000.0f;
 				const float stepw = 0.01f;
 				const float pixelw = 0.02f;
 
@@ -126,18 +263,6 @@ void PlaygrounD::renderNuk()
 
 				nk_layout_row_dynamic(ctx, rowh, 1);
 				nk_checkbox_label(ctx, "teleport on bad loc", &car_->teleportOnBadLocation);
-
-				nk_layout_row_dynamic(ctx, rowh, 1);
-				nk_checkbox_label(ctx, "smooth steer", &car_->smoothSteer);
-
-				nk_layout_row_dynamic(ctx, rowh, 1);
-				nk_property_float(ctx, "smooth steer speed", 0.0f, &car_->smoothSteerSpeed, 100.0f, 0.1f, 0.2f);
-
-				for (int i = 0; i < (int)car_->scoring->rewardWeights.size(); ++i)
-				{
-					nk_layout_row_dynamic(ctx, rowh, 1);
-					nk_property_float(ctx, car_->scoring->getWeightName(i), 0.0f, &car_->scoring->rewardWeights[i], maxw, stepw, pixelw);
-				}
 
 				nk_tree_pop(ctx);
 			}
@@ -180,7 +305,7 @@ void PlaygrounD::renderNuk()
 	nk_end(ctx);
 	#endif
 
-	nk_sdl_render(NK_ANTI_ALIASING_ON);
+	nk_sdl_render(NK_ANTI_ALIASING_OFF);
 }
 
 }

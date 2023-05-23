@@ -5,36 +5,102 @@
 #include "Car/Engine.h"
 #include "Sim/Track.h"
 
+#define DECL_VAR(name)\
+	static const std::string Name_##name (#name)
+
+DECL_VAR(SmoothSteerSpeed);
+DECL_VAR(MinBonusSpeed);
+DECL_VAR(MaxBonusSpeed);
+DECL_VAR(StallRpm);
+DECL_VAR(DirectionThreshold);
+DECL_VAR(OutOfTrackThreshold);
+DECL_VAR(ApproachDistance);
+DECL_VAR(CriticalDistance);
+
+DECL_VAR(TravelBonus);
+DECL_VAR(TravelSplineBonus);
+DECL_VAR(DriftBonus);
+DECL_VAR(SpeedBonus);
+DECL_VAR(ThrottleBonus);
+DECL_VAR(EngineRpmBonus);
+DECL_VAR(DirectionBonus);
+
+DECL_VAR(DirectionPenalty);
+DECL_VAR(ObstApproachPenalty);
+DECL_VAR(CollisionPenalty);
+DECL_VAR(OffTrackPenalty);
+DECL_VAR(GearGrindPenalty);
+DECL_VAR(StallPenalty);
+
 namespace D {
 
-enum class RewardWeight
-{
-	Drift = 0,
-	Gas,
-	Rpm,
-	Speed,
-	EngineStall,
-	GearGrind,
-	DriveDirection,
-	ProbeDistance,
-	Collision,
-	OutOfTrack,
-	NUM_WEIGHTS // LAST
-};
+ScoringConfig::ScoringConfig() { initDefaults(); }
+ScoringConfig::~ScoringConfig() { removeVars(); }
 
-static const char* _weightNames[] = 
+ScoringConfig* ScoringConfig::get()
 {
-	"Drift",
-	"Gas",
-	"Rpm",
-	"Speed",
-	"EngineStall",
-	"GearGrind",
-	"DriveDirection",
-	"ProbeDistance",
-	"Collision",
-	"OutOfTrack",
-};
+	static ScoringConfig inst;
+	return &inst;
+}
+
+void ScoringConfig::initDefaults()
+{
+	addVar(Name_SmoothSteerSpeed, 10.0f);
+	addVar(Name_MinBonusSpeed, 5.0f);
+	addVar(Name_MaxBonusSpeed, 200.0f);
+	addVar(Name_StallRpm, 300.0f);
+	addVar(Name_DirectionThreshold, 0.75f);
+	addVar(Name_OutOfTrackThreshold, 0.51f);
+	addVar(Name_ApproachDistance, 3.0f);
+	addVar(Name_CriticalDistance, 2.0f);
+
+	addVar(Name_TravelBonus, 0.0f); // once per track point
+	addVar(Name_TravelSplineBonus, 0.0f); // once per spline point
+	addVar(Name_DriftBonus, 0.0f);
+	addVar(Name_SpeedBonus, 0.0f);
+	addVar(Name_ThrottleBonus, 0.0f);
+	addVar(Name_EngineRpmBonus, 0.0f);
+	addVar(Name_DirectionBonus, 0.0f);
+
+	addVar(Name_DirectionPenalty, 0.0f);
+	addVar(Name_ObstApproachPenalty, 0.0f);
+	addVar(Name_CollisionPenalty, 0.0f);
+	addVar(Name_OffTrackPenalty, 0.0f);
+	addVar(Name_GearGrindPenalty, 0.0f);
+	addVar(Name_StallPenalty, 0.0f);
+}
+
+void ScoringConfig::removeVars()
+{
+	std::vector<ScoringVar*> tmp;
+	std::swap(tmp, vvars);
+	mvars.clear();
+
+	for (auto* var : tmp)
+		delete var;
+}
+
+void ScoringConfig::addVar(const std::string& name, float value)
+{
+	auto* var = new ScoringVar{name, value};
+	vvars.push_back(var);
+	mvars[name] = var;
+}
+
+void ScoringConfig::setVar(const std::string& name, float value)
+{
+	mvars[name]->value = value;
+}
+
+float ScoringConfig::getVar(const std::string& name) const
+{
+	auto iter = mvars.find(name);
+	if (iter != mvars.end())
+		return iter->second->value;
+	return 0;
+}
+
+//=================================================================================================
 
 ScoringSystem::ScoringSystem() {}
 ScoringSystem::~ScoringSystem() {}
@@ -42,8 +108,7 @@ ScoringSystem::~ScoringSystem() {}
 void ScoringSystem::init(struct Car* _car)
 {
 	car = _car;
-
-	rewardWeights.resize((size_t)RewardWeight::NUM_WEIGHTS, 1.0f);
+	config = ScoringConfig::get();
 }
 
 void ScoringSystem::step(float dt)
@@ -52,29 +117,55 @@ void ScoringSystem::step(float dt)
 	computeAgentReward(dt);
 }
 
+void ScoringSystem::reset()
+{
+	prevEpisodeReward = totalReward;
+	totalReward = 0;
+	stepReward = 0;
+	oldPointId = 0;
+	oldSplinePointId = 0;
+}
+
 void ScoringSystem::computeAgentReward(float dt)
 {
 	float reward = 0.0f;
 
-	reward += getWeight((int)RewardWeight::Drift) * instantDriftDelta;
+	car->smoothSteerSpeed = getVar(Name_SmoothSteerSpeed);
 
-	reward += getWeight((int)RewardWeight::Gas) * linscalef(car->controls.gas, 0.0f, 1.0f, 0.0f, 0.25f);
+	const float curRpm = car->getEngineRpm();
+	const float maxRpm = (float)car->drivetrain->engineModel->getLimiterRPM();
 
-	reward += getWeight((int)RewardWeight::Rpm) * linscalef(car->getEngineRpm(), 0.0f, (float)car->drivetrain->engineModel->getLimiterRPM(), 0.0f, 0.25f);
+	if (oldPointId < car->nearestTrackPointId || (car->nearestTrackPointId == 0 && oldPointId != car->nearestTrackPointId))
+	{
+		oldPointId = car->nearestTrackPointId;
+		reward += getVar(Name_TravelBonus);
+	}
 
-	reward += getWeight((int)RewardWeight::Speed) * linscalef(car->speed.kmh(), 0.0f, 100.0f, 0.0f, 0.25f);
+	if (oldSplinePointId < car->splinePointId || (car->splinePointId == 0 && oldSplinePointId != car->splinePointId))
+	{
+		oldSplinePointId = car->splinePointId;
+		reward += getVar(Name_TravelSplineBonus);
+	}
+
+	reward += getVar(Name_DriftBonus) * instantDriftDelta;
+
+	reward += getVar(Name_SpeedBonus) * linscalef(car->speed.kmh(), getVar(Name_MinBonusSpeed), getVar(Name_MaxBonusSpeed), 0.0f, 1.0f);
+
+	reward += getVar(Name_ThrottleBonus) * linscalef(car->controls.gas, 0.0f, 1.0f, 0.0f, 1.0f);
+
+	reward += getVar(Name_EngineRpmBonus) * linscalef(curRpm, 0.0f, maxRpm, 0.0f, 1.0f);
 
 	#if 1
-	if (car->getEngineRpm() < 500)
+	if (car->getEngineRpm() < getVar(Name_StallRpm))
 	{
-		reward += getWeight((int)RewardWeight::EngineStall) * -0.5f;
+		reward -= getVar(Name_StallPenalty);
 	}
 	#endif
 
 	#if 1
 	if (car->drivetrain->isGearGrinding)
 	{
-		reward += getWeight((int)RewardWeight::GearGrind) * -0.5f;
+		reward -= getVar(Name_GearGrindPenalty);
 	}
 	#endif
 
@@ -89,16 +180,12 @@ void ScoringSystem::computeAgentReward(float dt)
 				closestProbe = dist;
 		}
 
-		const float nearDistance = 1.8f;
-		const float farDistance = 6.0f;
+		const float criticalDistance = getVar(Name_CriticalDistance);
+		const float approachDistance = getVar(Name_ApproachDistance);
 
-		if (closestProbe < nearDistance)
+		if (closestProbe < approachDistance)
 		{
-			reward += getWeight((int)RewardWeight::ProbeDistance) * -2.0f;
-		}
-		else if (closestProbe < farDistance)
-		{
-			reward += getWeight((int)RewardWeight::ProbeDistance) * linscalef(closestProbe, nearDistance, farDistance, -0.25f, 0.0f);
+			reward -= getVar(Name_ObstApproachPenalty) * (1.0f - linscalef(closestProbe, criticalDistance, approachDistance, 0.0f, 1.0f));
 		}
 	}
 	#endif
@@ -108,7 +195,7 @@ void ScoringSystem::computeAgentReward(float dt)
 	{
 		//log_printf(L"collision");
 
-		//reward += getWeight((int)RewardWeight::Collision) * -100.0f;
+		reward -= getVar(Name_CollisionPenalty);
 
 		if (car->teleportOnCollision)
 		{
@@ -123,13 +210,13 @@ void ScoringSystem::computeAgentReward(float dt)
 		const auto& pt = car->track->fatPoints[trackPointId];
 
 		#if 1
-		if ((car->body->getPosition(0) - pt.center).len() > car->track->computedTrackWidth * 0.55f) // EPIC FAIL!!!
+		if ((car->body->getPosition(0) - pt.center).len() > car->track->computedTrackWidth * getVar(Name_OutOfTrackThreshold)) // EPIC FAIL!!!
 		{
 			car->outOfTrackFlag = true;
 
 			//log_printf(L"out of track");
 
-			//reward += getWeight((int)RewardWeight::OutOfTrack) * -100.0f;
+			reward -= getVar(Name_OffTrackPenalty);
 
 			if (car->teleportOnBadLocation)
 			{
@@ -139,19 +226,25 @@ void ScoringSystem::computeAgentReward(float dt)
 		#endif
 
 		#if 1
-		if (car->speed.kmh() > 3.0f)
+		//if (car->speed.kmh() > 3.0f)
 		{
-			if (car->velocityVsTrack < 0.85f)
-			{
-				//reward += scoreWrongDirW * linscalef(dot, -1.0f, cutoff, -1.0f, 0.0f);
-			}
+			const float x = car->bodyVsTrack;
+			const float thresh = tclamp(getVar(Name_DirectionThreshold), 0.1f, 1.0f);
 
-			reward += getWeight((int)RewardWeight::DriveDirection) * linscalef(car->velocityVsTrack, -1.0f, 1.0f, -0.5f, 0.5f);
+			if (x > thresh) // good
+			{
+				reward += getVar(Name_DirectionBonus) * linscalef(x, thresh, 1.0f, 0.0f, 1.0f);
+			}
+			else
+			{
+				reward -= getVar(Name_DirectionPenalty) * (1.0f - linscalef(x, -1.0f, thresh, 0.0f, 1.0f));
+			}
 		}
 		#endif
 	}
 
-	agentDriftReward = reward;
+	stepReward = reward;
+	totalReward += reward;
 }
 
 void ScoringSystem::computeDriftScore(float dt)
@@ -302,26 +395,6 @@ bool ScoringSystem::checkExtremeDrift(float triggerSlipLevel) const
 		nDriftyTyres += (int)isExtremeDrift(car->tyres[i].get(), triggerSlipLevel);
 
 	return nDriftyTyres > 1;
-}
-
-void ScoringSystem::setWeight(int id, float w)
-{
-	if (id >= 0 && id < (int)rewardWeights.size())
-		rewardWeights[id] = w;
-}
-
-float ScoringSystem::getWeight(int id) const
-{
-	if (id >= 0 && id < (int)rewardWeights.size())
-		return rewardWeights[id];
-	return 0.0f;
-}
-
-const char* ScoringSystem::getWeightName(int id) const
-{
-	if (id >= 0 && id < (int)RewardWeight::NUM_WEIGHTS)
-		return _weightNames[id];
-	return "";
 }
 
 }

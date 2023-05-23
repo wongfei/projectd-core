@@ -6,8 +6,8 @@ namespace D {
 void PlaygrounD::tick()
 {
 	{
-		const auto tick1 = clock::now();
-		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tick1 - tick0_).count() * 1e-6;
+		const auto tickStart = clock::now();
+		gameTime_ = std::chrono::duration_cast<std::chrono::microseconds>(tickStart - gameStartTicks_).count() * 1e-6;
 		const float gameTime = (float)gameTime_;
 
 		const double dt = gameTime_ - prevTime;
@@ -160,6 +160,8 @@ void PlaygrounD::tick()
 			// clear collision accumulator after rendering it
 			if (sim_)
 				sim_->dbgCollisions.clear();
+
+			DebugGL::get().clear();
 		}
 
 		//===========================================================================
@@ -170,6 +172,10 @@ void PlaygrounD::tick()
 
 		//===========================================================================
 		// STATS
+
+		const auto tickEnd = clock::now();
+		const float tickMillis = std::chrono::duration_cast<std::chrono::microseconds>(tickEnd - tickStart).count() * 1e-3f;
+		maxTick = tmax(maxTick, tickMillis);
 
 		if (statTime_ + 1.0 * hitchRate < gameTime_)
 		{
@@ -184,6 +190,7 @@ void PlaygrounD::tick()
 			statMaxDt_ = maxDt; maxDt = 0;
 			statMaxSim_ = maxSim; maxSim = 0;
 			statMaxDraw_ = maxDraw; maxDraw = 0;
+			statMaxTick_ = maxTick; maxTick = 0;
 		}
 
 		//===========================================================================
@@ -195,8 +202,8 @@ void PlaygrounD::tick()
 				::Sleep(0);
 			#else
 				// estimate time to next frame
-				const auto tick2 = clock::now();
-				const double curTime = std::chrono::duration_cast<std::chrono::microseconds>(tick2 - tick0_).count() * 1e-6;
+				//const auto tick2 = clock::now();
+				const double curTime = std::chrono::duration_cast<std::chrono::microseconds>(tickEnd - gameStartTicks_).count() * 1e-6;
 				const double simIdle = tmax(0.0, ((simTime_ + simTickRate_) - curTime));
 				const double drawIdle = tmax(0.0, ((drawTime_ + drawTickRate_) - curTime));
 				const int idleMs = floorToInt((float)(tmin(simIdle, drawIdle) * 1000.0));
@@ -218,10 +225,11 @@ void PlaygrounD::updateSimStats(float dt, float gameTime)
 		serBrake_.add_value(gameTime, car_->controls.brake);
 		serGas_.add_value(gameTime, car_->controls.gas);
 
-		serFF_.add_value(gameTime, car_->lastFF);
-
 		for (int i = 0; i < 4; ++i)
 			serSA_[i].add_value(gameTime, car_->tyres[i]->status.slipAngleRAD * 57.295779513082320876798154814105f);
+
+		serFF_.add_value(gameTime, car_->lastFF);
+		serReward_.add_value(gameTime, car_->scoring->totalReward);
 
 		timeSinceShift_ += (float)dt;
 		if (lastGear_ != car_->drivetrain->currentGear && car_->drivetrain->currentGear > 1)
@@ -243,13 +251,16 @@ void PlaygrounD::processInput(float dt)
 	if (asyncKeydown(SDL_SCANCODE_T)) { if (car_) car_->teleport(pitPos_); }
 
 	if (asyncKeydown(SDL_SCANCODE_COMMA)) { drawWorld_ = !drawWorld_; }
-	if (asyncKeydown(SDL_SCANCODE_PERIOD)) { drawSky_ = !drawSky_; }
+	//if (asyncKeydown(SDL_SCANCODE_PERIOD)) { drawSky_ = !drawSky_; }
 	if (asyncKeydown(SDL_SCANCODE_SLASH)) { draw2D_ = !draw2D_; }
 	if (asyncKeydown(SDL_SCANCODE_B)) { wireframeMode_ = !wireframeMode_; }
 
 	if (asyncKeydown(SDL_SCANCODE_P)) { drawTrackPoints_ = !drawTrackPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_O)) { drawNearbyPoints_ = !drawNearbyPoints_; }
 	if (asyncKeydown(SDL_SCANCODE_I)) { drawCarProbes_ = !drawCarProbes_; }
+
+	if (asyncKeydown(SDL_SCANCODE_F5)) { car_->track->saveSenseiPoints(car_->unixName); }
+	if (asyncKeydown(SDL_SCANCODE_F9)) { car_->track->loadSenseiPoints(car_->unixName); }
 
 	if (simManager_)
 	{
@@ -265,7 +276,7 @@ void PlaygrounD::processInput(float dt)
 		if (asyncKeydown(SDL_SCANCODE_RIGHTBRACKET)) { if (activeCarId_ + 1 < n) { newCarId_ = activeCarId_ + 1; } }
 	}
 
-	if (activeCarId_ != -1 && asyncKeydown(SDL_SCANCODE_RETURN))
+	if (asyncKeydown(SDL_SCANCODE_F1) && activeCarId_ != -1)
 	{
 		enableCarControls(true);
 		enableCarSound(true);

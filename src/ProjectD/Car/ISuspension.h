@@ -40,6 +40,7 @@ struct ISuspension : public virtual IObject
 	virtual vec3f getHubAngularVelocity() = 0;
 	virtual float getMass() = 0;
 	virtual float getSteerTorque() = 0;
+	virtual Damper* getDamper() = 0;
 	virtual void getDebugState(CarDebug* state) = 0;
 };
 

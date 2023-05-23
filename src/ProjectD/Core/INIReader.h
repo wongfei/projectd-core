@@ -38,6 +38,7 @@ struct INIReader : public NonCopyable
 	bool tryGetString(const std::wstring& section, const std::wstring& key, std::wstring& outValue) const;
 	bool tryGetInt(const std::wstring& section, const std::wstring& key, int& outValue) const;
 	bool tryGetFloat(const std::wstring& section, const std::wstring& key, float& outValue) const;
+	bool tryGetFloat(const std::wstring& section, const std::wstring& key, double& outValue) const;
 
 	std::wstring dataFilename;
 	std::wstring data;

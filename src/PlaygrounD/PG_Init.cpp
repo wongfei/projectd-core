@@ -41,7 +41,7 @@ void PlaygrounD::init(const std::wstring& basePath, bool loadedByPython)
 	initCharts();
 	initNuk();
 
-	tick0_ = clock::now();
+	gameStartTicks_ = clock::now();
 
 	initializedFlag_ = true;
 }

@@ -1,5 +1,4 @@
 #include "PlaygrounD.h"
-#include "Car/ScoringSystem.h"
 
 namespace D {
 
@@ -32,6 +31,11 @@ void PlaygrounD::initCharts()
 	y1 = 1.0f;
 	chartFF_.init(ChartN, 64);
 	serFF_.init(ChartN, y0, y1);
+
+	y0 = -10000.0f;
+	y1 = 10000.0f;
+	chartReward_.init(ChartN, 64);
+	serReward_.init(ChartN, y0, y1);
 }
 
 void PlaygrounD::renderCharts()
@@ -64,6 +68,10 @@ void PlaygrounD::renderCharts()
 	chartFF_.clear();
 	chartFF_.plot(serFF_, ChartColor(255, 0, 0, 255));
 	chartFF_.present(200, height_ - 80.0f, 1.0f);
+
+	chartReward_.clear();
+	chartReward_.plot(serReward_, ChartColor(255, 0, 0, 255));
+	chartReward_.present(200 + dx, height_ - 80.0f, 1.0f);
 }
 
 void PlaygrounD::renderStats()
@@ -86,16 +94,18 @@ void PlaygrounD::renderStats()
 	float x = 1, y = 1, dy = 20;
 	font_.draw(x, y, "simId %d of %d", activeSimId_, simCount); y += dy;
 	font_.draw(x, y, "carId %d of %d", activeCarId_, carCount); y += dy;
-	font_.draw(x, y, "gameTime %.2f s", gameTime_); y += dy;
+	font_.draw(x, y, "gameTime %.1f", gameTime_); y += dy;
 	font_.draw(x, y, "maxDt %.3f ms", statMaxDt_); y += dy;
 	font_.draw(x, y, "maxSim %.3f ms", statMaxSim_); y += dy;
 	font_.draw(x, y, "maxDraw %.3f ms", statMaxDraw_); y += dy;
+	font_.draw(x, y, "maxTick %.3f ms", statMaxTick_); y += dy;
 	font_.draw(x, y, "simHZ %d (%llu)", (int)statSimRate_, simId_); y += dy;
 	font_.draw(x, y, "drawHZ %d (%llu)", (int)statDrawRate_, drawId_); y += dy;
 	font_.draw(x, y, "simHitches %d", (int)statSimHitches_); y += dy;
 	font_.draw(x, y, "drawHitches %d", (int)statDrawHitches_); y += dy;
 	font_.draw(x, y, "lastHitch %.2f", lastHitchTime_); y += dy;
 
+	#if 0
 	font_.draw(x, y, "camera %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
 
 	if (lookatSurf_) {
@@ -110,6 +120,7 @@ void PlaygrounD::renderStats()
 	else {
 		font_.draw(x, y, "surf ?"); y += dy;
 	}
+	#endif
 
 	if (sim_)
 	{
@@ -138,27 +149,39 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	int gear = car_->drivetrain->currentGear - 1;
 	float rpm = ((float)car_->drivetrain->engine.velocity * 0.15915507f) * 60.0f;
 
+	y += dy;
 	font_.draw(x, y, "steer %.3f", car_->controls.steer); y += dy;
 	font_.draw(x, y, "ssteer %.3f (%.3f)", car_->smoothSteerValue, (car_->smoothSteerTarget - car_->smoothSteerValue)); y += dy;
-	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
+	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
 	font_.draw(x, y, "brake %.3f", car_->controls.brake); y += dy;
 	font_.draw(x, y, "handBrake %.3f", car_->controls.handBrake); y += dy;
-	font_.draw(x, y, "gas %.3f", car_->controls.gas); y += dy;
+	font_.draw(x, y, "clutch %.3f", car_->controls.clutch); y += dy;
 
 	font_.draw(x, y, "gear %d", car_->state->gear); y += dy;
 	font_.draw(x, y, "gearReq %d", car_->controls.requestedGearIndex); y += dy;
 	font_.draw(x, y, "gearTime #%d %.3f", gear, timeSinceShift_); y += dy;
-	font_.draw(x, y, "trackPoint %d", car_->nearestTrackPointId); y += dy;
-	font_.draw(x, y, "trackLocation %.2f", car_->trackLocation); y += dy;
+	y += dy;
+
 	font_.draw(x, y, "trackWidth %.2f", car_->track->computedTrackWidth); y += dy;
+	font_.draw(x, y, "trackLength %.2f", car_->track->computedTrackLength); y += dy;
+	font_.draw(x, y, "trackPointId %d", car_->nearestTrackPointId); y += dy;
+	font_.draw(x, y, "splinePointId %d", car_->splinePointId); y += dy;
+	font_.draw(x, y, "trackLocation %.3f", car_->trackLocation); y += dy;
+	font_.draw(x, y, "bodyVsTrack %.2f", car_->bodyVsTrack); y += dy;
+	font_.draw(x, y, "velocityVsTrack %.2f", car_->velocityVsTrack); y += dy;
+	y += dy;
 
 	#if 1
 	//font_.draw(x, y, "drifting %d", car_->drifting); y += dy;
 	//font_.draw(x, y, "currentDriftAngle %.2f", car_->currentDriftAngle); y += dy;
-	//font_.draw(x, y, "instantDrift %.2f", car_->instantDrift); y += dy;
+	font_.draw(x, y, "instantDrift %.2f", car_->scoring->instantDrift); y += dy;
 	font_.draw(x, y, "driftPoints %.2f", car_->scoring->driftPoints); y += dy;
-	font_.draw(x, y, "driftCombo %d", car_->scoring->driftComboCounter); y += dy;
-	font_.draw(x, y, "agentReward %.2f", car_->scoring->agentDriftReward); y += dy;
+	//font_.draw(x, y, "driftCombo %d", car_->scoring->driftComboCounter); y += dy;
+
+	font_.draw(x, y, "stepReward %.2f", car_->scoring->stepReward); y += dy;
+	font_.draw(x, y, "totalReward %.2f", car_->scoring->totalReward); y += dy;
+	font_.draw(x, y, "prevEpisodeReward %.2f", car_->scoring->prevEpisodeReward); y += dy;
+	y += dy;
 	#endif
 
 	#if 0
@@ -172,6 +195,15 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	{
 		font_.draw(x, y, "flatSpot %d %.3f", i, car_->tyres[i]->status.flatSpot); y += dy;
 	}
+	#endif
+
+	#if 0
+	auto v = car_->state->velocity;
+	font_.draw(x, y, "V  %.2f %.2f %.2f", v.x, v.y, v.z); y += dy;
+	v = car_->state->localVelocity;
+	font_.draw(x, y, "LV %.2f %.2f %.2f", v.x, v.y, v.z); y += dy;
+	font_.draw(x, y, "BxT %.3f", car_->state->bodyVsTrack); y += dy;
+	font_.draw(x, y, "VxT %.3f", car_->state->velocityVsTrack); y += dy;
 	#endif
 
 	#if 0
@@ -205,7 +237,7 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 	}
 	#endif
 
-	#if 1
+	#if 0
 	for (int i = 0; i < 4; ++i)
 	{
 		font_.draw(x, y, "SR%d %+10.5f", i, car_->tyres[i]->status.slipRatio); y += dy;
@@ -307,7 +339,7 @@ void PlaygrounD::renderCarStats(float x, float y, float dy)
 		//font_.draw(w * 0.45f, h * 0.65f, "%d", (int)car_->driftComboCounter);
 		//font_.draw(w * 0.55f, h * 0.65f, "DP %d", (int)car_->instantDrift);
 		font_.draw(w * 0.55f, h * 0.65f, "DD %.3f", car_->scoring->instantDriftDelta);
-		font_.draw(w * 0.65f, h * 0.65f, "R %.3f", car_->scoring->agentDriftReward);
+		font_.draw(w * 0.65f, h * 0.65f, "R %.3f", car_->scoring->stepReward);
 	}
 }
 

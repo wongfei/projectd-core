@@ -2,6 +2,7 @@
 #include "Renderer/GLPrimitive.h"
 #include "Sim/Track.h"
 #include "Sim/Surface.h"
+#include "Core/Spline3d.h"
 
 namespace D {
 
@@ -52,11 +53,20 @@ GLTrack::GLTrack(Track* _track)
 		glBegin(GL_POINTS);
 		glColor3f(0.0f, 0.0f, 0.0f);
 		glVertex3fv(&track->fatPoints[0].center.x);
-
-		glColor3f(1.0f, 1.0f, 0.0f);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3fv(&track->fatPoints[track->fatPoints.size() - 1].center.x);
+		glColor3f(0.5f, 1.0f, 1.0f);
 		for (const auto& pt : track->fatPoints)
 		{
 			glVertex3fv(&pt.best.x);
+		}
+		glEnd();
+
+		glBegin(GL_POINTS);
+		glColor3f(1.0f, 1.0f, 0.0f);
+		for (const auto& pt : track->fatPoints)
+		{
+			glVertex3fv(&pt.center.x);
 		}
 		glEnd();
 		
@@ -84,6 +94,17 @@ GLTrack::GLTrack(Track* _track)
 			auto v2 = v1 + pt.forwardDir * 0.5f;
 			glVertex3fv(&v1.x);
 			glVertex3fv(&v2.x);
+		}
+		glEnd();
+
+		// interpolated spline points
+		glPointSize(3);
+		glBegin(GL_POINTS);
+		glColor3f(0.0f, 1.0f, 0.0f);
+		auto& nodes = track->interpolatedSpline->_nodes;
+		for (const auto& pt : nodes)
+		{
+			glVertex3fv(&pt.x);
 		}
 		glEnd();
 	}
@@ -193,6 +214,20 @@ void GLTrack::draw()
 				glEnd();
 			}
 		}
+	}
+
+	if (drawSenseiPoints)
+	{
+		glPointSize(3);
+		glBegin(GL_POINTS);
+		glColor3f(0.0f, 1.0f, 0.0f);
+		const size_t n = track->senseiPoints.size();
+		for (size_t i = 0; i < n; i += 1)
+		{
+			const auto& pt = track->senseiPoints[i];
+			glVertex3fv(&pt.bodyMatrix.M41);
+		}
+		glEnd();
 	}
 }
 

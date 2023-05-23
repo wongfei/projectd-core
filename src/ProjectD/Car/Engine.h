@@ -70,6 +70,7 @@ struct Engine : public NonCopyable
 	Curve gasCoastOffsetCurve;
 	int coastSettingsDefaultIndex = 0;
 	int coastEntryRpm = 0;
+	//float coastTorqueMultiplier = 1.0f; // TODO: WHERE IT'S USED?
 
 	// config|throttle
 	Curve throttleResponseCurve;

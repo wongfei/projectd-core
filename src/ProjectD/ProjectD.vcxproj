@@ -15,17 +15,21 @@
     <ClInclude Include="Car\AutoClutch.h" />
     <ClInclude Include="Car\AutoShifter.h" />
     <ClInclude Include="Car\CarImpl.h" />
+    <ClInclude Include="Car\CarSenseiData.h" />
     <ClInclude Include="Car\ICarAudioRenderer.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Car\ScoringSystem.h" />
+    <ClInclude Include="Car\SetupManager.h" />
     <ClInclude Include="Core\ABIValidator.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Core.h" />
     <ClInclude Include="Core\CubicSpline.h" />
+    <ClInclude Include="Core\DebugGL.h" />
     <ClInclude Include="Core\SharedMemory.h" />
     <ClInclude Include="Core\Speed.h" />
+    <ClInclude Include="Core\Spline3d.h" />
     <ClInclude Include="Core\VertexHash.h" />
     <ClInclude Include="Car\CarState.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -233,6 +237,7 @@
     <ClCompile Include="Car\AutoClutch.cpp" />
     <ClCompile Include="Car\AutoShifter.cpp" />
     <ClCompile Include="Car\ScoringSystem.cpp" />
+    <ClCompile Include="Car\SetupManager.cpp" />
     <ClCompile Include="Core\ABIValidator.cpp" />
     <ClCompile Include="Core\CubicSpline.cpp" />
     <ClCompile Include="Core\Diag.cpp" />
@@ -302,6 +307,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Core\Spline3d.cpp" />
     <ClCompile Include="Physics\PhysicsFactory.cpp" />
     <ClCompile Include="Physics\ODE\TriMeshODE.cpp" />
     <ClCompile Include="Sim\SlipStream.cpp">

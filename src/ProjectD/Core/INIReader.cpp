@@ -192,6 +192,16 @@ bool INIReader::tryGetFloat(const std::wstring& section, const std::wstring& key
 	return false;
 }
 
+bool INIReader::tryGetFloat(const std::wstring& section, const std::wstring& key, double& outValue) const
+{
+	if (hasKey(section, key))
+	{
+		outValue = getFloat(section, key, true);
+		return true;
+	}
+	return false;
+}
+
 vec2f INIReader::getFloat2(const std::wstring& section, const std::wstring& key, bool required) const
 {
 	auto s = getString(section, key, required);

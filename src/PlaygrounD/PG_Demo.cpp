@@ -39,6 +39,7 @@ void PlaygrounD::loadDemo()
 	GUARD_FATAL(car_);
 
 	car_->teleportToSpline(0.0f);
+	car_->senseiEnabled = true;
 
 	// SECOND SIM
 

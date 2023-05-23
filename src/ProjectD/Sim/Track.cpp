@@ -1,10 +1,13 @@
 #include "Sim/Track.h"
 #include "Sim/Simulator.h"
+#include "Core/DebugGL.h"
 
 #define TRACK_DEBUG_DRAW 0
 
-#if (TRACK_DEBUG_DRAW)
-#include <SDL_opengl.h>
+#if 1
+	#define TRACK_MIDPOINT best
+#else
+	#define TRACK_MIDPOINT center
 #endif
 
 namespace D {
@@ -179,8 +182,8 @@ void Track::initTrackPoints()
 	auto ini(std::make_unique<INIReader>(dataFolder + L"spline.ini"));
 	if (ini->ready)
 	{
+		closedLoop = ini->getInt(L"SPLINE", L"CLOSED_LOOP") != 0;
 		traceSides = ini->getInt(L"SPLINE", L"TRACE_SIDES") != 0;
-
 		ini->tryGetFloat(L"SPLINE", L"TRACE_RAY_OFFSET_Y", traceRayOffsetY);
 		ini->tryGetFloat(L"SPLINE", L"TRACE_RAY_LENGTH", traceRayLength);
 		ini->tryGetFloat(L"SPLINE", L"TRACE_SIDE_MAX", traceSideMax);
@@ -214,6 +217,11 @@ void Track::initTrackPoints()
 		saveFatPoints();
 	}
 
+	interpolatedSpline.reset();
+	fatPointDistances.clear();
+	nearbyPoints.clear();
+
+	pointCachePos = vec3f(0, -10000, 0);
 	computedTrackWidth = 0.1f;
 	computedTrackLength = 0.1f;
 
@@ -230,22 +238,36 @@ void Track::initTrackPoints()
 		}
 
 		fatPointsHash.init(cellSize, (size_t)tableSize); // allows to query points around specific location
-		pointCachePos = vec3f(0, -10000, 0);
 
 		const size_t numPoints = fatPoints.size();
+
+		std::vector<vec3f> splinePoints;
+		splinePoints.resize(numPoints);
+
+		fatPointDistances.resize(numPoints);
+
 		for (size_t id = 0; id < numPoints; ++id)
 		{
-			fatPointsHash.add(fatPoints[id].center, id);
+			splinePoints[id] = fatPoints[id].TRACK_MIDPOINT;
+			fatPointsHash.add(fatPoints[id].TRACK_MIDPOINT, id);
 
-			const float dist = (fatPoints[id].left - fatPoints[id].right).len();
-			if (computedTrackWidth < dist)
-				computedTrackWidth = dist;
-
+			const float width = (fatPoints[id].left - fatPoints[id].right).len();
+			if (computedTrackWidth < width)
+				computedTrackWidth = width;
+			
+			fatPointDistances[id] = computedTrackLength;
 			if (id + 1 < numPoints)
 			{
-				computedTrackLength += (fatPoints[id].center - fatPoints[id + 1].center).len();
+				computedTrackLength += (fatPoints[id].TRACK_MIDPOINT - fatPoints[id + 1].TRACK_MIDPOINT).len();
 			}
 		}
+
+		interpolateStep = (int)(computedTrackLength / interpolateResolution) / (int)numPoints;
+
+		interpolatedSpline.reset(new BSpline3d());
+		interpolatedSpline->set_steps(interpolateStep);
+		interpolatedSpline->init_from_array(splinePoints, closedLoop);
+		computedTrackLength = interpolatedSpline->total_length();
 	}
 }
 
@@ -301,6 +323,42 @@ void Track::saveFatPoints()
 		if (numPoints > 0)
 		{
 			fwrite(fatPoints.data(), sizeof(fatPoints[0]) * numPoints, 1, file.fd);
+		}
+	}
+}
+
+void Track::loadSenseiPoints(const std::wstring& modelName)
+{
+	senseiPoints.clear();
+
+	FileHandle file;
+	auto strPath = dataFolder + modelName + L".sensei";
+	log_printf(L"loadSenseiPoints: %s", strPath.c_str());
+
+	if (file.open(strPath.c_str(), L"rb"))
+	{
+		const size_t size = file.size();
+		const size_t numPoints = size / sizeof(senseiPoints[0]);
+		if (numPoints > 0)
+		{
+			senseiPoints.resize(numPoints);
+			fread(senseiPoints.data(), sizeof(senseiPoints[0]) * numPoints, 1, file.fd);
+		}
+	}
+}
+
+void Track::saveSenseiPoints(const std::wstring& modelName)
+{
+	FileHandle file;
+	auto strPath = dataFolder + modelName + L".sensei";
+	log_printf(L"saveSenseiPoints: %s", strPath.c_str());
+
+	if (file.open(strPath.c_str(), L"wb"))
+	{
+		const auto numPoints = senseiPoints.size();
+		if (numPoints > 0)
+		{
+			fwrite(senseiPoints.data(), sizeof(senseiPoints[0]) * numPoints, 1, file.fd);
 		}
 	}
 }
@@ -410,7 +468,7 @@ vec3f Track::computeSideLocation(const SlimTrackPoint& slim, FatTrackPoint& fat,
 
 inline bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float &i_x, float &i_y)
 {
-	// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+	// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-sp-intersect
 
 	float s1_x, s1_y, s2_x, s2_y;
 	s1_x = p1_x - p0_x; s1_y = p1_y - p0_y;
@@ -478,11 +536,7 @@ float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDis
 				interFlag = true;
 
 				#if (TRACK_DEBUG_DRAW)
-				glBegin(GL_LINES);
-					glColor3f(1.0f, 0.0f, 0.0f);
-					glVertex3fv(&sideA.x);
-					glVertex3fv(&sideB.x);
-				glEnd();
+				DebugGL::get().line(sideA, sideB, vec3f(1, 0, 0));
 				#endif
 			}
 
@@ -495,11 +549,7 @@ float Track::rayCastTrackBounds(const vec3f& pos, const vec3f& dir, float maxDis
 				interFlag = true;
 
 				#if (TRACK_DEBUG_DRAW)
-				glBegin(GL_LINES);
-					glColor3f(1.0f, 0.0f, 0.0f);
-					glVertex3fv(&sideA.x);
-					glVertex3fv(&sideB.x);
-				glEnd();
+				DebugGL::get().line(sideA, sideB, vec3f(1, 0, 0));
 				#endif
 			}
 		}
@@ -526,6 +576,25 @@ size_t Track::getPointIdAtDistance(float distanceNorm) const
 	return pointId;
 }
 
+size_t Track::getPointIdAtLocation(const vec3f& pos) const
+{
+	float bestDistSq = FLT_MAX;
+	int bestPoint = 0;
+
+	for (const auto& pointId : nearbyPoints)
+	{
+		const auto pointPos = fatPoints[pointId].TRACK_MIDPOINT;
+		const auto distSq = (pointPos - pos).sqlen();
+		if (bestDistSq > distSq)
+		{
+			bestDistSq = distSq;
+			bestPoint = (int)pointId;
+		}
+	}
+
+	return bestPoint;
+}
+
 vec3f Track::getTrackDirectionAtDistance(float distanceNorm) const
 {
 	const size_t pointId = getPointIdAtDistance(distanceNorm);
@@ -535,6 +604,98 @@ vec3f Track::getTrackDirectionAtDistance(float distanceNorm) const
 	}
 
 	return vec3f(0, 0, 0);
+}
+
+bool Track::getDistanceAlongSplineAtLocation(const vec3f& pos, int pointId, Spline3dPointInfo& info) const // TODO: throw away this junk
+{
+	const int N = 5;
+	const float traceStep = 0.02f;
+
+	const int numPoints = (int)fatPoints.size();
+	if (numPoints < N)
+		return 0;
+
+	int prevId = pointId - 1; if (prevId < 0) prevId = numPoints - 1;
+	int nextId = pointId + 1; if (nextId >= numPoints) nextId = 0;
+	int prevId2 = prevId - 1; if (prevId2 < 0) prevId2 = numPoints - 1;
+	int nextId2 = nextId + 1; if (nextId2 >= numPoints) nextId2 = 0;
+
+	int seg1 = prevId2 * interpolateStep;
+	int seg2 = nextId2 * interpolateStep;
+
+	if (interpolatedSpline->find_nearest_point(pos, info, seg1, seg2))
+	{
+		return true;
+	}
+
+	vec3f curPos = fatPoints[pointId].TRACK_MIDPOINT;
+	vec3f prevPos = fatPoints[prevId].TRACK_MIDPOINT;
+	vec3f nextPos = fatPoints[nextId].TRACK_MIDPOINT;
+	vec3f prevPos2 = fatPoints[prevId2].TRACK_MIDPOINT;
+	vec3f nextPos2 = fatPoints[nextId2].TRACK_MIDPOINT;
+
+	int id[N];
+	id[0] = prevId2;
+	id[1] = prevId;
+	id[2] = pointId;
+	id[3] = nextId;
+	id[4] = nextId2;
+
+	vec3f sp[N];
+	sp[0] = prevPos2;
+	sp[1] = prevPos;
+	sp[2] = curPos;
+	sp[3] = nextPos;
+	sp[4] = nextPos2;
+	
+	int bestPointId = 0;
+	float bestDist = FLT_MAX;
+	float splineDist = 0;
+	vec3f nearestPt(0, 0, 0);
+
+	for (int i = 0; i + 1 < N; ++i)
+	{
+		const vec3f s1 = sp[i];
+		const vec3f s2 = sp[i + 1];
+
+		const float slen = (s2 - s1).len();
+		const vec3f n = (s2 - s1) / slen;
+
+		for (float tracePos = 0; tracePos <= slen; tracePos += traceStep)
+		{
+			const vec3f p = s1 + n * tracePos;
+			const float d = (pos - p).sqlen();
+
+			if (bestDist >= d)
+			{
+				bestDist = d;
+				nearestPt = p;
+				bestPointId = id[i];
+				splineDist = fatPointDistances[bestPointId] + tracePos;
+
+				#if (TRACK_DEBUG_DRAW)
+				DebugGL::get().line(pos, p, vec3f(1, 0, 0));
+				#endif
+			}
+		}
+	}
+
+	info.id = bestPointId;
+	info.dist = splineDist;
+	info.pos = nearestPt;
+
+	#if (TRACK_DEBUG_DRAW)
+	DebugGL::get().point(prevPos, vec3f(0, 0, 1));
+	DebugGL::get().point(curPos, vec3f(1, 0, 0));
+	DebugGL::get().point(nextPos, vec3f(0, 1, 0));
+	DebugGL::get().point(nearestPt, vec3f(1, 0, 0));
+
+	DebugGL::get().line(prevPos, curPos, vec3f(0, 0, 1));
+	DebugGL::get().line(curPos, nextPos, vec3f(0, 1, 0));
+	DebugGL::get().line(pos, nearestPt, vec3f(1, 0, 0));
+	#endif
+
+	return true;
 }
 
 }

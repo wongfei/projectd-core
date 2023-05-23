@@ -26,6 +26,7 @@ struct GLTrack : public IAvatar
 	bool wireframe = false;
 	bool drawFatPoints = false;
 	bool drawNearbyPoints = false;
+	bool drawSenseiPoints = false;
 };
 
 }

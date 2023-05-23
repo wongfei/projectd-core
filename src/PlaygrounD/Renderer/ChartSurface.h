@@ -114,12 +114,16 @@ public:
 	}
 
 	inline void fill(const TPixelFormat& color) {
+		#if 1
+		memset(&pixels_[0], 0, pixels_.size() * sizeof(pixels_[0]));
+		#else
 		auto* pix = &pixels_[0];
 		for (size_t y = 0; y < height_; ++y) {
 			for (size_t x = 0; x < width_; ++x) {
 				*pix++ = color;
 			}
 		}
+		#endif
 	}
 
 	inline void draw_borders(const TPixelFormat& color) {

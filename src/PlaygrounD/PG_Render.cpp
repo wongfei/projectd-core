@@ -52,6 +52,7 @@ void PlaygrounD::renderWorld()
 				trackAvatar->wireframe = wireframeMode_;
 				trackAvatar->drawFatPoints = drawTrackPoints_;
 				trackAvatar->drawNearbyPoints = drawNearbyPoints_;
+				trackAvatar->drawSenseiPoints = drawTrackSensei_;
 			}
 		}
 
@@ -60,9 +61,30 @@ void PlaygrounD::renderWorld()
 			auto carAvatar = (GLCar*)car_->avatar.get();
 			carAvatar->drawBody = (inpCamMode_ != (int)ECamMode::Eye);
 			carAvatar->drawProbes = drawCarProbes_;
+			carAvatar->drawSenseiPoints = drawCarSensei_;
+			carAvatar->drawSplineLocation = drawCarSplineLoc_;
 		}
 
 		sim_->avatar->draw();
+
+		auto& debugGL = DebugGL::get();
+		
+		glBegin(GL_POINTS);
+		for (const auto& prim : debugGL.points)
+		{
+			glColor3fv(&prim.color.x);
+			glVertex3fv(&prim.p.x);
+		}
+		glEnd();
+
+		glBegin(GL_LINES);
+		for (const auto& prim : debugGL.lines)
+		{
+			glColor3fv(&prim.color.x);
+			glVertex3fv(&prim.p1.x);
+			glVertex3fv(&prim.p2.x);
+		}
+		glEnd();
 
 		glDisable(GL_DEPTH_TEST);
 		glDepthFunc(oldDepthFunc);

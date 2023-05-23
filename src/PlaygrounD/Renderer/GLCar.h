@@ -18,6 +18,8 @@ struct GLCar : public IAvatar
 	GLPrimitive wheelMesh;
 	bool drawBody = true;
 	bool drawProbes = false;
+	bool drawSplineLocation = true;
+	bool drawSenseiPoints = false;
 };
 
 }

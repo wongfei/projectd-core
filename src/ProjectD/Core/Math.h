@@ -38,6 +38,7 @@ inline T tclamp(const T& x, const T& a, const T& b) { return (x < a ? a : (x > b
 inline float signf(const float x) { return (x > 0.0f) ? 1.0f : ((x < 0.0f) ? -1.0f : 0.0f); }
 
 inline float linscalef(float x, float x0, float x1, float r0, float r1) {
+	x = tclamp(x, x0, x1);
 	return ((r1 - r0) * (x - x0)) / (x1 - x0) + r0;
 }
 
@@ -104,11 +105,11 @@ struct vec3f
 	inline float& operator[](const int id) { return (&x)[id]; }
 	inline const float& operator[](const int id) const { return (&x)[id]; }
 
-	inline vec3f operator*(const float f) const { return vec3f(x * f, y * f, z * f); }
-	inline vec3f operator/(const float f) const { return vec3f(x / f, y / f, z / f); }
-	inline vec3f operator+(const vec3f& v) const { return vec3f(x + v.x, y + v.y, z + v.z); }
-	inline vec3f operator-(const vec3f& v) const { return vec3f(x - v.x, y - v.y, z - v.z); }
-	inline float operator*(const vec3f& v) const { return (x * v.x + y * v.y + z * v.z); }
+	//inline vec3f operator*(const float f) const { return vec3f(x * f, y * f, z * f); }
+	//inline vec3f operator/(const float f) const { return vec3f(x / f, y / f, z / f); }
+	//inline vec3f operator+(const vec3f& v) const { return vec3f(x + v.x, y + v.y, z + v.z); }
+	//inline vec3f operator-(const vec3f& v) const { return vec3f(x - v.x, y - v.y, z - v.z); }
+	//inline float operator*(const vec3f& v) const { return (x * v.x + y * v.y + z * v.z); }
 
 	inline vec3f& operator*=(const float f) { x *= f, y *= f, z *= f; return *this; }
 	inline vec3f& operator/=(const float f) { x /= f, y /= f, z /= f; return *this; }
@@ -128,6 +129,14 @@ struct vec3f
 
 	vec3f rotateAxisAngle(const vec3f& axis, float angle);
 };
+
+inline vec3f operator*(const vec3f& v, const float f) { return vec3f(v.x * f, v.y * f, v.z * f); }
+inline vec3f operator/(const vec3f& v, const float f) { return vec3f(v.x / f, v.y / f, v.z / f); }
+inline vec3f operator*(const float f, const vec3f& v) { return vec3f(v.x * f, v.y * f, v.z * f); }
+inline vec3f operator/(const float f, const vec3f& v) { return vec3f(v.x / f, v.y / f, v.z / f); }
+inline vec3f operator+(const vec3f& a, const vec3f& b) { return vec3f(a.x + b.x, a.y + b.y, a.z + b.z); }
+inline vec3f operator-(const vec3f& a, const vec3f& b) { return vec3f(a.x - b.x, a.y - b.y, a.z - b.z); }
+inline float operator*(const vec3f& a, const vec3f& b) { return (a.x * b.x + a.y * b.y + a.z * b.z); }
 
 struct vec4f
 {

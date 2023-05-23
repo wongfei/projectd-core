@@ -1,5 +1,4 @@
 #include "Car/CarImpl.h"
-#include "Car/ScoringSystem.h"
 #include "Sim/Simulator.h"
 #include "Sim/Track.h"
 
@@ -208,6 +207,9 @@ bool Car::init(const std::wstring& modelName)
 	scoring.reset(new ScoringSystem());
 	scoring->init(this);
 
+	setup.reset(new SetupManager());
+	setup->init(this);
+
 	state.reset(new CarState());
 
 	updateBodyMass();
@@ -378,6 +380,35 @@ void Car::initColliderMesh(ITriMeshPtr mesh, const mat44f& bodyMatrix)
 
 //=============================================================================
 // STEP
+//=============================================================================
+
+void Car::reset()
+{
+	framesToSleep = 50;
+	water->t = 60;
+	fuel = requestedFuel;
+
+	collisionFlag = false;
+	oldCollisionFlag = false;
+	outOfTrackFlag = false;
+
+	lastTrackPointTimestamp = sim ? (float)sim->physicsTime : 0;
+	nearestTrackPointId = 0;
+	oldTrackPointId = 0;
+	splinePointId = 0;
+
+	trackLocation = 0;
+	oldTrackLocation = 0;
+
+	for (int i = 0; i < 5; ++i)
+	{
+		damageZoneLevel[i] = 0;
+		oldDamageZoneLevel[i] = 0;
+	}
+
+	scoring->reset();
+}
+
 //=============================================================================
 
 void Car::stepPreCacheValues(float dt)
@@ -662,12 +693,15 @@ void Car::postStep(float dt)
 	vec3f vBodyPos = body->getPosition(0);
 	slipStream->setPosition(vBodyPos, vBodyVel);
 
-	updateTrackLocator();
+	updateTrackLocator(dt);
 	updateLookAhead();
 
 	scoring->step(dt);
 
 	updateCarState();
+
+	if (senseiEnabled)
+		updateSensei();
 
 	for (int i = 0; i < 5; ++i)
 		oldDamageZoneLevel[i] = damageZoneLevel[i];
@@ -680,7 +714,7 @@ void Car::postStep(float dt)
 
 //=============================================================================
 
-void Car::updateTrackLocator()
+void Car::updateTrackLocator(float dt)
 {
 	const auto numRays = probes.size();
 	if (numRays > 0)
@@ -698,35 +732,35 @@ void Car::updateTrackLocator()
 	}
 
 	const auto bodyPos = body->getPosition(0);
-	float bestDistSq = FLT_MAX;
-	int bestPoint = 0;
+	const int bestPoint = (int)track->getPointIdAtLocation(bodyPos);
 
-	for (const auto& pointId : track->nearbyPoints)
+	if (nearestTrackPointId != bestPoint)
 	{
-		const auto pointPos = track->fatPoints[pointId].center;
-		const auto distSq = (pointPos - bodyPos).sqlen();
-		if (bestDistSq > distSq)
-		{
-			bestDistSq = distSq;
-			bestPoint = (int)pointId;
-		}
+		oldTrackPointId = nearestTrackPointId;
+		nearestTrackPointId = bestPoint;
+		lastTrackPointTimestamp = (float)sim->physicsTime;
 	}
 
-	nearestTrackPointId = bestPoint;
 	oldTrackLocation = trackLocation;
 	trackLocation = 0;
 
 	const int numPoints = (int)track->fatPoints.size();
 	if (bestPoint >= 0 && bestPoint < numPoints)
 	{
-		trackLocation = tclamp((float)bestPoint / (float)numPoints, 0.0f, 1.0f); // TODO: compute accurate location
-
-		const auto& pt = track->fatPoints[bestPoint];
+		Spline3dPointInfo info;
+		//trackLocation = tclamp((float)bestPoint / (float)numTrackPoints, 0.0f, 1.0f); // TODO: compute accurate location
+		if (track->getDistanceAlongSplineAtLocation(bodyPos, bestPoint, info))
+		{
+			splinePointId = info.id;
+			trackLocation = tclamp(info.dist / track->computedTrackLength, 0.0f, 1.0f);
+			worldSplinePosition = info.pos;
+		}
 
 		const auto bodyR = body->getWorldMatrix(0).getRotator();
 		const auto bodyFrontDir = (vec3f(0, 0, 1) * bodyR).get_norm();
 		const auto bodyVelDir = body->getVelocity().get_norm();
 
+		const auto& pt = track->fatPoints[bestPoint];
 		bodyVsTrack = bodyFrontDir * pt.forwardDir;
 
 		if (speed.kmh() > 3.0f)
@@ -758,8 +792,8 @@ void Car::updateLookAhead()
 		const vec3f dir = track->getTrackDirectionAtDistance(distanceNorm);
 
 		const float angle = atan2f(dir.cross(curTrackDir) * up, curTrackDir * dir);
-		//lookAhead[i] = angle;
-		lookAhead[i] = linscalef(angle, -M_PI, M_PI, -1.0f, 1.0f);
+		lookAhead[i] = angle;
+		//lookAhead[i] = linscalef(angle, -M_PI, M_PI, -1.0f, 1.0f);
 	}
 }
 
@@ -771,22 +805,22 @@ void Car::updateCarState()
 
 	state->carId = (int32_t)physicsGUID;
 	state->simId = (int32_t)sim->simulatorId;
+	state->timestamp = (float)sim->physicsTime;
 	
 	state->controls = controls;
+
+	state->collisionFlag = collisionFlag;
+	state->outOfTrackFlag = outOfTrackFlag;
+	state->trackPointId = nearestTrackPointId;
+	state->lastTrackPointTimestamp = lastTrackPointTimestamp;
+	state->trackLocation = trackLocation;
+	state->bodyVsTrack = bodyVsTrack;
+	state->velocityVsTrack = velocityVsTrack;
 
 	state->engineRPM = getEngineRpm();
 	state->speedMS = speed.ms();
 	state->gear = drivetrain->currentGear;
 	state->gearGrinding = drivetrain->isGearGrinding ? 1 : 0;
-
-	state->trackLocation = trackLocation;
-	state->trackPointId = nearestTrackPointId;
-	state->collisionFlag = collisionFlag;
-	state->outOfTrackFlag = outOfTrackFlag;
-
-	state->bodyVsTrack = bodyVsTrack;
-	state->velocityVsTrack = velocityVsTrack;
-	state->agentDriftReward = scoring->agentDriftReward;
 
 	auto bodyM = body->getWorldMatrix(0);
 	state->bodyMatrix = (bodyM);
@@ -819,12 +853,65 @@ void Car::updateCarState()
 		state->lookAhead[i] = lookAhead[i];
 	}
 
+	state->stepReward = scoring->stepReward;
+	state->totalReward = scoring->totalReward;
+
 	#if 0
 	auto bodyGM = getGraphicsOffsetMatrix();
 	state->graphicsMatrix = (bodyGM);
 	state->graphicsPos = {bodyGM.M41, bodyGM.M42, bodyGM.M43};
 	state->graphicsEuler = (bodyGM.getEulerAngles());
 	#endif
+}
+
+//=============================================================================
+
+void Car::updateSensei()
+{
+	const int numTrackPoints = (int)track->fatPoints.size();
+	if (!numTrackPoints)
+		return;
+
+	const int numSenseiPoints = track->interpolatedSpline->node_count();
+
+	if ((int)senseiPoints.size() != numSenseiPoints)
+		senseiPoints.resize(numSenseiPoints);
+
+	if (splinePointId >= 0 && splinePointId < numSenseiPoints)
+	{
+		CarSenseiData data;
+
+		data.controls = controls;
+		data.bodyMatrix = state->bodyMatrix;
+		data.worldSplinePosition = worldSplinePosition;
+		data.velocity = state->velocity;
+		data.localVelocity = state->localVelocity;
+		data.angularVelocity = state->angularVelocity;
+		data.localAngularVelocity = state->localAngularVelocity;
+
+		data.trackPointId = nearestTrackPointId;
+		data.trackLocation = trackLocation;
+		data.bodyVsTrack = bodyVsTrack;
+		data.velocityVsTrack = velocityVsTrack;
+
+		data.gear = state->gear;
+		data.engineRPM = state->engineRPM;
+		data.speedMS = state->speedMS;
+
+		senseiPoints[splinePointId] = data;
+	}
+
+	if (senseiLapStarted && nearestTrackPointId == numTrackPoints - 1 && oldTrackPointId == numTrackPoints - 2)
+	{
+		senseiLapStarted = false;
+		track->senseiPoints.resize(senseiPoints.size());
+		memcpy(track->senseiPoints.data(), senseiPoints.data(), senseiPoints.size() * sizeof(senseiPoints[0]));
+	}
+
+	if (nearestTrackPointId == 0)
+	{
+		senseiLapStarted = true;
+	}
 }
 
 //=============================================================================
@@ -1160,10 +1247,7 @@ void Car::forcePosition(const vec3f& pos, float offsetY)
 	}
 	bodyPos.y += (getBaseCarHeight() + offsetY + 0.01f);
 
-	// Car::reset()
-	framesToSleep = 50;
-	water->t = 60;
-	fuel = requestedFuel;
+	reset();
 
 	body->stop();
 	body->setPosition(bodyPos);
@@ -1186,13 +1270,6 @@ void Car::forcePosition(const vec3f& pos, float offsetY)
 
 	body->stop();
 	fuelTankBody->stop();
-
-	// custom
-	for (int i = 0; i < 5; ++i)
-	{
-		damageZoneLevel[i] = 0;
-		oldDamageZoneLevel[i] = 0;
-	}
 }
 
 void Car::forceRotation(const vec3f& heading) // TODO: WTF?
