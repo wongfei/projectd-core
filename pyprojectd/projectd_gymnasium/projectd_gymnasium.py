@@ -8,10 +8,10 @@ from projectd_env import ProjectDEnv
 
 class ProjectDEnvGymnasium(gym.Env):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         
-        self.impl = ProjectDEnv()
+        self.impl = ProjectDEnv(**kwargs)
         
         obs_low, obs_high = self.impl._get_obs_space()
         a_low, a_high = self.impl._get_action_space()
@@ -33,7 +33,7 @@ class ProjectDEnvGymnasium(gym.Env):
         return state, {}
 
     def render(self):
-        pass
+        self.impl.render()
 
     # compat with legacy gym
     def seed(self, seed=None):

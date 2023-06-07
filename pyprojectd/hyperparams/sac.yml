@@ -1,14 +1,15 @@
 ProjectD-v0:
   n_timesteps: !!float 1e7
   policy: 'MlpPolicy'
-  policy_kwargs: "dict(net_arch=[128, 128])"
+  policy_kwargs: "dict(net_arch=[256, 256])"
   learning_rate: !!float 7.3e-4
   learning_starts: 666
-  buffer_size: 300000
-  batch_size: 256
+  #buffer_size: 300000
+  buffer_size: 1000000
+  batch_size: 512
   ent_coef: 'auto'
-  gamma: 0.98
-  tau: 0.02
+  gamma: 0.99
+  tau: 0.01
   #train_freq: 1
   train_freq: [1, "episode"]
   #gradient_steps: 1

@@ -211,6 +211,8 @@ void PlaygrounD::tick()
 				::Sleep((DWORD)idleMs);
 			#endif
 		}
+		else
+			serIdle_.reset();
 	}
 }
 

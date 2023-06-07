@@ -90,6 +90,9 @@ void PlaygrounD::renderNuk()
 			nk_property_int(ctx, "draw HZ", 0, &drawHz_, 1000, 1, 2);
 
 			nk_layout_row_dynamic(ctx, rowh, 1);
+			nk_checkbox_label(ctx, "enable tick sleep", &enableSleep_);
+
+			nk_layout_row_dynamic(ctx, rowh, 1);
 			nk_property_float(ctx, "mouse sens", 0.01f, &mouseSens_, 3.0f, 0.01f, 0.01f);
 
 			nk_layout_row_dynamic(ctx, rowh, 1);

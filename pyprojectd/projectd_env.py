@@ -18,10 +18,11 @@ class ProjectDEnv():
 
     sim_dt = 1.0 / 333.0
     render_hz = 60
-    viewer_enabled = True
+    viewer_enabled = False
 
     track_name = 'driftplayground'
-    car_model = 'ks_toyota_supra_mkiv_drift'
+    car_model = 'ks_toyota_ae86_drift'
+    #car_model = 'ks_toyota_supra_mkiv_drift'
 
     smooth_controls = True
     auto_clutch = True
@@ -38,14 +39,14 @@ class ProjectDEnv():
     terminate_off_track = True
     terminate_when_stuck = True
     
-    terminate_hit_penalty = 100.0
-    terminate_off_track_penalty = 100.0
-    terminate_stuck_penalty = 0.0
+    terminate_hit_penalty = 50.0
+    terminate_off_track_penalty = 50.0
+    terminate_stuck_penalty = 50.0
 
-    terminate_low_reward = -10000.0
+    terminate_low_reward = -200.0
     stuck_timeout = 5.0
 
-    teleport_mode = 2 # 0:Start, 1:Nearest, 2:Random
+    teleport_mode = 0 # 0:Start, 1:Nearest, 2:Random
     teleport_on_reset = True
     teleport_on_hit = False
     teleport_off_track = False
@@ -63,36 +64,38 @@ class ProjectDEnv():
         "ApproachDistance" : 3.5,
         "CriticalDistance" : 2.0,
 
-        "TravelBonus" : 1.0, # once per track point
-        "TravelSplineBonus" : 0.1, # once per spline point
+        "TravelBonus" : 0.1, # once per track point
+        "TravelSplineBonus" : 0.01, # once per spline point
         "DriftBonus" : 0.0,
         "SpeedBonus" : 0.0,
         "ThrottleBonus" : 0.0,
         "EngineRpmBonus" : 0.0,
         "DirectionBonus" : 0.0,
 
-        "DirectionPenalty" : 1.0,
-        "ObstApproachPenalty" : 1.0,
-        "CollisionPenalty" : 1.0,
-        "OffTrackPenalty" : 1.0,
+        "DirectionPenalty" : 0.0,
+        "ObstApproachPenalty" : 0.0,
+        "CollisionPenalty" : 0.0,
+        "OffTrackPenalty" : 0.0,
         "GearGrindPenalty" : 0.0,
         "StallPenalty" : 0.0,
     }
 
     car_tunes = {
-        "ks_toyota_supra_mkiv_drift" : {
-            "FRONT_BIAS" : 53.0,
-            "DIFF_POWER" : 90.0,
-            "DIFF_COAST" : 90.0,
+        "ks_toyota_ae86_drift" : {
+            "FRONT_BIAS" : 55.0,
+            "DIFF_POWER" : 30.0,
+            "DIFF_COAST" : 30.0,
             "FINAL_RATIO" : 5.0,
-            "TURBO_0" : 100.0,
-            "TURBO_1" : 100.0,
+            "PRESSURE_LF" : 28.0,
+            "PRESSURE_RF" : 28.0,
+            "PRESSURE_LR" : 28.0,
+            "PRESSURE_RR" : 28.0,
         }
     }
 
     #==============================================================================================
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         global base_dir
         self.base_dir = base_dir
@@ -100,6 +103,9 @@ class ProjectDEnv():
         self.viewer_initialized = False
         self.step_id = 0
         self.total_reward = 0.0
+
+        self.enjoy = 'enjoy_flag' in kwargs
+        self.viewer_enabled = self.enjoy
 
         self.init_sim()
 
@@ -118,9 +124,8 @@ class ProjectDEnv():
         pd.setCarAutoTeleport(self.sim, self.car, self.teleport_on_hit, self.teleport_off_track, self.teleport_mode)
         pd.setCarAssists(self.sim, self.car, self.auto_clutch, self.auto_shift, self.auto_blip)
         
-        tune = self.car_tunes[self.car_model]
-        if tune != None:
-            for name, value in tune.items():
+        if self.car_model in self.car_tunes:
+            for name, value in self.car_tunes[self.car_model].items():
                 pd.setCarTune(self.sim, self.car, name, value)
 
         for name, value in self.scoring_vars.items():
@@ -137,8 +142,8 @@ class ProjectDEnv():
 
     def init_viewer(self):
         pd.initPlayground(self.base_dir)
-        pd.setRenderHz(int(self.render_hz), False)
-        pd.setActiveSimulator(self.sim, False)
+        pd.setRenderHz(int(self.render_hz), False) # enableSleep
+        pd.setActiveSimulator(self.sim, False) # simEnabled
         pd.tickPlayground()
         self.viewer_initialized = True
         
@@ -152,18 +157,9 @@ class ProjectDEnv():
     def step(self, action):
         
         self.dcontrols.steer = action[0] # steer [-1, 1]
-        
-        if True:
-            self.dcontrols.gas = u.linscalef(action[1], -1.0, 1.0, self.min_gas, self.max_gas)
-            self.dcontrols.brake = u.linscalef(action[2], -1.0, 1.0, 0.0, 1.0)
-        else:
-            throtl = action[1]
-            if (throtl > 0.0):
-                self.dcontrols.gas = u.clampf(throtl, min_gas, max_gas)
-            else:
-                self.dcontrols.brake = throtl * -1.0
-
-        self.dcontrols.handBrake = 0.0
+        self.dcontrols.gas = u.linscalef(action[1], -1.0, 1.0, self.min_gas, self.max_gas)
+        #self.dcontrols.brake = u.linscalef(action[2], -1.0, 1.0, 0.0, 1.0)
+        #self.dcontrols.handBrake = 0.0
         
         if not self.auto_clutch:
             self.dcontrols.clutch = 1.0
@@ -173,14 +169,14 @@ class ProjectDEnv():
         
         pd.setCarControls(self.sim, self.car, self.smooth_controls, self.dcontrols)
         pd.stepSimulator(self.sim, self.sim_dt)
+        
+        if self.viewer_initialized:
+            pd.tickPlayground()
+        elif self.viewer_enabled and self.step_id > 5:
+            self.init_viewer()
+
         pd.getCarState(self.sim, self.car, self.dstate)
         self.step_id += 1
-
-        if self.viewer_enabled:
-            if not self.viewer_initialized and self.step_id > 10:
-                self.init_viewer()
-            if self.viewer_initialized:
-                pd.tickPlayground()
 
         state = self._get_obs_state()
         reward = self.dstate.stepReward
@@ -231,6 +227,12 @@ class ProjectDEnv():
         return state
 
     #==============================================================================================
+
+    def render(self):
+        #self.viewer_enabled = True
+        pass
+
+    #==============================================================================================
     
     def _get_obs_state(self):
         
@@ -238,18 +240,18 @@ class ProjectDEnv():
 
             #u.linscalef(self.dstate.engineRPM, 0.0, 20000.0, 0.0, 1.0),
             
-            #self.dstate.localVelocity.x, # m/s
-            #self.dstate.localVelocity.y,
-            #self.dstate.localVelocity.z,
+            self.dstate.localVelocity.x, # m/s
+            self.dstate.localVelocity.y,
+            self.dstate.localVelocity.z,
 
-            #self.dstate.localAngularVelocity.x, # rad/s
-            #self.dstate.localAngularVelocity.y,
-            #self.dstate.localAngularVelocity.z,
+            self.dstate.localAngularVelocity.x, # rad/s
+            self.dstate.localAngularVelocity.y,
+            self.dstate.localAngularVelocity.z,
             
-            #self.dstate.tyreNdSlip[0],
-            #self.dstate.tyreNdSlip[1],
-            #self.dstate.tyreNdSlip[2],
-            #self.dstate.tyreNdSlip[3],
+            self.dstate.tyreNdSlip[0],
+            self.dstate.tyreNdSlip[1],
+            self.dstate.tyreNdSlip[2],
+            self.dstate.tyreNdSlip[3],
             
             self.dstate.bodyVsTrack, # body_direction dot track_direction
             self.dstate.velocityVsTrack, # velocity dot track_direction
@@ -280,18 +282,18 @@ class ProjectDEnv():
 
             #0.0, # engineRpmNorm
             
-            #-self.range_velocity, # localVelocity.x
-            #-self.range_velocity, # localVelocity.y
-            #-self.range_velocity, # localVelocity.z
+            -self.range_velocity, # localVelocity.x
+            -self.range_velocity, # localVelocity.y
+            -self.range_velocity, # localVelocity.z
             
-            #-self.range_angularVelocity, # localAngularVelocity.x
-            #-self.range_angularVelocity, # localAngularVelocity.y
-            #-self.range_angularVelocity, # localAngularVelocity.z
+            -self.range_angularVelocity, # localAngularVelocity.x
+            -self.range_angularVelocity, # localAngularVelocity.y
+            -self.range_angularVelocity, # localAngularVelocity.z
             
-            #0.0, # tyreNdSlip0
-            #0.0, # tyreNdSlip1
-            #0.0, # tyreNdSlip2
-            #0.0, # tyreNdSlip3
+            0.0, # tyreNdSlip0
+            0.0, # tyreNdSlip1
+            0.0, # tyreNdSlip2
+            0.0, # tyreNdSlip3
             
             -1.0, # bodyVsTrack
             -1.0, # velocityVsTrack
@@ -316,18 +318,18 @@ class ProjectDEnv():
 
             #1.0, # engineRpmNorm
             
-            #self.range_velocity, # localVelocity.x
-            #self.range_velocity, # localVelocity.y
-            #self.range_velocity, # localVelocity.z
+            self.range_velocity, # localVelocity.x
+            self.range_velocity, # localVelocity.y
+            self.range_velocity, # localVelocity.z
             
-            #self.range_angularVelocity, # localAngularVelocity.x
-            #self.range_angularVelocity, # localAngularVelocity.y
-            #self.range_angularVelocity, # localAngularVelocity.z
+            self.range_angularVelocity, # localAngularVelocity.x
+            self.range_angularVelocity, # localAngularVelocity.y
+            self.range_angularVelocity, # localAngularVelocity.z
             
-            #self.range_tyreNdSlip, # tyreNdSlip0
-            #self.range_tyreNdSlip, # tyreNdSlip1
-            #self.range_tyreNdSlip, # tyreNdSlip2
-            #self.range_tyreNdSlip, # tyreNdSlip3
+            self.range_tyreNdSlip, # tyreNdSlip0
+            self.range_tyreNdSlip, # tyreNdSlip1
+            self.range_tyreNdSlip, # tyreNdSlip2
+            self.range_tyreNdSlip, # tyreNdSlip3
             
             1.0, # bodyVsTrack
             1.0, # velocityVsTrack
@@ -354,8 +356,8 @@ class ProjectDEnv():
 
     def _get_action_space(self):
 
-        # steer, gas, brake
-        a_low  = np.array([-1, -1, -1], dtype=np.float32)
-        a_high = np.array([+1, +1, +1], dtype=np.float32)
+        # steer, gas
+        a_low  = np.array([-1, -1], dtype=np.float32)
+        a_high = np.array([+1, +1], dtype=np.float32)
 
         return a_low, a_high

@@ -122,7 +122,7 @@ struct PlaygrounD
 	int height_ = 720;
 	int swapInterval_ = -1;
 	bool fullscreen_ = false;
-	bool enableSleep_ = true;
+	int enableSleep_ = true;
 
 	std::wstring appDir_;
 	SDL_Window* appWindow_ = nullptr;

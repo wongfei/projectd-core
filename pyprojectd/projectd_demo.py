@@ -17,16 +17,31 @@ auto_shift = True
 auto_blip = True
 
 track_name = 'driftplayground'
-car_model = 'ks_toyota_supra_mkiv_drift'
+car_model = 'ks_toyota_ae86_drift'
+#car_model = 'ks_toyota_supra_mkiv_drift'
 
 car_tunes = {
+    "ks_toyota_ae86_drift" : {
+        "FRONT_BIAS" : 55.0,
+        "DIFF_POWER" : 30.0,
+        "DIFF_COAST" : 30.0,
+        "FINAL_RATIO" : 5.0,
+        "PRESSURE_LF" : 28.0,
+        "PRESSURE_RF" : 28.0,
+        "PRESSURE_LR" : 28.0,
+        "PRESSURE_RR" : 28.0,
+    },
     "ks_toyota_supra_mkiv_drift" : {
-        "FRONT_BIAS" : 53.0,
+        "FRONT_BIAS" : 55.0,
         "DIFF_POWER" : 90.0,
         "DIFF_COAST" : 90.0,
         "FINAL_RATIO" : 5.0,
         "TURBO_0" : 100.0,
         "TURBO_1" : 100.0,
+        "PRESSURE_LF" : 28.0,
+        "PRESSURE_RF" : 28.0,
+        "PRESSURE_LR" : 28.0,
+        "PRESSURE_RR" : 28.0,
     }
 }
 
@@ -51,9 +66,8 @@ pd.teleportCarToSpline(sim, car, 0.01)
 pd.setCarAutoTeleport(sim, car, teleport_on_hit, teleport_off_track, 1) # 0:Start, 1:Nearest, 2:Random
 pd.setCarAssists(sim, car, auto_clutch, auto_shift, auto_blip)
 
-tune = car_tunes[car_model]
-if tune != None:
-    for name, value in tune.items():
+if car_model in car_tunes:
+    for name, value in car_tunes[car_model].items():
         pd.setCarTune(sim, car, name, value)
 
 if enable_second_sim:

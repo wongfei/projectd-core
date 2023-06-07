@@ -9,11 +9,11 @@ from projectd_env import ProjectDEnv
 
 class ProjectDEnvGym(gym.Env):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         
         self.seed()
-        self.impl = ProjectDEnv()
+        self.impl = ProjectDEnv(**kwargs)
         
         obs_low, obs_high = self.impl._get_obs_space()
         a_low, a_high = self.impl._get_action_space()
@@ -34,9 +34,9 @@ class ProjectDEnvGym(gym.Env):
         state = self.impl.reset()
         return state
 
+    def render(self, mode):
+        self.impl.render()
+
     def seed(self, seed=None):
         self.np_random, seed = gym_seeding.np_random(seed)
         return [seed]
-
-    def render(self, mode):
-        pass

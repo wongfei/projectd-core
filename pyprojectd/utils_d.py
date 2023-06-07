@@ -24,6 +24,7 @@ def find_latest_file(path, filter):
                 mtime = os.path.getmtime(filepath)
                 pair = {'filepath' : filepath, 'mtime' : mtime}
                 pairs.append(pair)
+                #print(filepath, ' ', mtime)
 
     def sort_by_mtime(a, b):
         if a.mtime < b.mtime:
@@ -32,7 +33,10 @@ def find_latest_file(path, filter):
             return 1
         return 0
 
-    sorted(pairs, key=lambda x: x['mtime'])
+    pairs = sorted(pairs, key=lambda x: x['mtime'])
+
+    #for item in pairs:
+        #print(item['filepath'], ' ', item['mtime'])
 
     if len(pairs) > 0:
         return pairs[len(pairs) - 1]['filepath']

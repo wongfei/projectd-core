@@ -105,7 +105,7 @@ void PlaygrounD::renderStats()
 	font_.draw(x, y, "drawHitches %d", (int)statDrawHitches_); y += dy;
 	font_.draw(x, y, "lastHitch %.2f", lastHitchTime_); y += dy;
 
-	#if 0
+	#if 1
 	font_.draw(x, y, "camera %.2f %.2f %.2f", camPos_.x, camPos_.y, camPos_.z); y += dy;
 
 	if (lookatSurf_) {
